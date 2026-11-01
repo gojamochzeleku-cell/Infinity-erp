@@ -123,7 +123,11 @@ def employee_profile(request, pk):
     reviewer = getattr(request.user, 'employee', None)
     
     if request.method == 'POST':
-        if 'doc_type' in request.POST:
+        if 'update_telegram' in request.POST:
+            emp.telegram_id = request.POST.get('telegram_id')
+            emp.save()
+            return redirect('employee_profile', pk=emp.pk)
+        elif 'doc_type' in request.POST:
             doc_type = request.POST.get('doc_type')
             title = request.POST.get('title')
             file_obj = request.FILES.get('file')

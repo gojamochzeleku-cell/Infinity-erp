@@ -5,8 +5,18 @@
 <div class="card">
   <div class="kv"><span class="k">Role</span><span class="v">{{ target_emp.get_role_display }}</span></div>
   <div class="kv"><span class="k">Username</span><span class="v">{{ target_emp.user.username }}</span></div>
+  <div class="kv"><span class="k">Telegram ID</span><span class="v">{{ target_emp.telegram_id|default:"Not Linked" }}</span></div>
   <div class="kv"><span class="k">Base Salary</span><span class="v">{{ target_emp.base_salary }} ETB</span></div>
   <div class="kv"><span class="k">Contract Expiry</span><span class="v">{{ target_emp.contract_expiry|date:"d M Y"|default:"Not Set" }}</span></div>
+</div>
+
+<div class="card" style="background:#1a1f2b; border-color:#4cc7e8; margin-bottom:15px;">
+  <h3 style="font-size:13px; color:#4cc7e8; margin-bottom:10px;">Link Telegram Mini App</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="text" name="telegram_id" value="{{ target_emp.telegram_id|default:'' }}" placeholder="Enter numeric Telegram ID" style="margin-bottom:8px;">
+    <button class="btn btn-blue wide" type="submit" name="update_telegram" value="1">Save Telegram ID</button>
+  </form>
 </div>
 
 <div class="card" style="background:#1a1f2b;">
