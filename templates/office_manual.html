@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}Office Assistant Manual{% endblock %}
+{% block content %}
+
+<style>
+    .manual-header { background: linear-gradient(145deg, #1a1f2b, #151922); border-left: 5px solid #e8b64c; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+    .manual-title { font-size: 20px; font-weight: bold; color: #e8b64c; margin-bottom: 5px; }
+    .manual-sub { font-size: 12px; color: #8f99b0; }
+    
+    details { background: #151922; border: 1px solid #333a4d; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+    summary { padding: 15px; font-size: 15px; font-weight: bold; color: #fff; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; background: #1a1f2b; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: '+'; font-size: 20px; color: #e8b64c; font-weight: bold; }
+    details[open] summary::after { content: '-'; }
+    details[open] summary { border-bottom: 1px solid #333a4d; }
+    
+    .manual-content { padding: 15px; font-size: 13px; line-height: 1.6; color: #c8cfdd; }
+    .manual-content h4 { color: #4cc7e8; margin-top: 15px; margin-bottom: 5px; font-size: 14px; }
+    .manual-content p { margin-bottom: 10px; }
+    .manual-content ul { margin-left: 20px; margin-bottom: 10px; }
+    .manual-content li { margin-bottom: 5px; }
+    .highlight-box { background: #152a1c; border-left: 3px solid #1f8a4c; padding: 10px; border-radius: 4px; margin: 10px 0; font-size: 12px; }
+    .warning-box { background: #3a1a1a; border-left: 3px solid #e2504a; padding: 10px; border-radius: 4px; margin: 10px 0; font-size: 12px; }
+</style>
+
+<div class="manual-header">
+    <div class="manual-title">📖 Office Assistant Training Manual</div>
+    <div class="manual-sub">Infinity Investment Institute ERP • Version 1.0</div>
+</div>
+
+<p class="meta" style="margin-bottom:15px;">Welcome to the Infinity ERP. As the Office Assistant, you are the <strong>Digital and Physical Bridge</strong> of the company. This manual will guide you through your daily tasks. Tap on any section to read it.</p>
+
+<details>
+    <summary>1. The Tender Chain (Your Tasks)</summary>
+    <div class="manual-content">
+        <p>You have several critical tasks in the Tender chain. You will be notified in your Action Center when it's your turn.</p>
+        <h4>T08: Upload Purchased Bid Document</h4>
+        <p>After the Case Executive buys the physical bid document, they upload the receipt. The task then moves to you. You must scan the purchased bid document and upload it.</p>
+        <div class="warning-box"><strong>Important:</strong> The moment you upload this document, the AI engine will read it and automatically generate 4 new tasks for the Bid Manager, Finance, HR, and Bid Operator.</div>
+        
+        <h4>T14: Upload Bank Letter</h4>
+        <p>Finance will prepare a bank letter for the bid security. You must upload this letter, which automatically registers it in the "Outgoing Mail" registry.</p>
+        
+        <h4>T20, T21, T24: Uploads</h4>
+        <p>If the company wins, you will be tasked to upload the Award Document, Draft Agreement, and Final Signed Agreement. Always ensure these are scanned clearly.</p>
+    </div>
+</details>
+
+<details>
+    <summary>2. Document Registry & Standard Filing</summary>
+    <div class="manual-content">
+        <p>Every file uploaded in the system gets a unique <strong>Document ID (e.g., CHI-DOC-0001)</strong>. You are responsible for the physical replica.</p>
+        <h4>How to file a document:</h4>
+        <ul>
+            <li>Go to <strong>Docs</strong> in the menu or dashboard.</li>
+            <li>Find a document marked "Not Physically Filed".</li>
+            <li>Click <strong>Record Physical Filing</strong>.</li>
+            <li>Fill in the hierarchy: <strong>Room ➔ Cabinet ➔ Shelf ➔ Box ➔ Folder</strong>.</li>
+        </ul>
+        <h4>How to Check-Out a Document:</h4>
+        <p>If a manager needs a physical document, click <strong>Check-out to Employee</strong>. The system will mark it as "Currently with [Name]". When they return it, click <strong>Mark as Returned</strong>.</p>
+        
+        <div class="highlight-box"><strong>Pro Tip:</strong> Use the <strong>🔍 Scan Document</strong> button on your dashboard. If you type a Doc ID, it will instantly pull up the file and tell you exactly where the physical paper is stored.</div>
+    </div>
+</details>
+
+<details>
+    <summary>3. Mail Registry (Incoming & Outgoing)</summary>
+    <div class="manual-content">
+        <p>You manage all formal letters that enter or leave the company.</p>
+        <h4>Incoming Mail:</h4>
+        <p>When a letter arrives (e.g., from the Ministry), go to <strong>Mail</strong> ➔ <strong>+ Incoming</strong>. Upload the scan, enter the Sender, and assign it to the CEO or relevant manager. This creates a task in their Action Center to read it.</p>
+        <h4>Outgoing Mail:</h4>
+        <p>When the company sends a letter, go to <strong>Mail</strong> ➔ <strong>+ Outgoing</strong>. <strong>Important:</strong> Set a "Reply Deadline". If the recipient doesn't reply by that date, the system will alert management that the letter is overdue.</p>
+    </div>
+</details>
+
+<details>
+    <summary>4. The Office Command Center</summary>
+    <div class="manual-content">
+        <p>Your dedicated dashboard widget for physical office management.</p>
+        <h4>🚚 Log Dispatch (Courier)</h4>
+        <p>When you send a document via a driver or courier (e.g., submitting a bid to the Ministry), log it here. Enter the driver's name and the destination.</p>
+        <h4>👔 Visitor Check-in</h4>
+        <p>When guests arrive, log their name and who they are visiting. This helps security and allows the host to know their guest is waiting in the lobby.</p>
+    </div>
+</details>
+
+<details>
+    <summary>5. Supplies & General Uploads</summary>
+    <div class="manual-content">
+        <h4>Stationery Requests</h4>
+        <p>Employees will request pens, paper, or toner through their dashboard. You will receive a task in your Action Center. Once you give them the items, go to the <strong>Supply Requests</strong> page and click <strong>Mark as Fulfilled</strong>.</p>
+        <h4>General Uploads</h4>
+        <p>If you need to upload a document that isn't part of a Tender (e.g., an ISO certificate or Trade License), use the <strong>⬆️ Upload Document</strong> button on your Command Center. Don't forget to select the correct category so it gets filed correctly.</p>
+    </div>
+</details>
+
+<details>
+    <summary>6. IT Support</summary>
+    <div class="manual-content">
+        <p>If your computer breaks, the printer jams, or you cannot log in to the system, use the <strong>🎫 Submit IT Ticket</strong> button on your dashboard. The IT Coordinator will be notified immediately and will come to assist you.</p>
+    </div>
+</details>
+
+<a class="btn btn-green wide" href="{% url 'dashboard' %}" style="margin-top:20px;">Back to Action Center</a>
+
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Manage Users{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+  <h2>Manage Users</h2>
+  <a href="{% url 'it_dashboard' %}" class="btn btn-grey" style="padding:6px 12px; font-size:12px;">Back to IT</a>
+</div>
+
+{% for e in users %}
+  <div class="card" style="padding:15px; margin-bottom:10px; {% if not e.is_active %}opacity:0.5;{% endif %}">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div style="font-size:15px; font-weight:bold;">{{ e.full_name }}</div>
+        <div class="meta" style="font-size:11px;">@{{ e.user.username }} | {{ e.get_role_display }}</div>
+      </div>
+      <div>
+        <span class="pill {% if e.is_active %}completed{% else %}rejected{% endif %}">
+          {% if e.is_active %}Active{% else %}Disabled{% endif %}
+        </span>
+      </div>
+    </div>
+    <div style="margin-top:10px; display:flex; gap:10px;">
+      <a href="{% url 'it_reset_password' e.id %}" class="btn btn-blue" style="padding:6px 12px; font-size:11px;">Reset Password</a>
+      <form method="post" action="{% url 'it_toggle_user' e.id %}" style="margin:0;">
+        {% csrf_token %}
+        <button class="btn {% if e.is_active %}btn-red{% else %}btn-green{% endif %}" type="submit" style="padding:6px 12px; font-size:11px;">
+          {% if e.is_active %}Deactivate{% else %}Activate{% endif %}
+        </button>
+      </form>
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}

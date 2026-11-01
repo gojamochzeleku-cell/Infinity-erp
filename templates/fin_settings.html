@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Finance Settings{% endblock %}
+{% block content %}
+<h2>Finance Settings</h2>
+<div class="card">
+  <p class="meta" style="margin-bottom:15px;">Set the threshold for Supplier Payment approvals. If a payment request is <strong>above</strong> this amount, it will automatically be routed to the CEO for final approval.</p>
+  
+  <form method="post">
+    {% csrf_token %}
+    <label class="meta">Payment Approval Threshold (ETB)</label>
+    <input type="number" step="0.01" name="threshold" value="{{ setting.payment_approval_threshold }}" required style="font-size:20px; font-weight:bold; color:#e8b64c;">
+    <button class="btn btn-green wide" type="submit" style="margin-top:15px;">Save Threshold</button>
+  </form>
+</div>
+{% endblock %}

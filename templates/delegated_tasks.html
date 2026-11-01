@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Delegated Tasks{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+  <h2>Tasks I Assigned</h2>
+  <a href="{% url 'assign_task' %}" class="btn btn-green" style="padding:6px 12px; font-size:12px;">+ Assign New</a>
+</div>
+
+{% for t in tasks %}
+  <div class="card" style="padding:15px; margin-bottom:10px; border-left:4px solid {% if t.status == 'COMPLETED' %}#5fd68a{% elif t.due_date and t.due_date < today and t.status != 'COMPLETED' %}#e2504a{% elif t.priority == 'URGENT' %}#e2504a{% else %}#4cc7e8{% endif %};">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div style="font-size:15px; font-weight:bold; margin-bottom:4px; {% if t.status == 'COMPLETED' %}text-decoration:line-through; color:#8f99b0;{% endif %}">{{ t.title }}</div>
+        <div class="meta" style="font-size:12px; margin-bottom:6px;">Assigned to: <strong>{{ t.assigned_to.full_name }}</strong></div>
+        <div class="meta" style="font-size:11px;">
+          {% if t.due_date %}
+            {% if t.due_date < today and t.status != 'COMPLETED' %}
+              <span style="color:#e2504a; font-weight:bold;">⚠️ Overdue: {{ t.due_date|date:"d M Y" }}</span>
+            {% else %}
+              Due: {{ t.due_date|date:"d M Y" }}
+            {% endif %}
+          {% else %}
+            No due date
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <span class="pill {% if t.status == 'COMPLETED' %}completed{% else %}pending{% endif %}">{{ t.get_status_display }}</span>
+      </div>
+    </div>
+  </div>
+{% empty %}
+  <p class="empty">You have not assigned any tasks yet.</p>
+{% endfor %}
+{% endblock %}

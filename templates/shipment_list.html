@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Shipment Tracker</h2>
+{% for s in shipments %}
+  <div class="card" style="padding:15px; margin-bottom:10px; border-left:4px solid {% if s.current_status == 'WAREHOUSE' %}#5fd68a{% elif s.current_status == 'CUSTOMS' %}#e2504a{% else %}#4cc7e8{% endif %};">
+    <div class="ttl" style="font-size:14px; margin-bottom:6px;">{{ s.tender.serial_number }} - {{ s.tender.bid_title|truncatechars:30 }}</div>
+    <div class="kv"><span class="k">Status</span><span class="v" style="font-weight:bold; color:#e8b64c;">{{ s.get_current_status_display }}</span></div>
+    <div class="kv"><span class="k">Vessel</span><span class="v">{{ s.vessel_name|default:"Not set" }}</span></div>
+    {% if s.eta %}<div class="kv"><span class="k">ETA</span><span class="v">{{ s.eta|date:"d M Y" }}</span></div>{% endif %}
+    
+    <div style="margin-top:10px; display:flex; gap:10px;">
+      <a href="{% url 'shipment_update' s.pk %}" class="btn btn-blue" style="padding:6px 12px; font-size:11px;">Update Status</a>
+      {% if s.current_status == 'WAREHOUSE' or s.current_status == 'CUSTOMS' %}
+      <a href="{% url 'inventory_check' s.pk %}" class="btn btn-green" style="padding:6px 12px; font-size:11px;">Check Inventory</a>
+      {% endif %}
+    </div>
+  </div>
+{% empty %}
+  <p class="empty">No active shipments.</p>
+{% endfor %}
+{% endblock %}

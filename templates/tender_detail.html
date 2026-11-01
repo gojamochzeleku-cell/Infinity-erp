@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}{{ tender.bid_title }}{% endblock %}
+{% block content %}
+<h2>{{ tender.bid_title }}</h2>
+<div class="card">
+  <div class="kv"><span class="k">Serial</span><span class="v">{{ tender.serial_number }}</span></div>
+  <div class="kv"><span class="k">Status</span><span class="v"><span class="pill {{ tender.status|lower }}">{{ tender.get_status_display }}</span></span></div>
+  <div class="kv"><span class="k">Reference</span><span class="v">{{ tender.bid_reference_number }}</span></div>
+  <div class="kv"><span class="k">Type</span><span class="v">{{ tender.get_bid_type_display }}</span></div>
+  <div class="kv"><span class="k">Purchaser</span><span class="v">{{ tender.purchaser_name }}</span></div>
+  <div class="kv"><span class="k">Organization</span><span class="v">{{ tender.get_organization_type_display }}</span></div>
+  <div class="kv"><span class="k">Published</span><span class="v">{{ tender.published_date|date:"d M Y"|default:"-" }}</span></div>
+  <div class="kv"><span class="k">Location</span><span class="v">{{ tender.bidder_location|default:"-" }}</span></div>
+  <div class="kv"><span class="k">Phone</span><span class="v">{{ tender.contact_phone|default:"-" }}</span></div>
+  <div class="kv"><span class="k">Doc Cost</span><span class="v">{{ tender.bid_document_cost_amount }} ({{ tender.get_bid_document_cost_payment_mode_display }})</span></div>
+  {% if tender.bid_document_cost_payment_mode == 'DEPOSIT' %}
+  <div class="kv"><span class="k">Account</span><span class="v">{{ tender.account_holder_name }} / {{ tender.bank_name }} / {{ tender.bank_account_number }}</span></div>
+  {% endif %}
+  <div class="kv"><span class="k">CPO</span><span class="v">{{ tender.cpo_amount }} {{ tender.get_cpo_type_display }}</span></div>
+  <div class="kv"><span class="k">Submit by</span><span class="v">{{ tender.bid_submission_date|date:"d M Y"|default:"-" }}</span></div>
+  <div class="kv"><span class="k">Opening</span><span class="v">{{ tender.bid_opening_date|date:"d M Y"|default:"-" }}</span></div>
+  <div class="kv"><span class="k">AI Extracted</span><span class="v">{% if tender.ai_extracted %}Yes{% else %}No{% endif %}</span></div>
+  {% if tender.supplier_name %}<div class="kv"><span class="k">Supplier</span><span class="v">{{ tender.supplier_name }}</span></div>{% endif %}
+  {% if tender.final_price > 0 %}<div class="kv"><span class="k">Final Locked Price</span><span class="v" style="color:#5fd68a; font-weight:bold;">{{ tender.final_price }} ETB</span></div>{% endif %}
+  <div class="kv"><span class="k">Registered by</span><span class="v">{% if tender.registered_by %}{{ tender.registered_by.full_name }}{% else %}-{% endif %}</span></div>
+  {% if tender.bid_information_sheet %}
+  <div class="kv"><span class="k">Info Sheet</span><span class="v"><a href="{{ tender.bid_information_sheet.url }}" target="_blank" style="color:#e8b64c">download PDF</a></span></div>
+  {% endif %}
+</div>
+{% if tender.status == 'DRAFT' %}
+<div class="card">
+  <div class="meta" style="margin-bottom:8px">Ready to send?</div>
+  <a class="btn btn-grey" href="{% url 'tender_edit' tender.id %}">Edit</a>
+  <form method="post" action="{% url 'tender_submit' tender.id %}" style="display:inline">{% csrf_token %}
+    <button class="btn btn-green" type="submit">Submit to Bid Manager</button>
+  </form>
+</div>
+{% endif %}
+<a class="btn btn-grey" href="{% url 'tender_list' %}">Back to tenders</a>
+{% endblock %}

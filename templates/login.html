@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Login - Infinity Investment Institute{% endblock %}
+{% block content %}
+<div class="logo">
+  <div class="mark">&#8734;</div>
+  <h1>Infinity Investment Institute</h1>
+  <p>Tender &amp; Import Management System</p>
+</div>
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    <input type="text" name="username" placeholder="Username" autocomplete="username" required>
+    <input type="password" name="password" placeholder="Password" autocomplete="current-password" required>
+    {% if form.errors %}<div style="color:#e2504a;font-size:12px;margin-bottom:10px">Wrong username or password.</div>{% endif %}
+    <button class="btn btn-green wide" type="submit">Sign in</button>
+  </form>
+</div>
+{% endblock %}

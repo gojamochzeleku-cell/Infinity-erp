@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}{{ direction }} Letter{% endblock %}
+{% block content %}
+<h2>Register {{ direction }} Letter</h2>
+<div class="card">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <label class="meta">Date</label>
+    <input type="date" name="letter_date" required>
+    
+    <label class="meta">Reference Number (Optional)</label>
+    <input type="text" name="reference_number" placeholder="e.g. REF/123/2026">
+    
+    <label class="meta">{% if direction == 'INCOMING' %}Sender Name{% else %}Recipient Name{% endif %}</label>
+    <input type="text" name="sender_recipient" required placeholder="e.g. Ministry of Finance">
+    
+    <label class="meta">Subject</label>
+    <input type="text" name="subject" required>
+    
+    <label class="meta">Assign Action To (Optional)</label>
+    <select name="assigned_to">
+      <option value="">-- No specific action required --</option>
+      {% for e in employees %}
+        <option value="{{ e.id }}">{{ e.full_name }} ({{ e.get_role_display }})</option>
+      {% endfor %}
+    </select>
+
+    <label class="meta">Upload Scanned Letter (PDF/Image)</label>
+    <input type="file" name="file" required style="color:#c8cfdd; margin-bottom:15px;">
+    
+    <button class="btn btn-green wide" type="submit">Save & Generate Doc ID</button>
+    <a class="btn btn-grey wide" href="{% url 'mail_list' %}" style="margin-top:5px;">Cancel</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Scan Document{% endblock %}
+{% block content %}
+<div style="text-align:center; padding:30px 0;">
+  <div style="font-size:50px; margin-bottom:10px;">🔍</div>
+  <h2>Document Scanner</h2>
+  <p class="meta" style="margin-bottom:20px;">Scan the QR code on a physical file or type the Doc ID below.</p>
+</div>
+
+<div class="card" style="border:2px solid #4cc7e8;">
+  <form method="get" style="display:flex; gap:10px;">
+    <input type="text" name="scan_id" placeholder="e.g., CHI-DOC-0001" required style="flex:1; margin:0; font-size:16px; text-align:center; font-weight:bold; letter-spacing:1px;">
+    <button class="btn btn-blue" type="submit" style="margin:0;">Find</button>
+  </form>
+</div>
+
+{% if error %}
+<div class="card" style="border-color:#e2504a; background:#2a1515; text-align:center; color:#ff9b96;">
+  {{ error }}
+</div>
+{% endif %}
+
+<a class="btn btn-grey wide" href="{% url 'dashboard' %}" style="margin-top:20px;">Back to Action Center</a>
+{% endblock %}

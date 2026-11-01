@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Tenders{% endblock %}
+{% block content %}
+<h2>Tenders</h2>
+
+<div class="card" style="padding:10px; margin-bottom:15px;">
+  <form method="get" style="display:flex; flex-direction:column; gap:8px;">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search Title, Ref No, or Purchaser..." style="margin:0;">
+    <div style="display:flex; gap:8px;">
+      <select name="status" style="margin:0; flex:1;">
+        <option value="">All Statuses</option>
+        {% for code, name in status_choices %}
+          <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+      <select name="org_type" style="margin:0; flex:1;">
+        <option value="">All Organizations</option>
+        {% for code, name in org_choices %}
+          <option value="{{ code }}" {% if org_filter == code %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-blue wide" type="submit" style="margin:0;">Search & Filter</button>
+  </form>
+</div>
+
+<a class="btn btn-green wide" href="{% url 'tender_register' %}">+ Register new tender</a>
+<div style="height:14px"></div>
+
+{% for t in tenders %}
+  <a class="taskcard" href="{% url 'tender_detail' t.id %}">
+    <div class="row">
+      <span class="code">{{ t.serial_number }}</span>
+      <span class="pill {{ t.status|lower }}">{{ t.get_status_display }}</span>
+    </div>
+    <div class="ttl">{{ t.bid_title }}</div>
+    <div class="meta">Ref: {{ t.bid_reference_number }} &middot; {{ t.purchaser_name }}</div>
+    <div class="meta" style="margin-top:4px">Submit by: {{ t.bid_submission_date|date:"d M Y"|default:"-" }}</div>
+  </a>
+{% empty %}
+  <p class="empty">No tenders found matching your search.</p>
+{% endfor %}
+{% endblock %}

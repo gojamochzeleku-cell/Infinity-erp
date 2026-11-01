@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<h2>Notifications {% if unread_count %}<span class="pill pending">{{ unread_count }} new</span>{% endif %}</h2>
+{% for n in items %}
+  <div class="card">
+    <div class="row" style="display:flex;justify-content:space-between">
+      <strong style="font-size:14px">{{ n.title }}</strong>
+      {% if not n.is_read %}<span class="pill pending">NEW</span>{% endif %}
+    </div>
+    {% if n.body %}<div class="meta" style="margin-top:6px">{{ n.body }}</div>{% endif %}
+    <div class="meta" style="margin-top:6px">{{ n.created_at|date:"d M Y H:i" }}</div>
+    {% if n.task and n.task.company == current_company %}
+      <a class="btn btn-grey" href="{% url 'task_detail' n.task.id %}">Open task</a>
+    {% endif %}
+  </div>
+{% empty %}
+  <p class="empty">No notifications yet.</p>
+{% endfor %}
+<form method="post" action="{% url 'mark_all_read' %}">{% csrf_token %}
+  <button class="btn btn-blue" type="submit">Mark all as read</button>
+</form>
+{% endblock %}

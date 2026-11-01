@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Request Expense</h2>
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    <label class="meta">Amount (ETB)</label>
+    <input type="number" step="0.01" name="amount" required>
+    <label class="meta">Reason / Justification</label>
+    <textarea name="reason" required></textarea>
+    <button class="btn btn-green" type="submit">Submit to Finance</button>
+  </form>
+</div>
+{% endblock %}

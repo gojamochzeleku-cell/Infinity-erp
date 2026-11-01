@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Generate Payroll</h2>
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    <label class="meta">Month</label>
+    <select name="month" required style="margin-bottom:10px;">
+      <option value="January">January</option>
+      <option value="February">February</option>
+      <option value="March">March</option>
+      <option value="April">April</option>
+      <option value="May">May</option>
+      <option value="June">June</option>
+      <option value="July">July</option>
+      <option value="August">August</option>
+      <option value="September">September</option>
+      <option value="October">October</option>
+      <option value="November">November</option>
+      <option value="December">December</option>
+    </select>
+    <label class="meta">Year</label>
+    <input type="number" name="year" value="2026" required style="margin-bottom:15px;">
+    <button class="btn btn-green wide" type="submit">Calculate & Send to Finance</button>
+    <a class="btn btn-grey wide" href="{% url 'payroll_history' %}" style="margin-top:5px;">Cancel</a>
+  </form>
+</div>
+{% endblock %}

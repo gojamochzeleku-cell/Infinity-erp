@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Upload Document{% endblock %}
+{% block content %}
+<h2>Upload & Register Document</h2>
+<div class="card">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <label class="meta">Document Title</label>
+    <input type="text" name="title" required placeholder="e.g. Supplier Catalog, HR File, Bank Letter">
+    
+    <label class="meta">Document Category</label>
+    <select name="category" required style="margin-bottom:10px;">
+      <option value="GENERAL">General / Other</option>
+      <option value="TENDER">Tender & Bidding</option>
+      <option value="FINANCE">Finance & Banking</option>
+      <option value="LEGAL">Legal & Agreements</option>
+      <option value="HR">Human Resources</option>
+      <option value="MAIL">Correspondence</option>
+    </select>
+
+    <label class="meta">Link to Tender (Optional - Enter Serial Number)</label>
+    <input type="text" name="tender_serial" placeholder="e.g. CHI-TND-2026-0001">
+    
+    <label class="meta">Upload File (PDF / Image)</label>
+    <input type="file" name="file" required style="color:#c8cfdd; margin-bottom:15px;">
+    
+    <button class="btn btn-green wide" type="submit">Upload & Generate Doc ID</button>
+    <a class="btn btn-grey wide" href="{% url 'dashboard' %}" style="margin-top:5px;">Cancel</a>
+  </form>
+</div>
+{% endblock %}

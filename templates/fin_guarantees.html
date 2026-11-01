@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Guarantee Tracker{% endblock %}
+{% block content %}
+<h2>Bank Guarantee Tracker</h2>
+<div class="card" style="border-left:4px solid #e8b64c; margin-bottom:20px;">
+  <div class="meta">TOTAL CPO LIABILITY</div>
+  <div style="font-size:28px; font-weight:bold; color:#e8b64c;">{{ total_cpo }} ETB</div>
+</div>
+
+{% for t in tenders %}
+  <div class="card" style="padding:15px; margin-bottom:10px;">
+    <div class="ttl" style="font-size:14px; margin-bottom:10px;">{{ t.serial_number }} - {{ t.bid_title|truncatechars:30 }}</div>
+    
+    {% if t.cpo_expiry %}
+    <div class="kv"><span class="k">CPO ({{ t.cpo_amount }} ETB)</span><span class="v {% if t.cpo_expiry < today %}red-text{% endif %}">Exp: {{ t.cpo_expiry|date:"d M Y" }}</span></div>
+    {% endif %}
+    
+    {% if t.performance_bond_expiry %}
+    <div class="kv"><span class="k">Performance Bond</span><span class="v {% if t.performance_bond_expiry < today %}red-text{% endif %}">Exp: {{ t.performance_bond_expiry|date:"d M Y" }}</span></div>
+    {% endif %}
+  </div>
+{% empty %}
+  <p class="empty">No active guarantees tracked.</p>
+{% endfor %}
+{% endblock %}

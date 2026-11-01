@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}IT Command Center{% endblock %}
+{% block content %}
+<h2>🛠️ IT Command Center</h2>
+
+<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px;">
+  <div class="card" style="padding:15px; text-align:center; border-top:3px solid {% if health.gemini == 'OK' %}#5fd68a{% else %}#e2504a{% endif %};">
+    <div class="meta" style="font-size:10px;">GEMINI AI</div>
+    <div style="font-size:16px; font-weight:bold; color:{% if health.gemini == 'OK' %}#5fd68a{% else %}#e2504a{% endif %};">{{ health.gemini }}</div>
+  </div>
+  <div class="card" style="padding:15px; text-align:center; border-top:3px solid {% if health.telegram == 'OK' %}#5fd68a{% else %}#e2504a{% endif %};">
+    <div class="meta" style="font-size:10px;">TELEGRAM BOT</div>
+    <div style="font-size:16px; font-weight:bold; color:{% if health.telegram == 'OK' %}#5fd68a{% else %}#e2504a{% endif %};">{{ health.telegram }}</div>
+  </div>
+  <div class="card" style="padding:15px; text-align:center; border-top:3px solid #5fd68a;">
+    <div class="meta" style="font-size:10px;">DATABASE</div>
+    <div style="font-size:16px; font-weight:bold; color:#5fd68a;">{{ health.db }}</div>
+  </div>
+</div>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+  <h3 style="font-size:16px;">Support Tickets</h3>
+  <a href="{% url 'it_user_management' %}" class="btn btn-blue" style="padding:6px 12px; font-size:12px;">Manage Users →</a>
+</div>
+
+{% for t in tickets %}
+  <div class="card" style="padding:15px; margin-bottom:10px; border-left:4px solid {% if t.status == 'PENDING' %}#e2504a{% else %}#5fd68a{% endif %};">
+    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+      <strong>{{ t.subject }}</strong>
+      <span class="pill {% if t.status == 'RESOLVED' %}completed{% else %}pending{% endif %}">{{ t.status }}</span>
+    </div>
+    <div class="meta" style="font-size:11px; margin-bottom:6px;">From: {{ t.employee.full_name }} ({{ t.created_at|date:"d M Y H:i" }})</div>
+    <div style="font-size:13px; color:#c8cfdd; background:#0f1115; padding:10px; border-radius:8px;">{{ t.description }}</div>
+    
+    {% if t.status == 'PENDING' %}
+      <a href="{% url 'it_resolve_ticket' t.id %}" class="btn btn-green" style="margin-top:10px; padding:6px 12px; font-size:11px;">Mark Resolved</a>
+    {% endif %}
+  </div>
+{% empty %}
+  <p class="empty">No IT support tickets.</p>
+{% endfor %}
+{% endblock %}

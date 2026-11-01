@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Infinity{% endblock %}</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Roboto,"Segoe UI",sans-serif;background:#0f1115;color:#e6e8ee;padding-bottom:60px;}
+a{color:inherit;text-decoration:none}
+.topbar{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#151922;border-bottom:1px solid #232838;position:sticky;top:0;z-index:10}
+.brand{font-weight:700;letter-spacing:1px;color:#e8b64c;font-size:16px}
+.spacer{flex:1}
+.bell{position:relative;font-size:20px;padding:2px 6px}
+.badge{position:absolute;top:-4px;right:-6px;background:#e2504a;color:#fff;border-radius:10px;font-size:10px;padding:1px 5px;font-weight:700}
+.linkbtn{background:none;border:1px solid #333a4d;color:#aeb6c8;border-radius:8px;padding:6px 10px;font-size:12px}
+.companybar{background:#131722;color:#8f99b0;font-size:12px;padding:8px 14px;border-bottom:1px solid #1d2230}
+.companybar a{color:#e8b64c}
+main{padding:14px;max-width:760px;margin:0 auto}
+h2{font-size:17px;margin:4px 0 14px}
+
+/* Bottom Navigation */
+.bottomnav{position:fixed;bottom:0;left:0;right:0;background:#151922;border-top:1px solid #232838;display:flex;justify-content:space-around;padding:10px 0;z-index:100;}
+.bottomnav a{display:flex;flex-direction:column;align-items:center;font-size:10px;color:#8f99b0;}
+.bottomnav a.active{color:#e8b64c;}
+.bottomnav .icon{font-size:18px;margin-bottom:2px;}
+
+/* App Grid */
+.appgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.appcard{background:#151922;border:1px solid #232838;border-radius:12px;padding:16px;text-align:center;font-weight:600;font-size:13px;color:#e6e8ee;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
+.appcard .icon{font-size:24px;color:#e8b64c;}
+
+.stats{display:flex;gap:8px;margin-bottom:16px}
+.stat{flex:1;background:#151922;border:1px solid #232838;border-radius:12px;padding:12px;text-align:center}
+.stat .num{font-size:22px;font-weight:700;color:#e8b64c}
+.stat .lbl{font-size:11px;color:#8f99b0;margin-top:2px}
+.taskcard{display:block;background:#151922;border:1px solid #232838;border-radius:12px;padding:12px;margin-bottom:10px}
+.taskcard .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.code{font-size:10px;font-weight:700;color:#e8b64c;letter-spacing:1px}
+.ttl{font-size:14px;font-weight:600;margin-bottom:6px;line-height:1.35}
+.meta{font-size:11px;color:#7d879c}
+.pill{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700}
+.pending{background:#3a2f14;color:#e8b64c}
+.in_progress{background:#13303a;color:#4cc7e8}
+.completed{background:#14301f;color:#5fd68a}
+.rejected{background:#3a1a1a;color:#e2504a}
+.cancelled{background:#262b36;color:#8f99b0}
+.empty{color:#7d879c;text-align:center;padding:30px 0}
+.card{background:#151922;border:1px solid #232838;border-radius:12px;padding:14px;margin-bottom:12px}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #1d2230;font-size:13px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:#8f99b0;font-size:12px}
+.kv .v{text-align:right;word-break:break-word}
+textarea{width:100%;background:#0f1115;border:1px solid #2a3142;color:#e6e8ee;border-radius:10px;padding:10px;font-size:13px;min-height:90px}
+.btn{display:inline-block;padding:11px 16px;border-radius:10px;font-weight:700;font-size:13px;border:none;margin:6px 6px 0 0}
+.btn-green{background:#1f8a4c;color:#fff}
+.btn-blue{background:#1f6f8a;color:#fff}
+.btn-red{background:#a33b36;color:#fff}
+.btn-grey{background:#2a3142;color:#c8cfdd}
+input[type=text],input[type=password],input[type=number],input[type=date],select{width:100%;background:#0f1115;border:1px solid #2a3142;color:#e6e8ee;border-radius:10px;padding:12px;font-size:14px;margin-bottom:10px}
+.logo{text-align:center;padding:38px 0 22px}
+.logo .mark{font-size:44px;color:#e8b64c}
+.logo h1{font-size:19px;margin:10px 0 2px}
+.logo p{color:#7d879c;font-size:12px;margin:0}
+.wide{width:100%}
+</style>
+</head>
+<body>
+
+{% if user.is_authenticated %}
+<div class="topbar">
+  <a class="brand" href="{% url 'dashboard' %}">&#8734; INFINITY</a>
+  <div class="spacer"></div>
+  <span style="font-size:10px;color:#8f99b0;margin-right:10px;">{{ user.employee.full_name }}<br>({{ user.employee.get_role_display }})</span>
+  <a class="bell" href="{% url 'notifications' %}">&#128276;{% if unread_count %}<span class="badge">{{ unread_count }}</span>{% endif %}</a>
+  <form method="post" action="{% url 'logout' %}" style="margin:0">{% csrf_token %}
+    <button class="linkbtn" type="submit" style="padding:4px 8px;">Out</button>
+  </form>
+</div>
+{% if current_company %}
+<div class="companybar">
+  Working on: <strong>{{ current_company.name }}</strong> &middot; 
+  <a href="{% url 'select_company' %}">Switch Company</a>
+</div>
+{% endif %}
+
+<!-- Bottom Navigation -->
+<div class="bottomnav">
+  <a href="{% url 'dashboard' %}" class="{% if request.path == '/dashboard/' %}active{% endif %}">
+    <span class="icon">&#128230;</span> Action Center
+  </a>
+  <a href="{% url 'tender_list' %}" class="{% if '/tenders/' in request.path %}active{% endif %}">
+    <span class="icon">&#128196;</span> Tenders
+  </a>
+  <a href="{% url 'resource_list' %}" class="{% if '/library/' in request.path %}active{% endif %}">
+    <span class="icon">&#128218;</span> Library
+  </a>
+  <a href="{% url 'mail_list' %}" class="{% if '/mail/' in request.path %}active{% endif %}">
+    <span class="icon">&#9993;</span> Mail
+  </a>
+  {% if user.employee.role in "ADMIN,CEO,GM,VGM" %}
+  <a href="{% url 'mgmt_dashboard' %}" class="{% if '/management/' in request.path %}active{% endif %}">
+    <span class="icon">&#128200;</span> Dashboard
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+<main>
+{% if messages %}
+  {% for m in messages %}
+    <div class="card" style="padding:10px;margin-bottom:8px;font-size:12px;background:{% if m.tags == 'error' %}#2a1515{% elif m.tags == 'success' %}#152a1c{% elif m.tags == 'warning' %}#2a2412{% else %}#151922{% endif %}">
+      {{ m }}
+    </div>
+  {% endfor %}
+{% endif %}
+{% block content %}{% endblock %}
+</main>
+
+</body>
+</html>

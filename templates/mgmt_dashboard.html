@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Management Dashboard{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="color:#e8b64c;">Management Overview</h2><a href="{% url 'tv_settings' %}" class="btn btn-grey" style="padding:6px 12px; font-size:12px; margin:0; margin-right:5px;">⚙️ TV Settings</a>
+    <a href="{% url 'tv_broadcast' %}" class="btn btn-red" target="_blank" style="padding:6px 12px; font-size:12px; margin:0;">📺 Open Live TV</a></div>
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
+  <div class="card" style="text-align:center; padding:15px 10px;">
+    <div style="font-size:24px; font-weight:bold; color:#5fd68a;">{{ stats.won }}</div>
+    <div class="meta" style="font-size:10px;">TENDERS WON</div>
+  </div>
+  <div class="card" style="text-align:center; padding:15px 10px;">
+    <div style="font-size:24px; font-weight:bold; color:#e2504a;">{{ stats.lost }}</div>
+    <div class="meta" style="font-size:10px;">TENDERS LOST</div>
+  </div>
+  <div class="card" style="text-align:center; padding:15px 10px;">
+    <div style="font-size:24px; font-weight:bold; color:#4cc7e8;">{{ stats.active }}</div>
+    <div class="meta" style="font-size:10px;">ACTIVE IN PIPELINE</div>
+  </div>
+  <div class="card" style="text-align:center; padding:15px 10px;">
+    <div style="font-size:24px; font-weight:bold; color:#fff;">{{ stats.completed }}</div>
+    <div class="meta" style="font-size:10px;">IMPORTS COMPLETED</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="meta" style="margin-bottom:10px; color:#e8b64c;">FINANCIAL SUMMARY (ETB)</div>
+  <div class="kv"><span class="k">Total Tender Costs</span><span class="v" style="font-weight:bold;">{{ financials.total_cost|default:"0.00" }}</span></div>
+  <div class="kv"><span class="k">Duty & Tax Paid</span><span class="v" style="font-weight:bold;">{{ financials.total_duty|default:"0.00" }}</span></div>
+  <div class="kv"><span class="k">Supplier Payments</span><span class="v" style="font-weight:bold; color:#e2504a;">{{ financials.total_payments|default:"0.00" }}</span></div>
+</div>
+
+<div class="card">
+  <div class="meta" style="margin-bottom:10px; color:#e8b64c;">WHERE ARE TASKS STUCK? (BOTTLENECKS)</div>
+  {% for b in bottlenecks %}
+    <a href="{% url 'assign_task' %}?role={{ b.assigned_to__role }}" style="display:block; text-decoration:none; margin-bottom:8px;">
+      <div class="kv" style="background:#1a1f2b; padding:10px; border-radius:8px; border:1px solid #333a4d;">
+        <span class="k">{{ b.assigned_to__role }} <br><span style="font-size:10px; color:#4cc7e8;">Click to assign fix</span></span>
+        <span class="v" style="color:#e2504a; font-weight:bold;">{{ b.count }} tasks</span>
+      </div>
+    </a>
+  {% empty %}
+    <div class="meta">No pending tasks! The company is clear.</div>
+  {% endfor %}
+</div>
+
+
+<div class="card">
+  <div class="meta" style="margin-bottom:10px; color:#e2504a;">LOSS ANALYSIS (WHY WE LOSE)</div>
+  {% for lt in lost_tenders %}
+    <div style="border-bottom:1px solid #232838; padding:10px 0;">
+      <div style="font-size:12px; font-weight:bold; color:#fff; margin-bottom:4px;">{{ lt.serial_number }} - {{ lt.bid_title|truncatechars:30 }}</div>
+      <div style="font-size:12px; color:#e2504a; font-style:italic;">"{{ lt.loss_reason }}"</div>
+    </div>
+  {% empty %}
+    <div class="meta">No loss analysis recorded yet.</div>
+  {% endfor %}
+</div>
+<div class="card">
+  <div class="meta" style="margin-bottom:10px; color:#e8b64c;">LIVE AUDIT TRAIL</div>
+  {% for log in recent_activity %}
+    <div style="border-bottom:1px solid #232838; padding:8px 0; font-size:12px;">
+      <div style="color:#e8b64c; font-size:10px;">{{ log.created_at|date:"d M Y H:i" }}</div>
+      <strong>{% if log.actor %}{{ log.actor.full_name }}{% else %}System{% endif %}:</strong> {{ log.action }}<br>
+      <span class="meta">{{ log.detail|truncatechars:60 }}</span>
+    </div>
+  {% empty %}
+    <div class="meta">No activity recorded yet.</div>
+  {% endfor %}
+</div>
+
+<a class="btn btn-grey wide" href="{% url 'dashboard' %}">Back to My Action Center</a>
+{% endblock %}

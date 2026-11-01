@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Office Command Center{% endblock %}
+{% block content %}
+<h2>🏢 Office Command Center</h2>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
+  <!-- Courier Form -->
+  <div class="card" style="background:#1a1f2b;">
+    <h3 style="font-size:13px; color:#4cc7e8; margin-bottom:10px;">🚚 Log Dispatch</h3>
+    <form method="post">
+      {% csrf_token %}
+      <input type="text" name="courier_name" placeholder="Courier / Driver Name" required style="margin-bottom:8px;">
+      <input type="text" name="recipient" placeholder="Recipient / Destination" required style="margin-bottom:8px;">
+      <button class="btn btn-blue wide" name="dispatch" type="submit" style="margin:0;">Log Dispatch</button>
+    </form>
+  </div>
+
+  <!-- Visitor Form -->
+  <div class="card" style="background:#1a1f2b;">
+    <h3 style="font-size:13px; color:#e8b64c; margin-bottom:10px;">👔 Check-in Visitor</h3>
+    <form method="post">
+      {% csrf_token %}
+      <input type="text" name="visitor_name" placeholder="Visitor Name" required style="margin-bottom:8px;">
+      <select name="visiting_employee" required style="margin-bottom:8px;">
+        <option value="">-- Visiting Who? --</option>
+        {% for e in employees %}<option value="{{ e.id }}">{{ e.full_name }}</option>{% endfor %}
+      </select>
+      <input type="text" name="purpose" placeholder="Purpose" required style="margin-bottom:8px;">
+      <button class="btn btn-green wide" name="visitor" type="submit" style="margin:0;">Check In</button>
+    </form>
+  </div>
+</div>
+
+<h3 style="font-size:14px; margin-bottom:10px;">Active Visitors (In Office)</h3>
+{% for v in visitors %}
+  <div class="card" style="padding:12px; margin-bottom:8px; border-left:4px solid #e8b64c;">
+    <div style="display:flex; justify-content:space-between;">
+      <strong>{{ v.visitor_name }}</strong>
+      <span class="meta">{{ v.check_in_time|date:"H:i" }}</span>
+    </div>
+    <div class="meta">Visiting: {{ v.visiting_employee.full_name }} | {{ v.purpose }}</div>
+  </div>
+{% empty %}
+  <p class="empty">No visitors currently in office.</p>
+{% endfor %}
+
+<h3 style="font-size:14px; margin:20px 0 10px 0;">Recent Dispatches</h3>
+{% for d in dispatches %}
+  <div class="card" style="padding:12px; margin-bottom:8px;">
+    <div style="display:flex; justify-content:space-between;">
+      <strong>To: {{ d.recipient }}</strong>
+      <span class="pill pending">{{ d.status }}</span>
+    </div>
+    <div class="meta">Via: {{ d.courier_name }}</div>
+  </div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Update Shipment</h2>
+<div class="card">
+  <div class="kv"><span class="k">Tender</span><span class="v">{{ shipment.tender.serial_number }}</span></div>
+  <form method="post" style="margin-top:15px;">
+    {% csrf_token %}
+    <label class="meta">Current Status</label>
+    <select name="status" required style="margin-bottom:10px;">
+      {% for code, name in shipment.STATUS_CHOICES %}
+        <option value="{{ code }}" {% if shipment.current_status == code %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+    <label class="meta">Vessel Name</label>
+    <input type="text" name="vessel_name" value="{{ shipment.vessel_name }}" style="margin-bottom:10px;">
+    <label class="meta">Bill of Lading (B/L) No.</label>
+    <input type="text" name="bill_of_lading" value="{{ shipment.bill_of_lading }}" style="margin-bottom:10px;">
+    <label class="meta">ETA (Estimated Time of Arrival)</label>
+    <input type="date" name="eta" value="{{ shipment.eta|date:'Y-m-d' }}" style="margin-bottom:15px;">
+    <button class="btn btn-green wide" type="submit">Update Shipment</button>
+    <a class="btn btn-grey wide" href="{% url 'shipment_list' %}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

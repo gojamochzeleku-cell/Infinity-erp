@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}Legal & Disputes{% endblock %}
+{% block content %}
+<h2>Legal Disputes & Court Cases</h2>
+<div class="card" style="background:#1a1f2b;">
+  <div class="meta" style="margin-bottom:10px;">REGISTER NEW CASE</div>
+  <form method="post">
+    {% csrf_token %}
+    <input type="text" name="title" placeholder="Case Title / Dispute" required>
+    <textarea name="description" placeholder="Details of the dispute..." required style="min-height:60px;"></textarea>
+    <label class="meta">Next Hearing Date</label>
+    <input type="date" name="next_hearing_date">
+    <label class="meta">Link to Tender (Optional)</label>
+    <select name="tender_id">
+      <option value="">-- No specific tender --</option>
+      {% for t in tenders %}<option value="{{ t.id }}">{{ t.serial_number }}</option>{% endfor %}
+    </select>
+    <label class="meta">Assign Lawyer</label>
+    <select name="assigned_lawyer">
+      <option value="">-- Assign Later --</option>
+      {% for e in employees %}<option value="{{ e.id }}">{{ e.full_name }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-green wide" type="submit">Register Case</button>
+  </form>
+</div>
+
+{% for c in cases %}
+  <div class="card">
+    <div class="row"><span class="pill pending">{{ c.status }}</span></div>
+    <div class="ttl">{{ c.title }}</div>
+    <div class="meta" style="margin-bottom:8px;">{{ c.description }}</div>
+    {% if c.next_hearing_date %}
+      <div class="kv"><span class="k">Next Hearing</span><span class="v red-text">{{ c.next_hearing_date|date:"d M Y" }}</span></div>
+    {% endif %}
+    {% if c.assigned_lawyer %}
+      <div class="kv"><span class="k">Lawyer</span><span class="v">{{ c.assigned_lawyer.full_name }}</span></div>
+    {% endif %}
+  </div>
+{% empty %}
+  <p class="empty">No legal cases registered.</p>
+{% endfor %}
+{% endblock %}

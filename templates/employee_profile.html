@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Employee Profile{% endblock %}
+{% block content %}
+<h2>{{ target_emp.full_name }}'s Profile</h2>
+<div class="card">
+  <div class="kv"><span class="k">Role</span><span class="v">{{ target_emp.get_role_display }}</span></div>
+  <div class="kv"><span class="k">Username</span><span class="v">{{ target_emp.user.username }}</span></div>
+  <div class="kv"><span class="k">Base Salary</span><span class="v">{{ target_emp.base_salary }} ETB</span></div>
+  <div class="kv"><span class="k">Contract Expiry</span><span class="v">{{ target_emp.contract_expiry|date:"d M Y"|default:"Not Set" }}</span></div>
+</div>
+
+<div class="card" style="background:#1a1f2b;">
+  <h3 style="font-size:13px; color:#e8b64c; margin-bottom:10px;">Upload Document</h3>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <select name="doc_type" required style="margin-bottom:8px;">
+      <option value="CV">CV / Resume</option>
+      <option value="CONTRACT">Employment Contract</option>
+      <option value="CERT">Certificate / Degree</option>
+    </select>
+    <input type="text" name="title" placeholder="Document Title" required style="margin-bottom:8px;">
+    <input type="file" name="file" required style="color:#c8cfdd; margin-bottom:10px;">
+    <button class="btn btn-green wide" type="submit">Upload</button>
+  </form>
+</div>
+
+<h3 style="font-size:14px; margin:20px 0 10px 0;">Employee Documents</h3>
+{% for d in target_emp.documents.all %}
+  <div class="card" style="padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <div style="font-size:13px; font-weight:bold;">{{ d.title }}</div>
+      <div class="meta" style="font-size:11px;">{{ d.get_doc_type_display }}</div>
+    </div>
+    <a href="{{ d.file.url }}" target="_blank" class="btn btn-grey" style="padding:6px 10px; font-size:11px;">Open</a>
+  </div>
+{% empty %}
+  <p class="empty">No documents uploaded.</p>
+{% endfor %}
+
+<h3 style="font-size:14px; margin:20px 0 10px 0;">Performance Reviews</h3>
+
+{% if user.employee.role in "ADMIN,CEO,GM,HR" %}
+<div class="card" style="background:#1a1f2b; margin-bottom:15px;">
+  <h3 style="font-size:13px; color:#e8b64c; margin-bottom:10px;">+ Add Review</h3>
+  <form method="post">
+    {% csrf_token %}
+    <label class="meta">Rating (1-5)</label>
+    <input type="number" name="rating" min="1" max="5" required style="margin-bottom:8px;">
+    <label class="meta">Feedback</label>
+    <textarea name="feedback" required placeholder="Performance feedback..." style="margin-bottom:8px;"></textarea>
+    <button class="btn btn-green wide" type="submit">Submit Review</button>
+  </form>
+</div>
+{% endif %}
+
+{% for r in target_emp.reviews.all %}
+  <div class="card" style="padding:12px; margin-bottom:8px; border-left:4px solid {% if r.rating >= 4 %}#5fd68a{% elif r.rating == 3 %}#e8b64c{% else %}#e2504a{% endif %};">
+    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+      <strong>{% if r.rating == 5 %}⭐⭐⭐⭐⭐{% elif r.rating == 4 %}⭐⭐⭐⭐{% elif r.rating == 3 %}⭐⭐⭐{% elif r.rating == 2 %}⭐⭐{% else %}⭐{% endif %}</strong>
+      <span class="meta">{{ r.created_at|date:"d M Y" }}</span>
+    </div>
+    <div style="font-size:13px;">{{ r.feedback }}</div>
+    <div class="meta" style="font-size:10px; margin-top:6px;">Reviewed by: {{ r.reviewer.full_name|default:"System" }}</div>
+  </div>
+{% empty %}
+  <p class="empty">No reviews yet.</p>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}Live Control Tower{% endblock %}
+{% block content %}
+<meta http-equiv="refresh" content="30">
+<style>
+  body { background-color: #05070a; }
+  .tv-header { text-align: center; margin-bottom: 30px; }
+  .tv-header h1 { color: #e8b64c; font-size: 32px; letter-spacing: 2px; margin: 0; }
+  .tv-header p { color: #8f99b0; font-size: 14px; margin-top: 5px; }
+  .tv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .tv-card { background: #151922; border: 2px solid #232838; border-radius: 16px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  .tv-card.alert { border-color: #e2504a; animation: pulse 2s infinite; }
+  .tv-title { font-size: 16px; font-weight: bold; color: #8f99b0; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; border-bottom: 1px solid #232838; padding-bottom: 10px; }
+  .tv-stat { font-size: 48px; font-weight: 900; color: #fff; text-align: center; }
+  .tv-list-item { padding: 10px 0; border-bottom: 1px solid #1d2230; font-size: 14px; color: #e6e8ee; display: flex; justify-content: space-between; }
+  .tv-list-item:last-child { border-bottom: none; }
+  .red-text { color: #e2504a; font-weight: bold; }
+  .green-text { color: #5fd68a; font-weight: bold; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(226, 80, 74, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(226, 80, 74, 0); } 100% { box-shadow: 0 0 0 0 rgba(226, 80, 74, 0); } }
+</style>
+
+<div class="tv-header">
+  <h1>∞ INFINITY CONTROL TOWER</h1>
+  <p>Live Operations Dashboard • {{ current_company.name }} • Auto-refreshing every 30s</p>
+</div>
+
+<div class="tv-grid">
+  <div class="tv-card {% if overdue_tasks > 0 %}alert{% endif %}">
+    <div class="tv-title">Task Bottlenecks</div>
+    <div class="tv-stat {% if overdue_tasks > 0 %}red-text{% endif %}">{{ overdue_tasks }}</div>
+    <div style="text-align: center; color: #8f99b0; font-size: 12px; margin-bottom: 15px;">Overdue Tasks (> 2 Days)</div>
+    {% for b in bottlenecks %}
+      <div class="tv-list-item"><span>{{ b.assigned_to__role }}</span> <span class="red-text">{{ b.count }} Pending</span></div>
+    {% endfor %}
+  </div>
+
+  <div class="tv-card">
+    <div class="tv-title">Active Pipeline</div>
+    <div class="tv-stat" style="color: #4cc7e8;">{{ active_tenders }}</div>
+    <div style="text-align: center; color: #8f99b0; font-size: 12px;">Tenders In Progress</div>
+  </div>
+
+  <div class="tv-card {% if expiring_cpos or expiring_bonds %}alert{% endif %}">
+    <div class="tv-title">Expiring Guarantees (Next 7 Days)</div>
+    {% for t in expiring_cpos %}
+      <div class="tv-list-item"><span>CPO: {{ t.serial_number }}</span> <span class="red-text">{{ t.cpo_expiry|date:"d M" }}</span></div>
+    {% endfor %}
+    {% for t in expiring_bonds %}
+      <div class="tv-list-item"><span>Perf. Bond: {{ t.serial_number }}</span> <span class="red-text">{{ t.performance_bond_expiry|date:"d M" }}</span></div>
+    {% endfor %}
+    {% if not expiring_cpos and not expiring_bonds %}
+      <div style="text-align: center; color: #5fd68a; padding: 20px;">All Guarantees Clear</div>
+    {% endif %}
+  </div>
+
+  <div class="tv-card {% if overdue_letters %}alert{% endif %}">
+    <div class="tv-title">Overdue Correspondence</div>
+    {% for l in overdue_letters %}
+      <div class="tv-list-item"><span>{{ l.subject|truncatechars:20 }}</span> <span class="red-text">Overdue</span></div>
+    {% empty %}
+      <div style="text-align: center; color: #5fd68a; padding: 20px;">No Overdue Letters</div>
+    {% endfor %}
+  </div>
+
+  <div class="tv-card {% if upcoming_cases %}alert{% endif %}" style="grid-column: span 2;">
+    <div class="tv-title">Upcoming Court Hearings (Next 7 Days)</div>
+    {% for c in upcoming_cases %}
+      <div class="tv-list-item"><span>{{ c.title }}</span> <span class="red-text">{{ c.next_hearing_date|date:"d M Y" }}</span></div>
+    {% empty %}
+      <div style="text-align: center; color: #5fd68a; padding: 20px;">No Upcoming Hearings</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

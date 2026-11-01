@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}My Workspace{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:20px; color:#e8b64c;">💼 My Workspace</h2>
+
+<div class="card" style="background:linear-gradient(145deg, #1a1f2b, #151922); border:1px solid #333a4d;">
+  <h3 style="font-size:14px; color:#4cc7e8; margin-bottom:12px;">Add New Task</h3>
+  <form method="post" action="{% url 'add_personal_task' %}">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="my_todos">
+    
+    <label class="meta">Task Title</label>
+    <input type="text" name="title" required placeholder="What needs to be done?" style="margin-bottom:10px;">
+    
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+      <div>
+        <label class="meta">Due Date (Optional)</label>
+        <input type="date" name="due_date" style="margin-bottom:0;">
+      </div>
+      <div>
+        <label class="meta">Priority</label>
+        <select name="priority" style="margin-bottom:0;">
+          <option value="NORMAL">Normal</option>
+          <option value="HIGH">High</option>
+          <option value="URGENT">Urgent</option>
+        </select>
+      </div>
+    </div>
+    
+    <button class="btn btn-blue wide" type="submit" style="margin-top:5px;">Add to List</button>
+  </form>
+</div>
+
+<h3 style="font-size:16px; margin:25px 0 15px 0; color:#fff;">Active Tasks ({{ active_todos.count }})</h3>
+
+{% for t in active_todos %}
+  <div class="card" style="padding:15px; margin-bottom:10px; border-left:4px solid {% if t.priority == 'URGENT' %}#e2504a{% elif t.priority == 'HIGH' %}#e8b64c{% else %}#4cc7e8{% endif %};">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div class="ttl" style="margin-bottom:4px; font-size:15px;">{{ t.title }}</div>
+        <div class="meta" style="font-size:11px;">
+          {% if t.due_date %}
+            {% if t.due_date < today %}
+              <span style="color:#e2504a; font-weight:bold;">⚠️ Overdue: {{ t.due_date|date:"d M Y" }}</span>
+            {% else %}
+              Due: {{ t.due_date|date:"d M Y" }}
+            {% endif %}
+          {% else %}
+            No due date
+          {% endif %}
+        </div>
+      </div>
+      <form method="post" action="{% url 'task_action' t.id %}" style="margin:0;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="complete">
+        <button type="submit" class="btn btn-green" style="padding:6px 12px; font-size:11px; margin:0;">Done</button>
+      </form>
+    </div>
+  </div>
+{% empty %}
+  <p class="empty">No active tasks. Enjoy your day!</p>
+{% endfor %}
+
+{% if completed_todos %}
+<h3 style="font-size:14px; margin:30px 0 10px 0; color:#8f99b0;">Recently Completed</h3>
+{% for t in completed_todos %}
+  <div class="card" style="padding:12px; margin-bottom:8px; opacity:0.6; background:#0f1115;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="text-decoration:line-through; color:#8f99b0; font-size:13px;">{{ t.title }}</div>
+      <div style="font-size:10px; color:#5fd68a;">✓ Done</div>
+    </div>
+  </div>
+{% endfor %}
+{% endif %}
+
+{% endblock %}

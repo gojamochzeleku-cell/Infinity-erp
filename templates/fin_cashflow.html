@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Cash Flow Ledger{% endblock %}
+{% block content %}
+<h2>Cash Flow Ledger</h2>
+<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px;">
+  <div class="card" style="text-align:center; padding:15px 5px; border-top:3px solid #5fd68a;">
+    <div style="font-size:10px; color:#8f99b0;">INFLOWS</div>
+    <div style="font-size:18px; font-weight:bold; color:#5fd68a;">{{ inflows }}</div>
+  </div>
+  <div class="card" style="text-align:center; padding:15px 5px; border-top:3px solid #e2504a;">
+    <div style="font-size:10px; color:#8f99b0;">OUTFLOWS</div>
+    <div style="font-size:18px; font-weight:bold; color:#e2504a;">{{ outflows }}</div>
+  </div>
+  <div class="card" style="text-align:center; padding:15px 5px; border-top:3px solid #e8b64c;">
+    <div style="font-size:10px; color:#8f99b0;">BALANCE</div>
+    <div style="font-size:18px; font-weight:bold; color:#e8b64c;">{{ balance }}</div>
+  </div>
+</div>
+
+<div class="card" style="background:#1a1f2b;">
+  <h3 style="font-size:13px; color:#4cc7e8; margin-bottom:10px;">+ Add Manual Entry</h3>
+  <form method="post">
+    {% csrf_token %}
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+      <select name="flow_type" required style="margin:0;">
+        <option value="OUT">Outflow (Money Out)</option>
+        <option value="IN">Inflow (Money In)</option>
+      </select>
+      <select name="category" required style="margin:0;">
+        <option value="SALARY">Salary / Payroll</option>
+        <option value="RENT">Rent / Utilities</option>
+        <option value="OTHER">Other</option>
+      </select>
+    </div>
+    <input type="number" step="0.01" name="amount" placeholder="Amount (ETB)" required style="margin-bottom:8px;">
+    <input type="text" name="description" placeholder="Reason / Description" required style="margin-bottom:8px;">
+    <button class="btn btn-blue wide" type="submit" style="margin:0;">Add to Ledger</button>
+  </form>
+</div>
+
+<h3 style="font-size:14px; margin:20px 0 10px 0;">Recent Transactions</h3>
+{% for e in entries %}
+  <div class="card" style="padding:12px; margin-bottom:8px; border-left:4px solid {% if e.flow_type == 'IN' %}#5fd68a{% else %}#e2504a{% endif %};">
+    <div style="display:flex; justify-content:space-between;">
+      <strong style="color:{% if e.flow_type == 'IN' %}#5fd68a{% else %}#e2504a{% endif %}; font-size:15px;">
+        {% if e.flow_type == 'IN' %}+{% else %}-{% endif %}{{ e.amount }}
+      </strong>
+      <span class="meta">{{ e.date|date:"d M Y" }}</span>
+    </div>
+    <div style="font-size:13px; margin-top:4px;">{{ e.description }}</div>
+    <div class="meta" style="font-size:10px; margin-top:4px;">{{ e.get_category_display }} {% if e.related_tender %} | {{ e.related_tender.serial_number }}{% endif %}</div>
+  </div>
+{% empty %}
+  <p class="empty">No transactions yet.</p>
+{% endfor %}
+{% endblock %}

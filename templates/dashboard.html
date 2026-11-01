@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% block title %}Action Center{% endblock %}
+{% block content %}
+
+<style>
+  .filter-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; -webkit-overflow-scrolling: touch; }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-pill { background: #151922; border: 1px solid #333a4d; color: #8f99b0; padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: 0.2s; }
+  .filter-pill.active { background: #4cc7e8; color: #000; border-color: #4cc7e8; }
+  
+  .smart-card { display: block; background: #151922; border: 1px solid #232838; border-radius: 12px; padding: 14px; margin-bottom: 10px; transition: 0.2s; }
+  .smart-card:hover { border-color: #4cc7e8; transform: translateY(-2px); }
+  .smart-card .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  
+  /* Priority Borders */
+  .border-urgent { border-left: 4px solid #e2504a; }
+  .border-high { border-left: 4px solid #e8b64c; }
+  .border-normal { border-left: 4px solid #4cc7e8; }
+  .border-done { border-left: 4px solid #5fd68a; opacity: 0.6; }
+</style>
+
+<!-- OFFICE ASSISTANT COMMAND CENTER -->
+{% if user.employee.role == 'OFFICE' or user.employee.role == 'ADMIN' %}
+<div style="background:linear-gradient(145deg, #1a1f2b, #151922); border:1px solid #e8b64c; border-radius:16px; padding:15px; margin-bottom:20px; box-shadow: 0 4px 15px rgba(232, 182, 76, 0.15);">
+  <h3 style="font-size:14px; color:#e8b64c; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">📁 Office Assistant Command Center</h3>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+    <a href="{% url 'office_dashboard' %}" class="btn btn-red" style="margin:0; text-align:center; font-size:12px; grid-column: span 2;">🏢 Office Command Center (Dispatch & Visitors)</a>
+    <a href="{% url 'office_manual' %}" class="btn btn-blue" style="margin:0; text-align:center; font-size:12px; grid-column: span 2; background:#1f6f8a;">📖 Read Office Assistant Manual</a>
+    <a href="{% url 'supply_requests' %}" class="btn btn-blue" style="margin:0; text-align:center; font-size:12px;">🖊️ Stationery Request</a>
+    <a href="{% url 'document_upload' %}" class="btn btn-green" style="margin:0; text-align:center; font-size:12px;">⬆️ Upload Document</a>
+    <a href="{% url 'document_list' %}" class="btn btn-grey" style="margin:0; text-align:center; font-size:12px;">🗂️ View Registry</a>
+    <a href="{% url 'mail_create' 'INCOMING' %}" class="btn btn-blue" style="margin:0; text-align:center; font-size:12px;">📥 Incoming Mail</a>
+    <a href="{% url 'mail_create' 'OUTGOING' %}" class="btn btn-blue" style="margin:0; text-align:center; font-size:12px;">📤 Outgoing Mail</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- MY WORKSPACE (PERSONAL TASKS) -->
+<div class="card" style="background:linear-gradient(145deg, #1a1f2b, #151922); border:1px solid #333a4d; border-radius:16px; padding:16px; margin-bottom:20px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h3 style="font-size:15px; color:#e8b64c; display:flex; align-items:center; gap:8px;">💼 My Workspace</h3>
+    <a href="{% url 'my_todos' %}" class="linkbtn" style="font-size:10px; padding:4px 8px;">View All Tasks →</a>
+  </div>
+  <form method="post" action="{% url 'add_personal_task' %}">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="dashboard">
+    <input type="text" name="title" placeholder="Add a new quick task..." required style="background: #0f1115; border: 1px solid #333a4d; color: #fff; padding: 12px; border-radius: 8px; font-size: 14px; width: 100%; margin-bottom: 8px;">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
+      <input type="date" name="due_date" style="background: #0f1115; border: 1px solid #333a4d; color: #fff; padding: 12px; border-radius: 8px; font-size: 12px; margin:0;">
+      <select name="priority" style="background: #0f1115; border: 1px solid #333a4d; color: #fff; padding: 12px; border-radius: 8px; font-size: 12px; margin:0;">
+        <option value="NORMAL">Normal</option>
+        <option value="HIGH">High</option>
+        <option value="URGENT">Urgent</option>
+      </select>
+    </div>
+    <button type="submit" style="background: #4cc7e8; color: #000; font-weight: bold; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%;">+ Add Task</button>
+  </form>
+</div>
+
+<!-- APPS & SERVICES GRID -->
+<h2 style="margin-bottom:15px;">Apps & Services</h2>
+<div class="appgrid">
+  <a class="appcard" href="{% url 'document_list' %}"><span class="icon">📂</span>Doc Registry</a>
+  <a class="appcard" href="{% url 'document_scanner' %}"><span class="icon">🔍</span>Scan Document</a>
+  <a class="appcard" href="{% url 'resource_list' %}"><span class="icon">📚</span>Library</a>
+  <a class="appcard" href="{% url 'memo_list' %}"><span class="icon">📢</span>Memos</a>
+  <a class="appcard" href="{% url 'role_manual' %}"><span class="icon">📖</span>My Training Manual</a>
+  <a class="appcard" href="{% url 'my_assigned_tasks' %}"><span class="icon">📥</span>Tasks Assigned to Me</a>
+
+  {% if user.employee.role in "IT,ADMIN" %}
+  <a class="appcard" href="{% url 'it_dashboard' %}"><span class="icon">🛠️</span>IT Command Center</a>
+  <a class="appcard" href="{% url 'it_user_management' %}"><span class="icon">👥</span>Manage Users</a>
+  {% endif %}
+  <a class="appcard" href="{% url 'it_submit_ticket' %}"><span class="icon">🎫</span>Submit IT Ticket</a>
+
+
+  {% if user.employee.role in "PROC,LOG,ADMIN,CEO,GM,BIDM" %}
+  <a class="appcard" href="{% url 'supplier_list' %}"><span class="icon">🤝</span>Supplier Database</a>
+  <a class="appcard" href="{% url 'inventory_dashboard' %}"><span class="icon">📦</span>Inventory Management</a>
+  <a class="appcard" href="{% url 'shipment_list' %}"><span class="icon">🚢</span>Shipment Tracker</a>
+  {% endif %}
+
+  <a class="appcard" href="{% url 'supply_requests' %}"><span class="icon">🖊️</span>Request Supplies</a>
+
+  {% if user.employee.role in "ADMIN,CEO,GM,HR" %}
+  <a class="appcard" href="{% url 'staff_directory' %}"><span class="icon">👥</span>Staff Directory</a>
+  <a class="appcard" href="{% url 'payroll_history' %}"><span class="icon">💵</span>Payroll</a>
+  {% endif %}
+
+  
+  {% if user.employee.role in "ADMIN,CEO,GM,VGM,BIDM,FIN,HR,PROC,LOG,LEGAL" %}
+  <a class="appcard" href="{% url 'assign_task' %}"><span class="icon">📌</span>Assign Task</a>
+  <a class="appcard" href="{% url 'delegated_tasks' %}"><span class="icon">📋</span>Track Delegations</a>
+  {% endif %}
+</div>
+
+<!-- SMART ACTION CENTER -->
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+  <h2>Action Center</h2>
+  <span class="meta" style="font-size:12px;">{{ stats.pending }} Pending</span>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+  <button class="filter-pill active" onclick="filterTasks('all', this)">All Tasks</button>
+  <button class="filter-pill" onclick="filterTasks('urgent', this)">🔥 Urgent</button>
+  <button class="filter-pill" onclick="filterTasks('chain', this)">🔗 Chain Tasks</button>
+  <button class="filter-pill" onclick="filterTasks('assigned', this)">📌 Management</button>
+  <button class="filter-pill" onclick="filterTasks('personal', this)">📝 Personal</button>
+</div>
+
+<!-- Task List -->
+<div id="task-container">
+{% for t in tasks %}
+  <a class="smart-card task-item 
+    {% if t.status == 'COMPLETED' %}border-done
+    {% elif t.priority|lower == 'urgent' or t.due_date and t.due_date < today and t.status != 'COMPLETED' %}border-urgent
+    {% elif t.priority == 'HIGH' %}border-high
+    {% else %}border-normal{% endif %}" 
+    data-type="{% if t.code == 'MY-TODO' %}personal{% elif t.kind == 'ASSIGNED' %}assigned{% elif t.priority|lower == 'urgent' or t.due_date and t.due_date < today and t.status != 'COMPLETED' %}urgent{% else %}chain{% endif %}"
+    href="{% url 'task_detail' t.id %}">
+    
+    <div class="row">
+      <div style="display:flex; align-items:center; gap:8px;">
+        {% if t.code == 'MY-TODO' %}<span style="font-size:16px;">📝</span>
+        {% elif t.kind == 'ASSIGNED' %}<span style="font-size:16px;">📌</span>
+        {% elif t.priority|lower == 'urgent' or t.due_date and t.due_date < today and t.status != 'COMPLETED' %}<span style="font-size:16px;">🚨</span>
+        {% else %}<span style="font-size:16px;">🔗</span>{% endif %}
+        
+        <span class="code">{{ t.code|default:"TASK" }}</span>
+      </div>
+      
+      <span class="pill {{ t.status|lower }}">{{ t.get_status_display }}</span>
+    </div>
+    
+    <div class="ttl" style="font-size:14px; font-weight:600; margin-bottom:6px; color:#e6e8ee; {% if t.status == 'COMPLETED' %}text-decoration:line-through; color:#8f99b0;{% endif %}">
+      {{ t.title }}
+    </div>
+    
+    <div class="meta" style="font-size:11px; display:flex; justify-content:space-between;">
+      <span>{{ t.company.short_name }} &middot; {{ t.created_at|date:"d M Y" }}</span>
+      {% if t.due_date %}
+        <span style="{% if t.due_date < today and t.status != 'COMPLETED' %}color:#e2504a; font-weight:bold;{% endif %}">Due: {{ t.due_date|date:"d M" }}</span>
+      {% endif %}
+    </div>
+  </a>
+{% empty %}
+  <p class="empty">No open tasks. You are all caught up!</p>
+{% endfor %}
+</div>
+
+<script>
+  function filterTasks(category, btnElement) {
+    // 1. Update active button styling
+    document.querySelectorAll('.filter-pill').forEach(btn => btn.classList.remove('active'));
+    btnElement.classList.add('active');
+
+    // 2. Filter the tasks
+    const items = document.querySelectorAll('.task-item');
+    items.forEach(item => {
+      const itemType = item.getAttribute('data-type');
+      
+      if (category === 'all') {
+        item.style.display = 'block';
+      } else if (category === 'urgent') {
+        item.style.display = (itemType === 'urgent') ? 'block' : 'none';
+      } else {
+        item.style.display = (itemType === category) ? 'block' : 'none';
+      }
+    });
+  }
+</script>
+
+{% endblock %}

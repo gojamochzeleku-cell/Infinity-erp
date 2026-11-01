@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Select Company{% endblock %}
+{% block content %}
+<div style="text-align: center; margin-top: 20px; margin-bottom: 30px;">
+  <h2 style="font-size: 22px; color: #e8b64c; margin-bottom: 5px;">Infinity Investment Institute</h2>
+  <p class="meta" style="font-size: 13px;">Select a workspace to continue</p>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <div style="display: flex; flex-direction: column; gap: 15px;">
+    {% for c in companies %}
+      <button class="company-btn" type="submit" name="company_id" value="{{ c.id }}">
+        <div class="company-icon">🏢</div>
+        <div style="text-align: left; flex: 1;">
+          <div style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 4px;">{{ c.name }}</div>
+          <div style="color: #8f99b0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">{{ c.short_name }}</div>
+        </div>
+        <div style="color: #e8b64c; font-size: 20px; padding-left: 10px;">&rarr;</div>
+      </button>
+    {% empty %}
+      <p class="empty">No company configured. Ask the System Admin.</p>
+    {% endfor %}
+  </div>
+</form>
+
+<style>
+  /* Beautiful Company Button Styling */
+  .company-btn {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(145deg, #1a1f2b, #151922);
+    border: 1px solid #2a3142;
+    border-radius: 16px;
+    padding: 20px;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .company-btn:active, .company-btn:hover {
+    border-color: #e8b64c;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(232, 182, 76, 0.15);
+    background: linear-gradient(145deg, #1f2534, #1a1f2b);
+  }
+  
+  .company-icon {
+    font-size: 26px;
+    background: rgba(232, 182, 76, 0.1);
+    padding: 14px;
+    border-radius: 14px;
+    margin-right: 16px;
+    color: #e8b64c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+{% endblock %}

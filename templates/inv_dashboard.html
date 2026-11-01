@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>📦 Warehouse Inventory</h2>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
+  <div class="card" style="text-align:center; padding:15px; border-top:3px solid #4cc7e8;">
+    <div class="meta" style="font-size:10px;">TOTAL ITEMS IN STOCK</div>
+    <div style="font-size:24px; font-weight:bold; color:#4cc7e8;">{{ total_items }}</div>
+  </div>
+  <div class="card" style="text-align:center; padding:15px; border-top:3px solid {% if low_stock_count > 0 %}#e2504a{% else %}#5fd68a{% endif %};">
+    <div class="meta" style="font-size:10px;">LOW STOCK ALERTS</div>
+    <div style="font-size:24px; font-weight:bold; color:{% if low_stock_count > 0 %}#e2504a{% else %}#5fd68a{% endif %};">{{ low_stock_count }}</div>
+  </div>
+</div>
+
+<div class="card" style="background:#1a1f2b; margin-bottom:20px;">
+  <h3 style="font-size:13px; color:#e8b64c; margin-bottom:10px;">+ Add New Product to Catalog</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="text" name="name" placeholder="Product Name (e.g., Dell Monitor)" required style="margin-bottom:8px;">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+      <input type="text" name="sku" placeholder="SKU / Code" style="margin:0;">
+      <input type="text" name="category" placeholder="Category" style="margin:0;">
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+      <input type="number" name="initial_stock" placeholder="Initial Qty" value="0" style="margin:0;">
+      <input type="number" name="min_stock" placeholder="Min Alert Level" value="5" style="margin:0;">
+    </div>
+    <input type="text" name="location" placeholder="Warehouse Location (Aisle/Rack)" style="margin-bottom:10px;">
+    <button class="btn btn-green wide" type="submit">Save Product</button>
+  </form>
+</div>
+
+{% for p in products %}
+  <div class="card" style="padding:15px; margin-bottom:10px; border-left:4px solid {% if p.current_stock <= p.min_stock_level %}#e2504a{% else %}#5fd68a{% endif %};">
+    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+      <strong>{{ p.name }}</strong>
+      <span class="pill {% if p.current_stock <= p.min_stock_level %}rejected{% else %}completed{% endif %}">
+        {{ p.current_stock }} in stock
+      </span>
+    </div>
+    <div class="meta" style="font-size:11px; margin-bottom:6px;">SKU: {{ p.sku|default:"-" }} | Loc: {{ p.location|default:"Not Set" }}</div>
+    {% if p.current_stock <= p.min_stock_level %}
+      <div style="font-size:11px; color:#e2504a; font-weight:bold; margin-bottom:8px;">⚠️ BELOW MINIMUM LEVEL ({{ p.min_stock_level }})</div>
+    {% endif %}
+    <a href="{% url 'inventory_adjust' p.id %}" class="btn btn-grey" style="padding:6px 12px; font-size:11px;">Adjust Stock</a>
+  </div>
+{% empty %}
+  <p class="empty">Warehouse is empty. Add a product above.</p>
+{% endfor %}
+{% endblock %}

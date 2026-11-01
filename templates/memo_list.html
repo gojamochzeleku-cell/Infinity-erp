@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Memos{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+  <h2>Memos</h2>
+  {% if user.employee.role == 'ADMIN' or user.employee.role == 'CEO' or user.employee.role == 'GM' %}
+    <a class="btn btn-green" href="{% url 'memo_create' %}" style="padding:6px 12px; font-size:12px;">+ New Memo</a>
+  {% endif %}
+</div>
+{% for m in memos %}
+  <div class="card" style="{% if not m.is_read %}border-color:#e8b64c;{% endif %}">
+    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+      <strong style="font-size:14px;">{{ m.title }}</strong>
+      {% if not m.is_read %}<span class="pill pending">NEW</span>{% endif %}
+    </div>
+    <div class="meta" style="margin-bottom:8px;">From: {{ m.sender.full_name }} | {{ m.created_at|date:"d M Y H:i" }}</div>
+    <div style="font-size:13px; margin-bottom:12px; white-space:pre-wrap;">{{ m.content }}</div>
+    {% if not m.is_read %}
+      <a class="btn btn-grey" href="{% url 'memo_read' m.id %}">Mark as Read</a>
+    {% endif %}
+  </div>
+{% empty %}
+  <p class="empty">No memos.</p>
+{% endfor %}
+<a class="btn btn-grey" href="{% url 'dashboard' %}">Back to Action Center</a>
+{% endblock %}

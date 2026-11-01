@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Assign Bid Tracker</h2>
+<div class="card">
+  <p class="meta" style="margin-bottom:15px;">Assign an employee to track the live status, opening, and competitor prices for <strong>{{ tender.serial_number }}</strong>.</p>
+  <form method="post">
+    {% csrf_token %}
+    <select name="bid_tracker" required>
+      <option value="">-- Select Employee --</option>
+      {% for e in employees %}
+        <option value="{{ e.id }}" {% if tender.bid_tracker_id == e.id %}selected{% endif %}>{{ e.full_name }} ({{ e.get_role_display }})</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-green wide" type="submit">Assign Tracker</button>
+    <a class="btn btn-grey wide" href="{% url 'tender_detail' tender.id %}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

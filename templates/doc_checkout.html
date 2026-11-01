@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Check-Out Document</h2>
+<div class="card">
+  <div class="kv"><span class="k">Document</span><span class="v">{{ doc.doc_id }} - {{ doc.title }}</span></div>
+  <div class="kv"><span class="k">Physical Location</span><span class="v">{{ doc.physical_location }}</span></div>
+  
+  <form method="post" style="margin-top:15px;">
+    {% csrf_token %}
+    <label class="meta">Assign Document To</label>
+    <select name="employee_id">
+      <option value="">-- Return to Cabinet (Clear) --</option>
+      {% for e in employees %}
+        <option value="{{ e.id }}" {% if doc.checked_out_to_id == e.id %}selected{% endif %}>{{ e.full_name }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-blue wide" type="submit" style="margin-top:10px;">Update Check-Out Status</button>
+    <a class="btn btn-grey wide" href="{% url 'document_list' %}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

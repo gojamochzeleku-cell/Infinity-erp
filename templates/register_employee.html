@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Register Employee{% endblock %}
+{% block content %}
+<h2>Register New Employee</h2>
+
+{% if error %}
+<div class="card" style="border-color:#7a2a2a; background:#2a1515;">
+  <div style="color:#ff9b96; font-size:13px;">{{ error }}</div>
+</div>
+{% endif %}
+
+{% if success %}
+<div class="card" style="border-color:#1f8a4c; background:#152a1c;">
+  <div style="color:#5fd68a; font-size:13px;">{{ success }}</div>
+</div>
+{% endif %}
+
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    
+    <label class="meta">First Name</label>
+    <input type="text" name="first_name" required>
+    
+    <label class="meta">Last Name</label>
+    <input type="text" name="last_name" required>
+    
+    <label class="meta">Username (for login)</label>
+    <input type="text" name="username" required>
+    
+    <label class="meta">Temporary Password</label>
+    <input type="text" name="password" required placeholder="e.g. Infinity@123">
+    
+    <label class="meta">Role / Position</label>
+    <select name="role" required>
+      {% for code, name in roles %}
+        <option value="{{ code }}">{{ name }}</option>
+      {% endfor %}
+    </select>
+
+    <label class="meta">Phone Number (Optional)</label>
+    <input type="text" name="phone">
+    
+    <label class="meta">Telegram Chat ID (Optional)</label>
+    <input type="text" name="telegram">
+    
+    <label class="meta">WhatsApp Number (Optional)</label>
+    <input type="text" name="whatsapp">
+
+    <button class="btn btn-green wide" type="submit" style="margin-top:15px;">Create Employee Account</button>
+    <a class="btn btn-grey wide" href="{% url 'dashboard' %}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

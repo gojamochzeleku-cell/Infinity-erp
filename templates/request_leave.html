@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Request Leave</h2>
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    <label class="meta">Leave Type</label>
+    <select name="leave_type">
+      <option value="Annual">Annual Leave</option>
+      <option value="Sick">Sick Leave</option>
+      <option value="Emergency">Emergency Leave</option>
+    </select>
+    <label class="meta">Start Date (YYYY-MM-DD)</label>
+    <input type="date" name="start_date" required>
+    <label class="meta">End Date (YYYY-MM-DD)</label>
+    <input type="date" name="end_date" required>
+    <label class="meta">Reason</label>
+    <textarea name="reason" required></textarea>
+    <button class="btn btn-green" type="submit">Submit to HR</button>
+  </form>
+</div>
+{% endblock %}

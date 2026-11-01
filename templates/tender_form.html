@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}{% if is_new %}Register Tender{% else %}Edit Tender{% endif %}{% endblock %}
+{% block content %}
+<h2>{% if is_new %}Register Tender (T01){% else %}Edit {{ tender.serial_number }}{% endif %}</h2>
+{% if errors %}<div class="card" style="border-color:#7a2a2a;background:#2a1515">
+  {% for e in errors %}<div style="color:#ff9b96;font-size:13px">{{ e }}</div>{% endfor %}
+</div>{% endif %}
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <div class="card">
+    <div class="meta" style="margin-bottom:8px">BID INFORMATION SHEET (PDF)</div>
+    {% if tender and tender.bid_information_sheet %}
+      <div class="meta" style="margin-bottom:6px">Current: <a href="{{ tender.bid_information_sheet.url }}" target="_blank" style="color:#e8b64c">download PDF</a></div>
+    {% endif %}
+    <input type="file" name="bid_information_sheet" accept="application/pdf" style="color:#c8cfdd;margin-bottom:10px">
+    <button class="btn btn-blue" type="submit" name="action" value="extract" formnovalidate>Extract with AI</button>
+    <div class="meta" style="margin-top:6px">Upload the PDF and tap "Extract with AI" to auto-fill the form.</div>
+  </div>
+  <div class="card">
+    <div class="meta" style="margin-bottom:8px">IDENTIFICATION</div>
+    <label class="meta">Bid Reference Number</label>
+    <input type="text" name="bid_reference_number" value="{{ initial.bid_reference_number|default:'' }}" required>
+    <label class="meta">Bid Title</label>
+    <input type="text" name="bid_title" value="{{ initial.bid_title|default:'' }}" required>
+    <label class="meta">Bid Type</label>
+    <select name="bid_type">
+      <option value="EGP" {% if initial.bid_type == 'EGP' %}selected{% endif %}>eGP</option>
+      <option value="DOCUMENT" {% if initial.bid_type == 'DOCUMENT' or not initial.bid_type %}selected{% endif %}>Document</option>
+    </select>
+    <label class="meta">Purchaser Name</label>
+    <input type="text" name="purchaser_name" value="{{ initial.purchaser_name|default:'' }}" required>
+    <label class="meta">Organization Type</label>
+    <select name="organization_type">
+      <option value="GOVERNMENT" {% if initial.organization_type == 'GOVERNMENT' or not initial.organization_type %}selected{% endif %}>Government</option>
+      <option value="NON_GOVERNMENT" {% if initial.organization_type == 'NON_GOVERNMENT' %}selected{% endif %}>Non-Government</option>
+      <option value="PRIVATE" {% if initial.organization_type == 'PRIVATE' %}selected{% endif %}>Private</option>
+    </select>
+    <label class="meta">Published Date (e.g. 2026-10-25)</label>
+    <input type="text" name="published_date" value="{{ initial.published_date|default:'' }}">
+    <label class="meta">Bidder Location</label>
+    <input type="text" name="bidder_location" value="{{ initial.bidder_location|default:'' }}">
+    <label class="meta">Contact Phone</label>
+    <input type="text" name="contact_phone" value="{{ initial.contact_phone|default:'' }}">
+  </div>
+  <div class="card">
+    <div class="meta" style="margin-bottom:8px">DOCUMENT COST</div>
+    <label class="meta">Document Cost Amount</label>
+    <input type="text" name="bid_document_cost_amount" placeholder="0.00" value="{{ initial.bid_document_cost_amount|default:'' }}">
+    <label class="meta">Payment Mode</label>
+    <select name="bid_document_cost_payment_mode">
+      <option value="CASH" {% if initial.bid_document_cost_payment_mode == 'CASH' or not initial.bid_document_cost_payment_mode %}selected{% endif %}>Cash</option>
+      <option value="DEPOSIT" {% if initial.bid_document_cost_payment_mode == 'DEPOSIT' %}selected{% endif %}>Deposit in Account</option>
+    </select>
+    <label class="meta">Account Holder Name (if deposit)</label>
+    <input type="text" name="account_holder_name" value="{{ initial.account_holder_name|default:'' }}">
+    <label class="meta">Bank Name (if deposit)</label>
+    <input type="text" name="bank_name" value="{{ initial.bank_name|default:'' }}">
+    <label class="meta">Bank Account Number (if deposit)</label>
+    <input type="text" name="bank_account_number" value="{{ initial.bank_account_number|default:'' }}">
+  </div>
+  <div class="card">
+    <div class="meta" style="margin-bottom:8px">CPO / BID GUARANTEE</div>
+    <label class="meta">CPO Value</label>
+    <input type="text" name="cpo_amount" placeholder="0.00" value="{{ initial.cpo_amount|default:'' }}">
+    <label class="meta">CPO Type</label>
+    <select name="cpo_type">
+      <option value="AMOUNT" {% if initial.cpo_type == 'AMOUNT' or not initial.cpo_type %}selected{% endif %}>Amount</option>
+      <option value="PERCENT" {% if initial.cpo_type == 'PERCENT' %}selected{% endif %}>Percent</option>
+    </select>
+  </div>
+  <div class="card">
+    <div class="meta" style="margin-bottom:8px">DATES</div>
+    <label class="meta">Submission Deadline (e.g. 2026-11-01)</label>
+    <input type="text" name="bid_submission_date" value="{{ initial.bid_submission_date|default:'' }}">
+    <label class="meta">Opening Date (e.g. 2026-11-01)</label>
+    <input type="text" name="bid_opening_date" value="{{ initial.bid_opening_date|default:'' }}">
+  </div>
+  <div style="margin-bottom:20px">
+    <button class="btn btn-grey" type="submit" name="action" value="save_draft">Save as Draft</button>
+    <button class="btn btn-green" type="submit" name="action" value="submit">Register and Submit</button>
+  </div>
+</form>
+{% endblock %}

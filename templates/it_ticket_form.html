@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Submit IT Ticket</h2>
+<div class="card">
+  <p class="meta" style="margin-bottom:15px;">Describe your technical issue and the IT Coordinator will be notified immediately.</p>
+  <form method="post">
+    {% csrf_token %}
+    <label class="meta">Subject</label>
+    <input type="text" name="subject" required placeholder="e.g., Printer not working, Cannot login">
+    <label class="meta">Description</label>
+    <textarea name="description" required placeholder="Provide details about the issue..." style="min-height:120px;"></textarea>
+    <button class="btn btn-green wide" type="submit" style="margin-top:10px;">Submit Ticket to IT</button>
+    <a class="btn btn-grey wide" href="{% url 'dashboard' %}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

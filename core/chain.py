@@ -1,0 +1,249 @@
+from django.urls import reverse
+from .models import Employee, Task, Tender, TenderReview, Document, CompanySetting, CashFlowEntry, Shipment
+from .services import notify
+from decimal import Decimal
+
+def find_role(company, role):
+    return Employee.objects.filter(role=role, is_active=True).first()
+
+def create_task(company, code, role, title, description='', payload=None, action_url=''):
+    assignee = find_role(company, role)
+    if assignee is None:
+        return None
+    task = Task.objects.create(
+        code=code, title=title, description=description, kind='CHAIN',
+        company=company, assigned_to=assignee, payload=payload or {}, action_url=action_url,
+    )
+    notify(assignee, title='New task: %s' % title, body=description[:200],
+           task=task, link=action_url)
+    return task
+
+
+def register_document(tender, file_obj, title, employee, category='TENDER'):
+    if not file_obj: return
+    Document.objects.create(
+        company=tender.company,
+        title=f"{tender.serial_number} - {title}",
+        file=file_obj,
+        tender=tender,
+        uploaded_by=employee,
+        category=category
+    )
+
+def advance_tender_chain(request, tender, task, decision, note):
+    emp = getattr(request.user, 'employee', None)
+    TenderReview.objects.create(
+        tender=tender, employee=emp, role=emp.role, decision=decision, note=note)
+    task.status = 'COMPLETED'
+    task.save()
+
+    if task.code == 'T02':
+        if decision == 'GO':
+            tender.status = 'GO'
+            tender.save()
+            create_task(tender.company, 'T03', 'CEO',
+                        f'CEO Approval: {tender.bid_title}',
+                        f'Bid Manager marked GO. Note: {note}',
+                        {'tender_id': tender.id},
+                        reverse('tender_detail', args=[tender.id]))
+        else:
+            tender.status = 'NO_GO'
+            tender.save()
+
+    elif task.code == 'T03':
+        if decision == 'APPROVED':
+            tender.status = 'CEO_APPROVED'
+            tender.save()
+            create_task(tender.company, 'T04', 'CASE',
+                        f'Cost Request: {tender.bid_title}',
+                        f'CEO Approved. Note: {note}',
+                        {'tender_id': tender.id},
+                        reverse('tender_detail', args=[tender.id]))
+        else:
+            tender.status = 'CEO_REJECTED'
+            tender.save()
+
+def process_cost_request(tender, task, action, note):
+    task.status = 'COMPLETED'
+    task.save()
+
+    if action == 'SUBMIT_COST':
+        create_task(tender.company, 'T05', 'FIN',
+                    f'Cost Approval: {tender.bid_title}',
+                    f'Total requested: {tender.total_cost} ETB. Note: {note}',
+                    {'tender_id': tender.id, 'total_cost': str(tender.total_cost)},
+                    reverse('tender_detail', args=[tender.id]))
+                    
+    elif action == 'FIN_APPROVE':
+        if tender.total_cost >= Decimal('2000.00'):
+            create_task(tender.company, 'T06', 'CEO',
+                        f'High Cost Approval: {tender.bid_title}',
+                        f'Amount: {tender.total_cost} ETB is >= 2000. Finance Note: {note}',
+                        {'tender_id': tender.id},
+                        reverse('tender_detail', args=[tender.id]))
+        else:
+            create_task(tender.company, 'T07', 'CASE',
+                        f'Purchase Document: {tender.bid_title}',
+                        f'Finance Approved. Note: {note}',
+                        {'tender_id': tender.id},
+                        reverse('tender_detail', args=[tender.id]))
+
+    elif action == 'CEO_COST_APPROVE':
+        create_task(tender.company, 'T07', 'CASE',
+                    f'Purchase Document: {tender.bid_title}',
+                    f'CEO Approved Cost. Note: {note}',
+                    {'tender_id': tender.id},
+                    reverse('tender_detail', args=[tender.id]))
+
+    elif action == 'RECEIPT_UPLOADED':
+        create_task(tender.company, 'T08', 'OFFICE',
+                    f'Upload Bid Document: {tender.bid_title}',
+                    f'Receipt uploaded by Case Exec.',
+                    {'tender_id': tender.id},
+                    reverse('tender_detail', args=[tender.id]))
+
+def trigger_ai_tasks(tender):
+    company = tender.company
+    t_id = tender.id
+    url = reverse('tender_detail', args=[t_id])
+    
+    create_task(company, 'T09A', 'BIDM',
+                f'AI Summary & Brand Selection: {tender.bid_title}',
+                'The bid document is uploaded. Review AI brand suggestions.',
+                {'tender_id': t_id}, url)
+                
+    create_task(company, 'T09B', 'FIN',
+                f'Fill Financial Forms: {tender.bid_title}',
+                'Please fill the financial standing forms.',
+                {'tender_id': t_id}, url)
+                
+    create_task(company, 'T09C', 'HR',
+                f'Fill Workers Information: {tender.bid_title}',
+                'Please fill the workers information form.',
+                {'tender_id': t_id}, url)
+                
+    create_task(company, 'T09D', 'BIDOP',
+                f'Prepare Submission Sheet: {tender.bid_title}',
+                'Please prepare the bid submission sheet and compliance.',
+                {'tender_id': t_id}, url)
+
+def advance_supplier_chain(tender, task, action, note, data, files):
+    task.status = 'COMPLETED'
+    task.save()
+    url = reverse('tender_detail', args=[tender.id])
+
+    if action == 'APPROVE_AI':
+        create_task(tender.company, 'T10', 'BIDM', f'Supplier Selection & Proforma: {tender.bid_title}', 'Select brands, register supplier, upload Proforma Invoice.', {'tender_id': tender.id}, url)
+    
+    elif action == 'SUPPLIER_SELECTED':
+        create_task(tender.company, 'T11', 'BIDOP', f'Prepare Technical Proposal: {tender.bid_title}', 'Prepare compliance matrix and technical proposal.', {'tender_id': tender.id}, url)
+        
+    elif action == 'TECH_PROPOSAL_READY':
+        create_task(tender.company, 'T12', 'CEO', f'FX Rate & Landed Cost: {tender.bid_title}', 'Decide FX rate and calculate landed cost.', {'tender_id': tender.id}, url)
+        
+    elif action == 'FX_APPROVED':
+        create_task(tender.company, 'T13', 'FIN', f'Prepare Bank Letter: {tender.bid_title}', 'Prepare bid security summary and bank letter.', {'tender_id': tender.id}, url)
+        
+    elif action == 'BANK_LETTER_READY':
+        create_task(tender.company, 'T14', 'OFFICE', f'Upload Bank Letter: {tender.bid_title}', 'Upload the bank letter to outgoing correspondence.', {'tender_id': tender.id}, url)
+        
+    elif action == 'LETTER_UPLOADED':
+        create_task(tender.company, 'T15', 'CASE', f'Upload CPO / Guarantee: {tender.bid_title}', 'Upload CPO and hold physical copy.', {'tender_id': tender.id}, url)
+        
+    elif action == 'CPO_UPLOADED':
+        create_task(tender.company, 'T16', 'CEO', f'Final Profit Margin & Price Lock: {tender.bid_title}', 'Enter final bid price and lock it.', {'tender_id': tender.id}, url)
+        
+    elif action == 'FINAL_PRICE_LOCKED':
+        create_task(tender.company, 'T17', 'BIDOP', f'Upload Final Digital Docs: {tender.bid_title}', 'Upload final scanned technical and financial docs.', {'tender_id': tender.id}, url)
+
+def advance_closing_chain(tender, task, action, note, data, files):
+    task.status = 'COMPLETED'
+    task.save()
+    url = reverse('tender_detail', args=[tender.id])
+
+    if action == 'FINAL_DOCS_UPLOADED':
+        create_task(tender.company, 'T18', 'CASE', f'Physical Submission & Results: {tender.bid_title}', 'Submit the document physically and report the results.', {'tender_id': tender.id}, url)
+        
+    elif action == 'RESULTS_REPORTED':
+        # T19 is just a summary task for the Bid Manager
+        create_task(tender.company, 'T19', 'BIDM', f'Bid Results Summary: {tender.bid_title}', 'Review the submission results and competitor prices.', {'tender_id': tender.id}, url)
+        # T20 is for the Office Assistant to upload the award
+        create_task(tender.company, 'T20', 'OFFICE', f'Upload Award Document: {tender.bid_title}', 'Upload the award document if won.', {'tender_id': tender.id}, url)
+        
+    elif action == 'SUMMARY_REVIEWED':
+        # T19 just gets marked complete
+        pass
+        
+    elif action == 'AWARD_UPLOADED':
+        tender.status = 'WON'
+        tender.save()
+        create_task(tender.company, 'T21', 'OFFICE', f'Upload Draft Agreement: {tender.bid_title}', 'Upload the draft agreement for legal review.', {'tender_id': tender.id}, url)
+
+    elif action == 'DRAFT_AGREEMENT_UPLOADED':
+        create_task(tender.company, 'T22', 'LEGAL', f'Review Draft Agreement: {tender.bid_title}', 'Review and approve the draft agreement.', {'tender_id': tender.id}, url)
+
+def advance_import_chain(tender, task, action, note, data, files):
+    task.status = 'COMPLETED'
+    task.save()
+    url = reverse('tender_detail', args=[tender.id])
+
+    if action == 'LEGAL_APPROVED':
+        create_task(tender.company, 'T23', 'BIDM', f'Sign Agreement: {tender.bid_title}', 'The Legal team approved the draft. Please sign it.', {'tender_id': tender.id}, url)
+        
+    elif action == 'AGREEMENT_SIGNED':
+        create_task(tender.company, 'T24', 'OFFICE', f'Upload Final Signed Agreement: {tender.bid_title}', 'Upload the fully signed agreement to kick off the Import phase.', {'tender_id': tender.id}, url)
+        
+    elif action == 'FINAL_AGREEMENT_UPLOADED':
+        # Transition to Import
+        create_task(tender.company, 'I01', 'PROC', f'Issue PO & Confirm Supplier: {tender.bid_title}', 'Issue Purchase Order and upload it here.', {'tender_id': tender.id}, url)
+        
+    elif action == 'PO_ISSUED':
+        create_task(tender.company, 'I02', 'FIN', f'Prepare Payment Request: {tender.bid_title}', 'Prepare payment request based on the PO.', {'tender_id': tender.id}, url)
+        
+    elif action == 'PAYMENT_REQUESTED':
+        # Check threshold
+        setting, _ = CompanySetting.objects.get_or_create(company=tender.company)
+        threshold = setting.payment_approval_threshold
+        
+        if tender.payment_amount > threshold:
+            create_task(tender.company, 'I03', 'CEO', f'Approve Payment (>{threshold} ETB): {tender.bid_title}', f'Amount: {tender.payment_amount}. Exceeds threshold. CEO Approval required.', {'tender_id': tender.id}, url)
+        else:
+            # Auto-approve and move to LC
+            create_task(tender.company, 'I04', 'FIN', f'Open LC (Auto-Approved): {tender.bid_title}', f'Amount: {tender.payment_amount} is below threshold. Proceed to bank.', {'tender_id': tender.id}, url)
+        
+    elif action == 'PAYMENT_APPROVED':
+        create_task(tender.company, 'I04', 'FIN', f'Open LC / Bank Transfer: {tender.bid_title}', 'Execute the bank transfer or LC opening and upload the SWIFT copy.', {'tender_id': tender.id}, url)
+
+def advance_logistics_chain(tender, task, action, note, data, files):
+    task.status = 'COMPLETED'
+    task.save()
+    url = reverse('tender_detail', args=[tender.id])
+
+    if action == 'SHIPPING_DOCS_UPLOADED':
+        create_task(tender.company, 'I06', 'LOG', f'Assign Clearing Agent: {tender.bid_title}', 'Assign a freight forwarder or clearing agent.', {'tender_id': tender.id}, url)
+    elif action == 'AGENT_ASSIGNED':
+        create_task(tender.company, 'I06G', 'GM', f'GM Approve Agent Fees: {tender.bid_title}', 'Review the Clearing Agent assignment and approve their operational fees before Finance pays them.', {'tender_id': tender.id}, url)
+        
+    elif action == 'GM_AGENT_APPROVED':
+        create_task(tender.company, 'I07', 'FIN', f'Duty & Tax Payment Request: {tender.bid_title}', 'Prepare the customs duty and tax payment request.', {'tender_id': tender.id}, url)
+    elif action == 'DUTY_REQUESTED':
+        create_task(tender.company, 'I08', 'CEO', f'Approve Duty & Tax: {tender.bid_title}', 'Approve the duty and tax payment.', {'tender_id': tender.id}, url)
+    elif action == 'DUTY_APPROVED':
+        create_task(tender.company, 'I09', 'LOG', f'Customs Clearing: {tender.bid_title}', 'Complete customs declaration and upload clearance docs.', {'tender_id': tender.id}, url)
+    elif action == 'CUSTOMS_CLEARED':
+        create_task(tender.company, 'I10', 'LOG', f'Inland Transport to Warehouse: {tender.bid_title}', 'Transport goods to warehouse and upload receipt.', {'tender_id': tender.id}, url)
+    elif action == 'WAREHOUSE_RECEIVED':
+        create_task(tender.company, 'I11', 'PROC', f'Receiving & Inspection: {tender.bid_title}', 'Inspect goods and upload inspection report.', {'tender_id': tender.id}, url)
+    elif action == 'INSPECTION_DONE':
+        create_task(tender.company, 'I12', 'LOG', f'Deliver to Customer: {tender.bid_title}', 'Deliver to customer and upload signed delivery note.', {'tender_id': tender.id}, url)
+    elif action == 'DELIVERED':
+        create_task(tender.company, 'I13', 'CASE', f'Customer Acceptance (GRN): {tender.bid_title}', 'Get customer acceptance and upload GRN + Invoice.', {'tender_id': tender.id}, url)
+    elif action == 'GRN_RECEIVED':
+        create_task(tender.company, 'I14', 'FIN', f'Receivable & Collection: {tender.bid_title}', 'Collect payment from customer and upload receipt.', {'tender_id': tender.id}, url)
+    elif action == 'PAYMENT_COLLECTED':
+        create_task(tender.company, 'I15', 'BIDM', f'Project Closure Report: {tender.bid_title}', 'Write final project closure report.', {'tender_id': tender.id}, url)
+    elif action == 'CLOSURE_REPORTED':
+        create_task(tender.company, 'I16', 'CEO', f'Final Project Approval: {tender.bid_title}', 'Approve project closure.', {'tender_id': tender.id}, url)
+    elif action == 'PROJECT_CLOSED':
+        tender.status = 'COMPLETED'
+        tender.save()

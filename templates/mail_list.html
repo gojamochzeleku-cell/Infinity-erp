@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Mail Registry{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+  <h2>Mail Registry</h2>
+  <div>
+    <a class="btn btn-blue" href="{% url 'mail_create' 'INCOMING' %}" style="padding:8px 12px; font-size:12px;">+ Incoming</a>
+    <a class="btn btn-green" href="{% url 'mail_create' 'OUTGOING' %}" style="padding:8px 12px; font-size:12px;">+ Outgoing</a>
+  </div>
+</div>
+
+<div style="margin-bottom:15px; display:flex; gap:10px;">
+  <a href="{% url 'mail_list' %}" class="linkbtn" {% if not direction_filter %}style="border-color:#e8b64c; color:#e8b64c;"{% endif %}>All Mail</a>
+  <a href="{% url 'mail_list' %}?type=INCOMING" class="linkbtn" {% if direction_filter == 'INCOMING' %}style="border-color:#e8b64c; color:#e8b64c;"{% endif %}>Incoming Only</a>
+  <a href="{% url 'mail_list' %}?type=OUTGOING" class="linkbtn" {% if direction_filter == 'OUTGOING' %}style="border-color:#e8b64c; color:#e8b64c;"{% endif %}>Outgoing Only</a>
+</div>
+
+{% for l in letters %}
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+      <strong style="font-size:14px; {% if l.direction == 'INCOMING' %}color:#4cc7e8;{% else %}color:#5fd68a;{% endif %}">
+        {% if l.direction == 'INCOMING' %}&#8595; INCOMING{% else %}&#8593; OUTGOING{% endif %}
+      </strong>
+      <span class="meta">{{ l.letter_date|date:"d M Y" }}</span>
+    </div>
+    <div class="ttl">{{ l.subject }}</div>
+    <div class="kv"><span class="k">{% if l.direction == 'INCOMING' %}Sender{% else %}Recipient{% endif %}</span><span class="v">{{ l.sender_recipient }}</span></div>
+    {% if l.reference_number %}<div class="kv"><span class="k">Ref No</span><span class="v">{{ l.reference_number }}</span></div>{% endif %}
+    {% if l.assigned_to %}<div class="kv"><span class="k">Action By</span><span class="v">{{ l.assigned_to.full_name }}</span></div>{% endif %}
+    <div style="margin-top:10px;">
+      <a href="{{ l.file.url }}" target="_blank" class="btn btn-grey" style="padding:6px 10px; font-size:11px;">View PDF</a>
+    </div>
+  </div>
+{% empty %}
+  <p class="empty">No letters in the registry yet.</p>
+{% endfor %}
+{% endblock %}

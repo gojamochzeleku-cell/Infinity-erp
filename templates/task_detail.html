@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+{% block title %}{{ task.title }}{% endblock %}
+{% block content %}
+<h2>{{ task.title }}</h2>
+<div class="card">
+  <div class="kv"><span class="k">Task</span><span class="v">{{ task.code }}</span></div>
+  <div class="kv"><span class="k">Status</span><span class="v"><span class="pill {{ task.status|lower }}">{{ task.get_status_display }}</span></span></div>
+</div>
+
+{% if tender %}
+<div class="card">
+  <div class="meta" style="margin-bottom:8px">TENDER OVERVIEW</div>
+  <div class="kv"><span class="k">Title</span><span class="v">{{ tender.bid_title }}</span></div>
+  <div class="kv"><span class="k">Doc Price</span><span class="v">{{ tender.bid_document_cost_amount }} ETB</span></div>
+  <a class="btn btn-grey" href="{% url 'tender_detail' tender.id %}">View full tender</a>
+</div>
+{% endif %}
+
+{% if task.status != 'COMPLETED' %}
+<div class="card">
+  <form method="post" action="{% url 'task_action' task.id %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    {% if task.code == 'T02' %}
+      <div class="meta" style="margin-bottom:8px">BID MANAGER FEASIBILITY</div>
+      <textarea name="note" placeholder="Write feasibility note..." required></textarea>
+      <button class="btn btn-green" type="submit" name="action" value="GO">GO (Feasible)</button>
+      <button class="btn btn-red" type="submit" name="action" value="NO_GO">NO-GO</button>
+
+    {% elif task.code == 'T03' %}
+      <div class="meta" style="margin-bottom:8px">CEO APPROVAL</div>
+      <textarea name="note" placeholder="Write CEO approval note..." required></textarea>
+      <button class="btn btn-green" type="submit" name="action" value="APPROVED">Approve</button>
+      <button class="btn btn-red" type="submit" name="action" value="REJECTED">Reject</button>
+
+    {% elif task.code == 'T04' %}
+      <div class="meta" style="margin-bottom:8px">COST REQUEST FORM</div>
+      <div class="kv" style="margin-bottom:10px"><span class="k">Document Price (Auto-filled)</span><span class="v">{{ tender.bid_document_cost_amount }} ETB</span></div>
+      <label class="meta">Transport Cost (ETB)</label>
+      <input type="number" step="0.01" name="transport_cost" required>
+      <label class="meta">From (Location)</label>
+      <input type="text" name="transport_from" required>
+      <label class="meta">To (Location)</label>
+      <input type="text" name="transport_to" required>
+      <label class="meta">Reason for Transport</label>
+      <input type="text" name="transport_reason" required>
+      <textarea name="note" placeholder="Write any notes here..."></textarea>
+      <button class="btn btn-green" type="submit" name="action" value="SUBMIT_COST">Submit to Finance</button>
+
+    {% elif task.code == 'T05' %}
+      <div class="meta" style="margin-bottom:8px">FINANCE APPROVAL (Threshold: 2,000 ETB)</div>
+      <div class="kv" style="margin-bottom:10px"><span class="k">Total Cost Requested</span><span class="v" style="color:#e8b64c;font-weight:bold">{{ tender.total_cost }} ETB</span></div>
+      <textarea name="note" placeholder="Approval note..." required></textarea>
+      <button class="btn btn-green" type="submit" name="action" value="FIN_APPROVE">Approve Cost</button>
+
+    {% elif task.code == 'T06' %}
+      <div class="meta" style="margin-bottom:8px">CEO COST APPROVAL (> 2,000 ETB)</div>
+      <div class="kv" style="margin-bottom:10px"><span class="k">Total Cost Requested</span><span class="v" style="color:#e8b64c;font-weight:bold">{{ tender.total_cost }} ETB</span></div>
+      <textarea name="note" placeholder="CEO Approval note..." required></textarea>
+      <button class="btn btn-green" type="submit" name="action" value="CEO_COST_APPROVE">Approve High Cost</button>
+
+    {% elif task.code == 'T07' %}
+      <div class="meta" style="margin-bottom:8px">UPLOAD PURCHASE RECEIPT</div>
+      <input type="file" name="receipt" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="RECEIPT_UPLOADED">Upload Receipt</button>
+
+    {% elif task.code == 'T08' %}
+      <div class="meta" style="margin-bottom:8px">UPLOAD PURCHASED BID DOCUMENT (PDF)</div>
+      <input type="file" name="purchased_bid_document" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="complete">Upload & Complete</button>
+
+
+    {% elif task.code == 'T09A' %}
+      <div class="meta" style="margin-bottom:8px">BID ANALYSIS & BRAND SELECTION</div>
+      
+      {% if not task.payload.ai_result %}
+        <p class="meta" style="margin-bottom:10px">Tap below to let Gemini AI read the PDF and generate suggestions. If it fails, you can type manually below.</p>
+        <button class="btn btn-blue wide" type="submit" name="action" value="analyze">Try AI Analysis</button>
+      {% endif %}
+
+      <label class="meta" style="margin-top:15px;">Summary & Brand Suggestions (AI or Manual)</label>
+      <textarea name="note" placeholder="Type or paste brand suggestions, High Quality vs Low Cost options here..." style="min-height:150px;">{% if task.payload.ai_result %}{{ task.payload.ai_result }}{% endif %}</textarea>
+      
+      <button class="btn btn-green wide" type="submit" name="action" value="APPROVE_AI">Save & Send to Supplier Selection</button>
+
+    {% elif task.code == 'T10' %}
+      <div class="meta" style="margin-bottom:8px">SUPPLIER SELECTION & PROFORMA</div>
+      <label class="meta">Supplier Name</label>
+      <input type="text" name="supplier_name" required>
+      <label class="meta">Upload Proforma Invoice (PDF)</label>
+      <input type="file" name="proforma" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="SUPPLIER_SELECTED">Submit to Bid Op</button>
+
+    {% elif task.code == 'T11' %}
+      <div class="meta" style="margin-bottom:8px">TECHNICAL PROPOSAL</div>
+      <label class="meta">Upload Technical Proposal (PDF)</label>
+      <input type="file" name="tech_proposal" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="TECH_PROPOSAL_READY">Send to CEO for FX</button>
+
+    {% elif task.code == 'T12' %}
+      <div class="meta" style="margin-bottom:8px">FX RATE & LANDED COST</div>
+      <label class="meta">Enter Current FX Rate</label>
+      <input type="number" step="0.01" name="fx_rate" required>
+      <button class="btn btn-green" type="submit" name="action" value="FX_APPROVED">Approve FX & Send to Finance</button>
+
+    {% elif task.code == 'T13' %}
+      <div class="meta" style="margin-bottom:8px">PREPARE BANK LETTER</div>
+      <p class="meta" style="margin-bottom:10px">Prepare the bid security summary and bank letter.</p>
+      <button class="btn btn-green" type="submit" name="action" value="BANK_LETTER_READY">Send to Office Assistant</button>
+
+    {% elif task.code == 'T14' %}
+      <div class="meta" style="margin-bottom:8px">UPLOAD BANK LETTER</div>
+      <input type="file" name="bank_letter" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="LETTER_UPLOADED">Upload & Send to Case Exec</button>
+
+    {% elif task.code == 'T15' %}
+      <div class="meta" style="margin-bottom:8px">UPLOAD CPO</div>
+      <input type="file" name="cpo" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="CPO_UPLOADED">Upload & Send to CEO</button>
+
+    {% elif task.code == 'T16' %}
+      <div class="meta" style="margin-bottom:8px">FINAL PROFIT MARGIN</div>
+      <label class="meta">Final Bid Price (ETB)</label>
+      <input type="number" step="0.01" name="final_price" required>
+      <button class="btn btn-green" type="submit" name="action" value="FINAL_PRICE_LOCKED">Lock Final Price</button>
+
+
+    {% elif task.code == 'T17' %}
+      <div class="meta" style="margin-bottom:12px; color:#e8b64c; font-weight:bold; font-size:14px;">BID DOCUMENT CHECKLIST</div>
+      
+      <div style="background:#0f1115; border:1px solid #333a4d; border-radius:8px; padding:12px; margin-bottom:15px; font-size:13px;">
+        <div style="margin-bottom:6px;">✅ Technical Proposal Prepared (T11)</div>
+        <div style="margin-bottom:6px;">✅ Financial Standing Form (T09B)</div>
+        <div style="margin-bottom:6px;">{% if tender.cpo_expiry %}✅ CPO / Bid Guarantee Uploaded{% else %}❌ CPO / Bid Guarantee MISSING{% endif %}</div>
+        <div style="margin-bottom:6px;">✅ Final Price Locked by CEO (T16)</div>
+      </div>
+
+      <label class="meta" style="color:#5fd68a; font-weight:bold;">PHYSICAL CONFIRMATION REQUIRED</label>
+      <div style="background:#152a1c; border:1px solid #1f8a4c; border-radius:8px; padding:12px; margin-bottom:15px;">
+        <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer;">
+          <input type="checkbox" name="is_sealed" required style="width:20px; height:20px; margin-top:2px;">
+          <span style="font-size:13px; color:#c8cfdd; line-height:1.4;">I confirm that I have signed, stamped, sealed the envelopes, and the documents are ready for physical submission.</span>
+        </label>
+      </div>
+
+      <div class="meta" style="margin-bottom:8px">UPLOAD FINAL DIGITAL SCANS</div>
+      <input type="file" name="final_docs" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green wide" type="submit" name="action" value="FINAL_DOCS_UPLOADED">Upload & Send to Case Exec</button>
+
+    {% elif task.code == 'T18' %}
+      <div class="meta" style="margin-bottom:8px">PHYSICAL SUBMISSION & RESULTS</div>
+      <label class="meta">Submission Status</label>
+      <select name="submission_status">
+        <option value="Submitted">Submitted</option>
+        <option value="Rejected">Rejected</option>
+      </select>
+      <label class="meta">Technical Result</label>
+      <select name="tech_result">
+        <option value="In Progress">In Progress</option>
+        <option value="Pass">Pass</option>
+        <option value="Fail">Fail</option>
+      </select>
+      <label class="meta">Financial Result</label>
+      <select name="fin_result">
+        <option value="In Progress">In Progress</option>
+        <option value="Opened">Opened</option>
+      </select>
+      <label class="meta">Competitor Prices & Notes</label>
+      <textarea name="competitor_prices" placeholder="List competitor prices here..."></textarea>
+      <button class="btn btn-green" type="submit" name="action" value="RESULTS_REPORTED">Submit Results</button>
+
+    {% elif task.code == 'T19' %}
+      <div class="meta" style="margin-bottom:8px">BID RESULTS SUMMARY</div>
+      <div class="kv"><span class="k">Submission</span><span class="v">{{ tender.submission_status }}</span></div>
+      <div class="kv"><span class="k">Technical</span><span class="v">{{ tender.tech_result }}</span></div>
+      <div class="kv"><span class="k">Financial</span><span class="v">{{ tender.fin_result }}</span></div>
+      <div class="kv"><span class="k">Competitors</span><span class="v">{{ tender.competitor_prices }}</span></div>
+      
+      {% if tender.status == 'LOST' %}
+      <div style="background:#3a1a1a; border:1px solid #e2504a; border-radius:8px; padding:12px; margin-top:15px;">
+        <label class="meta" style="color:#e2504a; font-weight:bold; margin-bottom:8px; display:block;">⚠️ LOSS ANALYSIS REQUIRED</label>
+        <p class="meta" style="font-size:11px; margin-bottom:10px;">This bid was marked as FAILED or REJECTED. Please document why we lost so management can improve future bids.</p>
+        <textarea name="loss_reason" required placeholder="e.g., Competitor offered a lower price by 15%, or we lacked a specific ISO certificate..." style="min-height:100px; margin-bottom:10px;"></textarea>
+      </div>
+      {% endif %}
+      
+      <button class="btn btn-green wide" type="submit" name="action" value="SUMMARY_REVIEWED" style="margin-top:15px">{% if tender.status == 'LOST' %}Submit Loss Analysis & Close{% else %}Acknowledge Summary{% endif %}</button>
+
+    {% elif task.code == 'T20' %}
+      <div class="meta" style="margin-bottom:8px">UPLOAD AWARD DOCUMENT</div>
+      <p class="meta" style="margin-bottom:10px">If the company won, upload the award document here.</p>
+      <input type="file" name="award_doc" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="AWARD_UPLOADED">Mark as WON & Upload</button>
+
+    {% elif task.code == 'T21' %}
+      <div class="meta" style="margin-bottom:8px">UPLOAD DRAFT AGREEMENT</div>
+      <input type="file" name="draft_agreement" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="DRAFT_AGREEMENT_UPLOADED">Send to Legal</button>
+
+
+    {% elif task.code == 'T22' %}
+      <div class="meta" style="margin-bottom:8px">LEGAL REVIEW & APPROVAL</div>
+      <input type="file" name="legal_doc" required style="color:#c8cfdd;margin-bottom:10px">
+      <textarea name="note" placeholder="Legal notes..."></textarea>
+      <button class="btn btn-green" type="submit" name="action" value="LEGAL_APPROVED">Approve & Send to Bid Manager</button>
+
+    {% elif task.code == 'T23' %}
+      <div class="meta" style="margin-bottom:8px">SIGN AGREEMENT</div>
+      <input type="file" name="signed_doc" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="AGREEMENT_SIGNED">Upload Signed & Send to Office</button>
+
+    {% elif task.code == 'T24' %}
+      <div class="meta" style="margin-bottom:8px">UPLOAD FINAL SIGNED AGREEMENT</div>
+      <input type="file" name="final_doc" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="FINAL_AGREEMENT_UPLOADED">Upload & Start Import Phase</button>
+
+    {% elif task.code == 'I01' %}
+      <div class="meta" style="margin-bottom:8px">ISSUE PURCHASE ORDER (PO)</div>
+      <input type="file" name="po_doc" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="PO_ISSUED">Upload PO & Send to Finance</button>
+
+    {% elif task.code == 'I02' %}
+      <div class="meta" style="margin-bottom:8px">PREPARE PAYMENT REQUEST</div>
+      <label class="meta">Payment Amount (ETB / USD)</label>
+      <input type="number" step="0.01" name="payment_amount" required>
+      <textarea name="note" placeholder="Payment details..."></textarea>
+      <button class="btn btn-green" type="submit" name="action" value="PAYMENT_REQUESTED">Send to CEO</button>
+
+    {% elif task.code == 'I03' %}
+      <div class="meta" style="margin-bottom:8px">CEO PAYMENT APPROVAL</div>
+      <div class="kv" style="margin-bottom:10px"><span class="k">Requested Amount</span><span class="v">{{ tender.payment_amount }}</span></div>
+      <textarea name="note" placeholder="CEO Approval note..." required></textarea>
+      <button class="btn btn-green" type="submit" name="action" value="PAYMENT_APPROVED">Approve Payment</button>
+
+    {% elif task.code == 'I04' %}
+      <div class="meta" style="margin-bottom:8px">OPEN LC / BANK TRANSFER</div>
+      <input type="file" name="swift_doc" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="LC_OPENED">Upload SWIFT Copy & Complete</button>
+
+
+    {% elif task.code == 'I05' %}
+      <div class="meta" style="margin-bottom:8px">UPLOAD SHIPPING DOCS</div>
+      <input type="file" name="shipping_docs" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="SHIPPING_DOCS_UPLOADED">Upload & Send to Logistics</button>
+
+    {% elif task.code == 'I06' %}
+      <div class="meta" style="margin-bottom:8px">ASSIGN CLEARING AGENT</div>
+      <input type="text" name="clearing_agent" placeholder="Agent Name / Company" required>
+      <button class="btn btn-green" type="submit" name="action" value="AGENT_ASSIGNED">Assign & Send to Finance</button>
+
+    {% elif task.code == 'I06G' %}
+      <div class="meta" style="margin-bottom:8px">GM APPROVAL: CLEARING AGENT FEES</div>
+      <div class="kv" style="margin-bottom:10px"><span class="k">Agent Assigned</span><span class="v">{{ tender.clearing_agent }}</span></div>
+      <textarea name="note" placeholder="GM Operational Notes..." required></textarea>
+      <button class="btn btn-green" type="submit" name="action" value="GM_AGENT_APPROVED">Approve & Send to Finance</button>
+
+    {% elif task.code == 'I07' %}
+      <div class="meta" style="margin-bottom:8px">DUTY & TAX PAYMENT</div>
+      <label class="meta">Amount Required</label>
+      <input type="number" step="0.01" name="duty_tax_amount" required>
+      <button class="btn btn-green" type="submit" name="action" value="DUTY_REQUESTED">Send to CEO</button>
+
+    {% elif task.code == 'I08' %}
+      <div class="meta" style="margin-bottom:8px">CEO DUTY APPROVAL</div>
+      <div class="kv" style="margin-bottom:10px"><span class="k">Amount</span><span class="v">{{ tender.duty_tax_amount }}</span></div>
+      <button class="btn btn-green" type="submit" name="action" value="DUTY_APPROVED">Approve & Send to Logistics</button>
+
+    {% elif task.code == 'I09' %}
+      <div class="meta" style="margin-bottom:8px">CUSTOMS CLEARING</div>
+      <input type="file" name="customs_docs" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="CUSTOMS_CLEARED">Upload Clearance Docs</button>
+
+    {% elif task.code == 'I10' %}
+      <div class="meta" style="margin-bottom:8px">WAREHOUSE RECEIPT</div>
+      <input type="file" name="warehouse_receipt" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="WAREHOUSE_RECEIVED">Upload Receipt</button>
+
+    {% elif task.code == 'I11' %}
+      <div class="meta" style="margin-bottom:8px">RECEIVING & INSPECTION (STOCK IN)</div>
+      <label class="meta">Item Name</label>
+      <input type="text" name="item_name" required placeholder="e.g., HP ProBook Laptop">
+      <label class="meta">Quantity Received</label>
+      <input type="number" name="qty_received" required value="1">
+      <label class="meta">Upload Inspection Report</label>
+      <input type="file" name="inspection_report" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green wide" type="submit" name="action" value="INSPECTION_DONE">Upload Report & Add to Inventory</button>
+
+    {% elif task.code == 'I12' %}
+      <div class="meta" style="margin-bottom:8px">DELIVER TO CUSTOMER (STOCK OUT)</div>
+      
+      <label class="meta">Select Item from Inventory</label>
+      <select name="product_id" required style="margin-bottom:10px;">
+        <option value="">-- Select Item --</option>
+        {% for p in all_products %}
+          <option value="{{ p.id }}">{{ p.name }} ({{ p.current_stock }} available)</option>
+        {% endfor %}
+      </select>
+      
+      <label class="meta">Quantity Delivered</label>
+      <input type="number" name="qty_delivered" required value="1">
+      
+      <label class="meta">Upload Signed Delivery Note</label>
+      <input type="file" name="delivery_note" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green wide" type="submit" name="action" value="DELIVERED">Deliver & Deduct from Inventory</button>
+
+    {% elif task.code == 'I13' %}
+      <div class="meta" style="margin-bottom:8px">CUSTOMER ACCEPTANCE (GRN)</div>
+      <input type="file" name="grn_invoice" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="GRN_RECEIVED">Upload GRN & Invoice</button>
+
+    {% elif task.code == 'I14' %}
+      <div class="meta" style="margin-bottom:8px">COLLECT PAYMENT</div>
+      <input type="file" name="payment_receipt" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="PAYMENT_COLLECTED">Upload Receipt & Send to Bid Manager</button>
+
+    {% elif task.code == 'I15' %}
+      <div class="meta" style="margin-bottom:8px">PROJECT CLOSURE REPORT</div>
+      <input type="file" name="closure_report" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="CLOSURE_REPORTED">Submit to CEO</button>
+
+    {% elif task.code == 'I16' %}
+      <div class="meta" style="margin-bottom:8px">FINAL PROJECT APPROVAL</div>
+      <p class="meta" style="margin-bottom:10px">Approve to close the project permanently.</p>
+      <button class="btn btn-green" type="submit" name="action" value="PROJECT_CLOSED">Approve & Close Project</button>
+
+
+    {% elif task.code in 'HR_LEAVE GM_LEAVE FIN_EXPENSE CEO_EXPENSE' %}
+      <div class="meta" style="margin-bottom:8px">APPROVAL REQUEST</div>
+      <p class="meta" style="margin-bottom:10px">{{ task.description }}</p>
+      <textarea name="note" placeholder="Approval notes..." required></textarea>
+      <button class="btn btn-green" type="submit" name="action" value="APPROVE">Approve</button>
+      <button class="btn btn-red" type="submit" name="action" value="REJECT">Reject</button>
+
+    {% elif task.code in 'T09B T09C T09D' %}
+
+
+
+
+
+      <div class="meta" style="margin-bottom:8px">UPLOAD COMPLETED FORMS</div>
+      <input type="file" name="form_file" required style="color:#c8cfdd;margin-bottom:10px">
+      <button class="btn btn-green" type="submit" name="action" value="complete">Upload & Complete</button>
+
+    {% else %}
+      <textarea name="note" placeholder="Write your note / reason here..."></textarea>
+      <button class="btn btn-blue" type="submit" name="action" value="start">Start</button>
+      <button class="btn btn-green" type="submit" name="action" value="complete">Complete</button>
+      <button class="btn btn-red" type="submit" name="action" value="reject">Reject</button>
+    {% endif %}
+  </form>
+</div>
+{% else %}
+<div class="card"><div class="meta">This task has been completed.</div></div>
+{% endif %}
+
+<a class="btn btn-grey" href="{% url 'dashboard' %}">Back to Action Center</a>
+{% endblock %}

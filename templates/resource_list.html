@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Resource Library{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+  <h2>Resource Library</h2>
+  <a class="btn btn-green" href="{% url 'resource_upload' %}" style="padding:8px 12px; font-size:12px;">+ Upload</a>
+</div>
+
+<div style="margin-bottom:15px; display:flex; gap:8px; overflow-x:auto; padding-bottom:5px;">
+  <a href="{% url 'resource_list' %}" class="linkbtn" {% if not category_filter %}style="border-color:#e8b64c; color:#e8b64c;"{% endif %}>All</a>
+  <a href="?cat=MANUAL" class="linkbtn" {% if category_filter == 'MANUAL' %}style="border-color:#e8b64c; color:#e8b64c;"{% endif %}>Manuals</a>
+  <a href="?cat=TEMPLATE" class="linkbtn" {% if category_filter == 'TEMPLATE' %}style="border-color:#e8b64c; color:#e8b64c;"{% endif %}>Templates</a>
+  <a href="?cat=FORM" class="linkbtn" {% if category_filter == 'FORM' %}style="border-color:#e8b64c; color:#e8b64c;"{% endif %}>Forms</a>
+</div>
+
+{% for r in resources %}
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+      <span class="pill {{ r.category|lower }}">{{ r.get_category_display }}</span>
+      <span class="meta">{{ r.created_at|date:"d M Y" }}</span>
+    </div>
+    <div class="ttl">{{ r.title }}</div>
+    <div class="meta" style="margin-bottom:10px;">Uploaded by: {{ r.uploaded_by.full_name }}</div>
+    <a class="btn btn-grey" href="{{ r.file.url }}" target="_blank">Download File</a>
+  </div>
+{% empty %}
+  <p class="empty">No resources uploaded yet.</p>
+{% endfor %}
+{% endblock %}

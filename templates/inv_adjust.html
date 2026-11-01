@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Adjust Stock: {{ product.name }}</h2>
+<div class="card">
+  <div class="kv"><span class="k">Current Stock</span><span class="v" style="font-size:20px; font-weight:bold; color:#4cc7e8;">{{ product.current_stock }}</span></div>
+  
+  {% if error %}
+  <div style="background:#3a1a1a; color:#e2504a; padding:10px; border-radius:8px; margin-top:10px; font-size:13px;">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" style="margin-top:15px;">
+    {% csrf_token %}
+    <label class="meta">Transaction Type</label>
+    <select name="trans_type" required style="margin-bottom:10px;">
+      <option value="IN">Stock In (+)</option>
+      <option value="OUT">Stock Out (-)</option>
+      <option value="ADJUST">Set Exact Total (Audit)</option>
+    </select>
+    <label class="meta">Quantity</label>
+    <input type="number" name="quantity" required style="margin-bottom:10px;">
+    <label class="meta">Reason / Notes</label>
+    <input type="text" name="notes" placeholder="e.g., Damaged, Found extra, Audit count" style="margin-bottom:15px;">
+    <button class="btn btn-green wide" type="submit">Submit Adjustment</button>
+    <a class="btn btn-grey wide" href="{% url 'inventory_dashboard' %}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

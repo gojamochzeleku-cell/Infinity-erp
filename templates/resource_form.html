@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Upload Resource{% endblock %}
+{% block content %}
+<h2>Upload to Library</h2>
+<div class="card">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <label class="meta">Document Title</label>
+    <input type="text" name="title" required placeholder="e.g. HR Leave Policy Manual">
+    
+    <label class="meta">Category</label>
+    <select name="category">
+      <option value="MANUAL">Working Manual</option>
+      <option value="TEMPLATE">Template</option>
+      <option value="FORM">Form</option>
+      <option value="OTHER">Other</option>
+    </select>
+
+    <label class="meta">File</label>
+    <input type="file" name="file" required style="color:#c8cfdd; margin-bottom:15px;">
+    
+    <button class="btn btn-green wide" type="submit">Upload to Library</button>
+    <a class="btn btn-grey wide" href="{% url 'resource_list' %}" style="margin-top:5px;">Cancel</a>
+  </form>
+</div>
+{% endblock %}

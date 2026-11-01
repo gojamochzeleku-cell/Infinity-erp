@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Supplier Database</h2>
+<div class="card" style="background:#1a1f2b; margin-bottom:20px;">
+  <h3 style="font-size:13px; color:#e8b64c; margin-bottom:10px;">+ Add New Supplier</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="text" name="name" placeholder="Supplier Company Name" required style="margin-bottom:8px;">
+    <input type="text" name="contact_person" placeholder="Contact Person" style="margin-bottom:8px;">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+      <input type="text" name="phone" placeholder="Phone" style="margin:0;">
+      <input type="email" name="email" placeholder="Email" style="margin:0;">
+    </div>
+    <button class="btn btn-green wide" type="submit">Save Supplier</button>
+  </form>
+</div>
+
+{% for s in suppliers %}
+  <div class="card" style="padding:15px; margin-bottom:10px;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+      <strong>{{ s.name }}</strong>
+      <span>{% if s.rating >= 4 %}⭐⭐⭐⭐⭐{% elif s.rating == 3 %}⭐⭐⭐{% else %}⭐{% endif %}</span>
+    </div>
+    <div class="meta">Contact: {{ s.contact_person|default:"-" }} | {{ s.phone|default:"-" }}</div>
+  </div>
+{% empty %}
+  <p class="empty">No suppliers registered.</p>
+{% endfor %}
+{% endblock %}

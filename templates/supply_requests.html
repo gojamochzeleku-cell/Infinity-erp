@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Stationery & Supplies</h2>
+<div class="card" style="background:#1a1f2b; margin-bottom:20px;">
+  <h3 style="font-size:13px; color:#4cc7e8; margin-bottom:10px;">Request Items</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="text" name="item_name" placeholder="Item (e.g., A4 Paper, Toner)" required style="margin-bottom:8px;">
+    <input type="number" name="quantity" value="1" required style="margin-bottom:8px;">
+    <button class="btn btn-blue wide" type="submit" style="margin:0;">Submit Request</button>
+  </form>
+</div>
+
+{% for r in reqs %}
+  <div class="card" style="padding:12px; margin-bottom:8px;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+      <strong>{{ r.quantity }}x {{ r.item_name }}</strong>
+      <span class="pill {% if r.status == 'FULFILLED' %}completed{% else %}pending{% endif %}">{{ r.status }}</span>
+    </div>
+    <div class="meta">Requested by: {{ r.employee.full_name }}</div>
+    
+    {% if user.employee.role in 'OFFICE,ADMIN' and r.status != 'FULFILLED' %}
+      <form method="post" style="margin-top:8px;">
+        {% csrf_token %}
+        <input type="hidden" name="approve_id" value="{{ r.id }}">
+        <button class="btn btn-green" type="submit" style="padding:4px 8px; font-size:11px;">Mark as Fulfilled</button>
+      </form>
+    {% endif %}
+  </div>
+{% empty %}
+  <p class="empty">No supply requests.</p>
+{% endfor %}
+{% endblock %}

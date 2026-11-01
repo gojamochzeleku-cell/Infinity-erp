@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>📺 TV Dashboard Settings</h2>
+<div class="card">
+  <p class="meta" style="margin-bottom:15px;">Control how the Live TV broadcast behaves in the office. Note: The TV will automatically toggle between Capital Hailu, Yirga Agedom, and a Combined Global View.</p>
+  <form method="post">
+    {% csrf_token %}
+    <label class="meta">Toggle Speed (Seconds)</label>
+    <select name="speed" style="margin-bottom:15px;">
+      <option value="10" {% if speed == '10' %}selected{% endif %}>10 Seconds (Fast)</option>
+      <option value="20" {% if speed == '20' %}selected{% endif %}>20 Seconds (Normal)</option>
+      <option value="30" {% if speed == '30' %}selected{% endif %}>30 Seconds (Relaxed)</option>
+      <option value="60" {% if speed == '60' %}selected{% endif %}>60 Seconds (Slow)</option>
+    </select>
+    <button class="btn btn-green wide" type="submit">Save TV Settings</button>
+    <a class="btn btn-grey wide" href="{% url 'mgmt_dashboard' %}" style="margin-top:5px;">Back to Dashboard</a>
+  </form>
+</div>
+{% endblock %}
