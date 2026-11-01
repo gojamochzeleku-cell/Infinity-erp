@@ -104,9 +104,13 @@
       <button class="btn btn-green" type="submit" name="action" value="FX_APPROVED">Approve FX & Send to Finance</button>
 
     {% elif task.code == 'T13' %}
-      <div class="meta" style="margin-bottom:8px">PREPARE BANK LETTER</div>
-      <p class="meta" style="margin-bottom:10px">Prepare the bid security summary and bank letter.</p>
-      <button class="btn btn-green" type="submit" name="action" value="BANK_LETTER_READY">Send to Office Assistant</button>
+      <div class="meta" style="margin-bottom:8px">PREPARE BANK LETTER & CPO</div>
+      <p class="meta" style="margin-bottom:10px">You have reviewed the bid document. Please enter the exact CPO Expiry Date required by the purchaser and prepare the bank letter.</p>
+      
+      <label class="meta">CPO Expiry Date (From Bid Document)</label>
+      <input type="date" name="cpo_expiry" required style="margin-bottom:15px;">
+      
+      <button class="btn btn-green wide" type="submit" name="action" value="BANK_LETTER_READY">Save Expiry & Send to Office</button>
 
     {% elif task.code == 'T14' %}
       <div class="meta" style="margin-bottom:8px">UPLOAD BANK LETTER</div>
