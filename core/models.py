@@ -43,6 +43,7 @@ class Employee(models.Model):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='STAFF')
     phone = models.CharField(max_length=30, blank=True)
     telegram_chat_id = models.CharField(max_length=60, blank=True)
+    telegram_id = models.CharField(max_length=50, blank=True, null=True, unique=True, help_text='Telegram User ID')
     base_salary = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     contract_expiry = models.DateField(null=True, blank=True)
     whatsapp_number = models.CharField(max_length=30, blank=True)

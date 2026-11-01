@@ -117,5 +117,46 @@ input[type=text],input[type=password],input[type=number],input[type=date],select
 {% block content %}{% endblock %}
 </main>
 
+
+    <!-- Telegram Mini App Integration -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        window.addEventListener('load', function() {
+            // Check if we are running inside Telegram
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                tg.expand(); // Make it full screen
+                
+                // If the user is NOT logged in, try Telegram auto-login
+                if (window.location.pathname === '/login/' || window.location.pathname === '/') {
+                    const initData = tg.initData;
+                    if (initData) {
+                        document.body.innerHTML = '<div style="text-align:center; padding:50px; font-family:sans-serif; color:white; background:#0f1115; height:100vh;"><h2>Authenticating with Telegram...</h2><p>Please wait...</p></div>';
+                        
+                        fetch('/telegram-auth/', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({initData: initData})
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                window.location.href = data.redirect;
+                            } else {
+                                console.log("Telegram auth failed:", data.error);
+                                // If it fails, just let them see the normal login page
+                                window.location.reload(); 
+                            }
+                        })
+                        .catch(err => {
+                            console.log("Network error", err);
+                            window.location.reload();
+                        });
+                    }
+                }
+            }
+        });
+    </script>
+
 </body>
 </html>

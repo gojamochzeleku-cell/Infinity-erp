@@ -1,9 +1,10 @@
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
-from . import views, tender_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
+from . import views, tender_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
 
 urlpatterns = [
+    path('telegram-auth/', telegram_views.telegram_auth, name='telegram_auth'),
     path('cron/daily-reminders/', cron_views.daily_reminders, name='daily_reminders'),
     path('deadlines/', deadline_views.deadline_center, name='deadline_center'),
     path('manual/', manual_views.role_manual, name='role_manual'),
