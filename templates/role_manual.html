@@ -115,14 +115,41 @@
 <!-- ========================================== -->
 {% elif role == 'OFFICE' %}
 <details open>
-    <summary>Digital & Physical Filing</summary>
+    <summary>The Documentation System (A-B-C Guide)</summary>
     <div class="manual-content">
-        <h4>Command Center:</h4>
-        <p>Use your dashboard buttons to log Courier Dispatches, Check-in Visitors, and Manage Stationery Requests.</p>
-        <h4>Document Registry:</h4>
-        <p>Every file gets a Doc ID. Use <strong>Standard Filing</strong> to record exactly which Room -> Cabinet -> Shelf -> Box it is stored in. Use <strong>Check-out</strong> if a manager takes a physical file.</p>
+        <p><strong>The Core Principle:</strong> Every physical paper must have a digital twin in the ERP. If it's not in the system, it doesn't exist.</p>
+        
+        <h4>🅰️ Module A: Acquisition</h4>
+        <ul>
+            <li><strong>Auto-Uploads:</strong> When you complete T08 (Bid Doc) or T24 (Final Agreement), the system automatically creates the Doc ID.</li>
+            <li><strong>Manual Uploads:</strong> For Trade Licenses or general files, use <strong>⬆️ Upload Document</strong> on your Command Center. Always select the correct Category.</li>
+            <li><strong>Doc ID Format:</strong> <code>CHI-DOC-0001</code> (Capital) or <code>YAH-DOC-0001</code> (Yirga).</li>
+        </ul>
+
+        <h4>🅱️ Module B: Bridging to Physical Files</h4>
+        <ul>
+            <li>Go to <strong>📂 Doc Registry</strong> and find a file marked "Not Physically Filed".</li>
+            <li>Click <strong>Record Physical Filing</strong>.</li>
+            <li>Enter the exact 5-level hierarchy: <strong>Room ➔ Cabinet ➔ Shelf ➔ Box ➔ Folder</strong>.</li>
+            <li><strong>QR Code:</strong> Print the QR code on the document's screen and stick it on the physical folder.</li>
+        </ul>
+
+        <h4>🅲 Module C: Checking & Tracking</h4>
+        <ul>
+            <li><strong>Check-out:</strong> If a manager takes a physical file, click <strong>Check-out to Employee</strong>. When returned, click <strong>Mark as Returned</strong>.</li>
+            <li><strong>Scanning:</strong> Use <strong>🔍 Scan Document</strong> on the dashboard. Type the Doc ID to instantly find where the paper is located.</li>
+            <li><strong>Expiries:</strong> When filing a document, set an <strong>Expiry Date</strong> if applicable (e.g., Work Permits). It will alert the CEO 30 days before expiry.</li>
+        </ul>
+    </div>
+</details>
+
+<details>
+    <summary>Mail Registry & Office Command Center</summary>
+    <div class="manual-content">
         <h4>Mail Registry:</h4>
-        <p>Log Incoming and Outgoing letters. <strong>Crucial:</strong> Set a "Reply Deadline" on outgoing letters; if the deadline passes, management will be alerted on the Live TV.</p>
+        <p>Log all Incoming and Outgoing letters. <strong>Crucial:</strong> Set a "Reply Deadline" on outgoing letters. If the deadline passes, management will be alerted on the Live TV dashboard.</p>
+        <h4>Command Center:</h4>
+        <p>Use your dashboard buttons to log Courier Dispatches (for physical submissions to the Ministry) and Check-in Visitors.</p>
     </div>
 </details>
 
