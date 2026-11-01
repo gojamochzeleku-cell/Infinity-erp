@@ -67,6 +67,11 @@
   <a class="appcard" href="{% url 'role_manual' %}"><span class="icon">📖</span>My Training Manual</a>
   <a class="appcard" href="{% url 'my_assigned_tasks' %}"><span class="icon">📥</span>Tasks Assigned to Me</a>
 
+  {% if user.employee.role in "ADMIN,CEO,GM,LEGAL" %}
+  <a class="appcard" href="{% url 'legal_list' %}"><span class="icon">⚖️</span>Legal Disputes</a>
+  {% endif %}
+
+
   {% if user.employee.role in "IT,ADMIN" %}
   <a class="appcard" href="{% url 'it_dashboard' %}"><span class="icon">🛠️</span>IT Command Center</a>
   <a class="appcard" href="{% url 'it_user_management' %}"><span class="icon">👥</span>Manage Users</a>
