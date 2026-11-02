@@ -122,6 +122,10 @@ def employee_profile(request, pk):
     emp = get_object_or_404(Employee, pk=pk)
     reviewer = getattr(request.user, 'employee', None)
     
+    # Allow HR/Admin/CEO/GM OR the user viewing their own profile
+    if not reviewer or (reviewer.role not in ('ADMIN', 'CEO', 'GM', 'HR') and reviewer.pk != emp.pk):
+        return redirect('dashboard')
+
     if request.method == 'POST':
         if 'update_telegram' in request.POST:
             emp.telegram_id = request.POST.get('telegram_id')
