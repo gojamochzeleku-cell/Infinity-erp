@@ -158,5 +158,66 @@ input[type=text],input[type=password],input[type=number],input[type=date],select
         });
     </script>
 
+
+    <!-- Visual Loading Feedback -->
+    <style>
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+            margin-top: -2px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .btn-loading { opacity: 0.7 !important; cursor: not-allowed !important; }
+    </style>
+    
+    <script id="form-loading-script">
+        document.addEventListener('DOMContentLoaded', function() {
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    // Find the button that triggered the submit (e.g., "Approve" vs "Reject")
+                    let submitter = e.submitter;
+                    if (!submitter) {
+                        submitter = form.querySelector('button[type="submit"]');
+                    }
+                    
+                    if (submitter) {
+                        const originalText = submitter.innerHTML;
+                        
+                        // Change the clicked button to a loading state
+                        submitter.innerHTML = '<span class="spinner"></span> Processing...';
+                        submitter.classList.add('btn-loading');
+                        
+                        // Disable ALL submit buttons in this form to prevent double-clicks
+                        const allSubmitBtns = form.querySelectorAll('button[type="submit"], button:not([type])');
+                        allSubmitBtns.forEach(btn => {
+                            btn.disabled = true;
+                            btn.classList.add('btn-loading');
+                        });
+                        
+                        // Safety fallback: If the server takes too long or validation fails, 
+                        // re-enable the buttons after 10 seconds so the user isn't permanently stuck.
+                        setTimeout(() => {
+                            allSubmitBtns.forEach(btn => {
+                                btn.disabled = false;
+                                btn.classList.remove('btn-loading');
+                            });
+                            if (submitter) {
+                                submitter.innerHTML = originalText;
+                            }
+                        }, 10000);
+                    }
+                });
+            });
+        });
+    </script>
+
 </body>
 </html>
