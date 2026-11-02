@@ -132,7 +132,7 @@ def employee_profile(request, pk):
             emp.telegram_id = request.POST.get('telegram_id')
             emp.save()
             return redirect('employee_profile', pk=emp.pk)
-        elif 'doc_type' in request.POST:
+        elif 'doc_type' in request.POST and company:
             doc_type = request.POST.get('doc_type')
             title = request.POST.get('title')
             file_obj = request.FILES.get('file')
@@ -154,7 +154,7 @@ def employee_profile(request, pk):
             
         return redirect('employee_profile', pk=emp.pk)
 
-    return render(request, 'employee_profile.html', {'target_emp': emp})
+    return render(request, 'employee_profile.html', {'target_emp': emp, 'company': company})
 
 @login_required
 def generate_payroll(request):
