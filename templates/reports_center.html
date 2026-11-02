@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Business Reports{% endblock %}
+{% block content %}
+
+<style>
+    .period-tabs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 5px; }
+    .period-tab { background: #151922; border: 1px solid #333a4d; color: #8f99b0; padding: 10px 18px; border-radius: 20px; font-size: 13px; font-weight: bold; text-decoration: none; white-space: nowrap; transition: 0.2s; }
+    .period-tab.active { background: #4cc7e8; color: #000; border-color: #4cc7e8; }
+    .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .kpi-card { background: #151922; border: 1px solid #232838; border-radius: 12px; padding: 15px; text-align: center; }
+    .kpi-val { font-size: 24px; font-weight: 900; font-family: 'Orbitron', sans-serif; margin-bottom: 5px; }
+    .kpi-lbl { font-size: 10px; color: #8f99b0; text-transform: uppercase; letter-spacing: 1px; }
+    .green { color: #5fd68a; } .red { color: #e2504a; } .gold { color: #e8b64c; } .cyan { color: #4cc7e8; }
+</style>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+  <h2>📊 Business Intelligence</h2>
+  <div style="font-size:12px; color:#8f99b0; text-align:right;">
+    {{ start_date|date:"d M Y" }} - {{ end_date|date:"d M Y" }}
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="period-tabs">
+  <a href="?period=daily" class="period-tab {% if period == 'daily' %}active{% endif %}">Daily</a>
+  <a href="?period=weekly" class="period-tab {% if period == 'weekly' %}active{% endif %}">Weekly</a>
+  <a href="?period=monthly" class="period-tab {% if period == 'monthly' %}active{% endif %}">Monthly</a>
+  <a href="?period=quarterly" class="period-tab {% if period == 'quarterly' %}active{% endif %}">Quarterly</a>
+</div>
+
+<h3 style="font-size:14px; color:#e8b64c; margin-bottom:10px;">💰 Financial Report ({{ period_name }})</h3>
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-val green">{{ inflows|floatformat:2 }}</div>
+    <div class="kpi-lbl">Inflows (ETB)</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-val red">{{ outflows|floatformat:2 }}</div>
+    <div class="kpi-lbl">Outflows (ETB)</div>
+  </div>
+  <div class="kpi-card" style="grid-column: span 2; border-color: {% if net_cash >= 0 %}#1f8a4c{% else %}#e2504a{% endif %};">
+    <div class="kpi-val {% if net_cash >= 0 %}green{% else %}red{% endif %}">{{ net_cash|floatformat:2 }}</div>
+    <div class="kpi-lbl">Net Cash Flow (ETB)</div>
+  </div>
+</div>
+
+<h3 style="font-size:14px; color:#4cc7e8; margin:25px 0 10px 0;">📄 Tender Performance</h3>
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-val green">{{ tenders_won }}</div>
+    <div class="kpi-lbl">Tenders Won</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-val red">{{ tenders_lost }}</div>
+    <div class="kpi-lbl">Tenders Lost</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-val cyan">{{ tenders_submitted }}</div>
+    <div class="kpi-lbl">Submitted</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-val gold">{{ win_rate }}%</div>
+    <div class="kpi-lbl">Win Rate</div>
+  </div>
+</div>
+
+<h3 style="font-size:14px; color:#8f99b0; margin:25px 0 10px 0;">⚙️ Operations & HR</h3>
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-val cyan">{{ tasks_completed }}</div>
+    <div class="kpi-lbl">Tasks Completed</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-val gold">{{ active_shipments }}</div>
+    <div class="kpi-lbl">Active Shipments</div>
+  </div>
+  <div class="kpi-card" style="grid-column: span 2;">
+    <div class="kpi-val" style="color:#fff;">{{ leaves_taken }}</div>
+    <div class="kpi-lbl">Employees on Approved Leave</div>
+  </div>
+</div>
+
+<a class="btn btn-grey wide" href="{% url 'mgmt_dashboard' %}" style="margin-top:20px;">Back to Dashboard</a>
+{% endblock %}

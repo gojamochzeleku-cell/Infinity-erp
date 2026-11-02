@@ -1,9 +1,10 @@
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
-from . import views, tender_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
+from . import views, tender_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
 
 urlpatterns = [
+    path('reports/', report_views.reports_center, name='reports_center'),
     path('chat/', chat_views.chat_dashboard, name='chat_dashboard'),
     path('chat/<int:pk>/', chat_views.chat_room, name='chat_room'),
     path('chat/<int:pk>/send/', chat_views.send_message, name='send_message'),
