@@ -2,124 +2,187 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Infinity Command Center</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
+    
     :root {
-        --bg-deep: #040710; --bg-card: rgba(13, 18, 30, 0.65); --border-glass: rgba(255, 255, 255, 0.08);
-        --gold: #F5A623; --cyan: #00E5FF; --red: #FF3366; --green: #00FF88; --purple: #B366FF;
-        --text-main: #E2E8F0; --text-muted: #8292A6;
+        --bg: #05070a;
+        --panel: rgba(13, 18, 30, 0.8);
+        --border: rgba(255, 255, 255, 0.1);
+        --gold: #F5A623;
+        --cyan: #00E5FF;
+        --red: #FF3366;
+        --green: #00FF88;
+        --text: #E2E8F0;
+        --muted: #8292A6;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; overflow: hidden; }
+    
     body {
-        background-color: var(--bg-deep);
-        background-image: radial-gradient(circle at 50% 0%, rgba(0, 229, 255, 0.05) 0%, transparent 50%), linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-        background-size: 100% 100%, 40px 40px, 40px 40px; color: var(--text-main);
-        font-family: 'Rajdhani', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; padding-bottom: 50px;
+        background-color: var(--bg);
+        /* Cyberpunk Grid Background */
+        background-image: 
+            linear-gradient(rgba(0, 229, 255, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 229, 255, 0.05) 1px, transparent 1px);
+        background-size: 40px 40px;
+        color: var(--text);
+        font-family: 'Rajdhani', sans-serif;
+        height: 100vh;
+        width: 100vw;
+        display: flex;
+        flex-direction: column;
     }
-    .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: linear-gradient(180deg, rgba(4, 7, 16, 1) 0%, rgba(4, 7, 16, 0) 100%); border-bottom: 1px solid rgba(0, 229, 255, 0.2); box-shadow: 0 0 30px rgba(0, 229, 255, 0.1); z-index: 10; }
-    .brand { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 900; color: #fff; letter-spacing: 2px; text-shadow: 0 0 10px rgba(0, 229, 255, 0.8); }
-    .brand span { color: var(--gold); }
-    .clock { font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 700; color: var(--cyan); text-shadow: 0 0 10px rgba(0, 229, 255, 0.6); }
-    .tv-container { flex: 1; position: relative; padding: 15px; overflow-y: auto; }
-    .company-view { position: absolute; top: 15px; left: 15px; right: 15px; opacity: 0; visibility: hidden; transition: opacity 1s ease-in-out; }
+
+    /* Top Header */
+    .header {
+        height: 10vh;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 3vw;
+        background: linear-gradient(180deg, rgba(5, 7, 10, 1) 0%, rgba(5, 7, 10, 0) 100%);
+        border-bottom: 1px solid var(--border);
+    }
+    .brand { font-family: 'Orbitron'; font-size: 2.5vw; font-weight: 900; color: #fff; letter-spacing: 4px; text-shadow: 0 0 15px var(--cyan); display: flex; align-items: center; gap: 1vw; }
+    .brand span { color: var(--gold); text-shadow: 0 0 15px var(--gold); }
+    .clock { font-family: 'Orbitron'; font-size: 3vw; font-weight: 700; color: var(--cyan); text-shadow: 0 0 20px rgba(0, 229, 255, 0.6); }
+
+    /* Main Container */
+    .tv-container {
+        flex: 1;
+        position: relative;
+        padding: 2vh 2vw;
+    }
+    
+    .company-view {
+        position: absolute;
+        top: 2vh; left: 2vw; right: 2vw; bottom: 2vh;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 1s ease-in-out;
+        display: flex;
+        flex-direction: column;
+    }
     .company-view.active { opacity: 1; visibility: visible; }
-    .company-title { font-family: 'Orbitron', sans-serif; font-size: 20px; color: #fff; margin-bottom: 15px; text-align: center; text-transform: uppercase; letter-spacing: 3px; opacity: 0; transform: translateY(-20px); transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-shadow: 0 0 20px rgba(255, 255, 255, 0.4); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
-    .company-view.active .company-title { opacity: 1; transform: translateY(0); }
+
+    .company-title { 
+        font-family: 'Orbitron'; font-size: 2.5vw; color: #fff; text-align: center; 
+        text-transform: uppercase; letter-spacing: 5px; margin-bottom: 2vh;
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    }
+    .company-title.global { color: var(--gold); text-shadow: 0 0 20px var(--gold); }
+
+    /* 16:9 Grid Layout */
+    .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5vw; flex: 1; }
+    .col { display: flex; flex-direction: column; gap: 1.5vw; }
+
+    /* Glassmorphism Cards */
+    .card {
+        background: var(--panel);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5vw;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        position: relative;
+    }
     
-    /* Mobile Grid */
-    .grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
-    @media (min-width: 768px) { .grid { grid-template-columns: 1fr 1fr 1fr; gap: 20px; } .brand { font-size: 28px; } .clock { font-size: 32px; } .company-title { font-size: 32px; } }
+    .card-title { font-family: 'Orbitron'; font-size: 1.2vw; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1vh; border-bottom: 1px solid var(--border); padding-bottom: 1vh; }
     
-    .card { background: var(--bg-card); backdrop-filter: blur(16px); border: 1px solid var(--border-glass); border-radius: 16px; padding: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; min-height: 130px; opacity: 0; transform: translateY(40px) scale(0.9); transition: all 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    .company-view.active .card.animate-in { opacity: 1; transform: translateY(0) scale(1); }
-    .card.alert { border-color: rgba(255, 51, 102, 0.4); box-shadow: 0 0 30px rgba(255, 51, 102, 0.2); animation: pulse-red 2s infinite; }
-    .card.safe { border-color: rgba(0, 255, 136, 0.2); }
-    .card.finance { border-color: rgba(245, 166, 35, 0.3); }
+    .big-val { font-family: 'Orbitron'; font-size: 4vw; font-weight: 900; text-align: center; flex: 1; display: flex; align-items: center; justify-content: center; }
     
-    .card-title { font-family: 'Orbitron', sans-serif; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; }
-    .big-stat { font-family: 'Orbitron', sans-serif; font-size: 40px; font-weight: 900; text-align: center; flex: 1; display: flex; align-items: center; justify-content: center; }
-    .stat-red { color: var(--red); text-shadow: 0 0 20px rgba(255, 51, 102, 0.6); }
-    .stat-cyan { color: var(--cyan); text-shadow: 0 0 20px rgba(0, 229, 255, 0.6); }
-    .stat-gold { color: var(--gold); text-shadow: 0 0 20px rgba(245, 166, 35, 0.6); }
-    .stat-green { color: var(--green); text-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
+    .val-red { color: var(--red); text-shadow: 0 0 20px rgba(255, 51, 102, 0.5); }
+    .val-cyan { color: var(--cyan); text-shadow: 0 0 20px rgba(0, 229, 255, 0.5); }
+    .val-gold { color: var(--gold); text-shadow: 0 0 20px rgba(245, 166, 35, 0.5); }
+    .val-green { color: var(--green); text-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
+
+    .list-item { font-size: 1.3vw; padding: 1vh 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+    .list-item:last-child { border-bottom: none; }
     
-    .list-item { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; display: flex; justify-content: space-between; }
-    .text-danger { color: var(--red); font-weight: 700; } .text-gold { color: var(--gold); font-weight: 700; } .text-green { color: var(--green); font-weight: 700; }
-    
-    .ticker-wrap { position: fixed; bottom: 0; left: 0; right: 0; overflow: hidden; background: linear-gradient(90deg, #111 0%, #2a080f 50%, #111 100%); border-top: 1px solid var(--red); color: #fff; height: 50px; display: flex; align-items: center; box-shadow: 0 -5px 30px rgba(255, 51, 102, 0.2); z-index: 999; }
-    .ticker-title { background: var(--red); color: #fff; font-family: 'Orbitron', sans-serif; font-weight: 900; padding: 0 15px; height: 100%; display: flex; align-items: center; z-index: 10; white-space: nowrap; font-size: 12px; }
+    /* Alerts Pulsing */
+    .alert-card { border-color: rgba(255, 51, 102, 0.5); box-shadow: 0 0 30px rgba(255, 51, 102, 0.2); animation: pulse-red 2s infinite; }
+    @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0.4); } 70% { box-shadow: 0 0 0 20px rgba(255, 51, 102, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0); } }
+
+    /* Ticker */
+    .ticker-wrap {
+        height: 6vh;
+        background: linear-gradient(90deg, #000 0%, #1a050a 50%, #000 100%);
+        border-top: 2px solid var(--red);
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+    }
+    .ticker-title { background: var(--red); color: #fff; font-family: 'Orbitron'; font-weight: 900; font-size: 1.5vw; padding: 0 2vw; height: 100%; display: flex; align-items: center; z-index: 10; box-shadow: 5px 0 15px rgba(255, 51, 102, 0.5); }
     .ticker { display: flex; white-space: nowrap; animation: ticker 80s linear infinite; }
-    .ticker-item { padding: 0 30px; font-size: 14px; font-weight: 600; }
-    .ticker-item::before { content: '►'; margin-right: 10px; color: var(--gold); font-size: 10px; }
-    
-    @keyframes pulse-red { 0% { box-shadow: 0 0 20px rgba(255, 51, 102, 0.2); } 50% { box-shadow: 0 0 40px rgba(255, 51, 102, 0.6); } 100% { box-shadow: 0 0 20px rgba(255, 51, 102, 0.2); } }
+    .ticker-item { font-size: 1.3vw; padding: 0 3vw; color: #fff; }
+    .ticker-item::before { content: '►'; color: var(--gold); margin-right: 10px; font-size: 1vw; }
     @keyframes ticker { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-50%, 0, 0); } }
 </style>
 </head>
 <body>
+
 <div class="header">
-    <div class="brand"><span>∞</span> INFINITY HUD</div>
+    <div class="brand"><span>∞</span> INFINITY COMMAND</div>
     <div class="clock" id="clock">00:00:00</div>
 </div>
 
 <div class="tv-container">
     {% for dash in dashboards %}
     <div class="company-view {% if forloop.first %}active{% endif %}" id="view-{{ forloop.counter }}">
-        <div class="company-title" {% if dash.is_global %}style="color:var(--gold); text-shadow: 0 0 20px var(--gold);"{% endif %}>{{ dash.company_name }}</div>
+        <div class="company-title {% if dash.is_global %}global{% endif %}">{{ dash.company_name }}</div>
         
         <div class="grid">
-            <!-- Row 1: Money & Logistics -->
-            <div class="card finance">
-                <div class="card-title">💰 Cash Balance (ETB)</div>
-                <div class="big-stat stat-gold" data-target="{{ dash.cash_balance|default:'0' }}">0</div>
-            </div>
-            <div class="card safe">
-                <div class="card-title">🚢 Active Shipments</div>
-                <div class="big-stat stat-cyan" data-target="{{ dash.active_shipments|default:'0' }}">0</div>
-            </div>
-            <div class="card safe">
-                <div class="card-title">🏆 Value of Tenders Won</div>
-                <div class="big-stat stat-green" data-target="{{ dash.won_value|default:'0' }}">0</div>
-            </div>
-
-            <!-- Row 2: Bottlenecks & Alerts -->
-            <div class="card {% if dash.overdue_tasks > 0 %}alert{% else %}safe{% endif %}">
-                <div class="card-title">🚨 Overdue Bottlenecks</div>
-                <div class="big-stat {% if dash.overdue_tasks > 0 %}stat-red{% else %}stat-cyan{% endif %}" data-target="{{ dash.overdue_tasks|default:'0' }}">0</div>
-            </div>
-            <div class="card {% if dash.expiring_cpos or dash.overdue_letters %}alert{% else %}safe{% endif %}">
-                <div class="card-title">⚠️ Critical Alerts</div>
-                <div style="overflow-y:auto; flex:1;">
-                    {% for cpo in dash.expiring_cpos %}
-                        <div class="list-item"><span>Expiring CPO</span> <span class="text-danger">{{ cpo.0|truncatechars:12 }}</span></div>
-                    {% endfor %}
-                    {% for letter in dash.overdue_letters %}
-                        <div class="list-item"><span>Overdue Letter</span> <span class="text-danger">{{ letter|truncatechars:12 }}</span></div>
-                    {% endfor %}
-                    {% if not dash.expiring_cpos and not dash.overdue_letters %}
-                        <div style="text-align:center; margin-top:20px;" class="text-green">✓ ALL CLEAR</div>
-                    {% endif %}
+            <!-- COLUMN 1: MONEY & SHIPMENTS -->
+            <div class="col">
+                <div class="card" style="flex: 1.5;">
+                    <div class="card-title">💰 Cash Balance (ETB)</div>
+                    <div class="big-val val-gold counter" data-target="{{ dash.cash_balance|default:'0' }}">0</div>
+                </div>
+                <div class="card" style="flex: 1;">
+                    <div class="card-title">🚢 Active Shipments</div>
+                    <div class="big-val val-cyan counter" data-target="{{ dash.active_shipments|default:'0' }}">0</div>
                 </div>
             </div>
-            <div class="card safe">
-                <div class="card-title">👥 Staff On Leave Today</div>
-                <div class="big-stat stat-cyan" data-target="{{ dash.on_leave|default:'0' }}">0</div>
+
+            <!-- COLUMN 2: PERFORMANCE -->
+            <div class="col">
+                <div class="card" style="flex: 1;">
+                    <div class="card-title">📈 Active Tenders</div>
+                    <div class="big-val val-cyan counter" data-target="{{ dash.active_tenders|default:'0' }}">0</div>
+                </div>
+                <div class="card" style="flex: 1;">
+                    <div class="card-title">🏆 Tenders Won Value</div>
+                    <div class="big-val val-green counter" data-target="{{ dash.won_value|default:'0' }}">0</div>
+                </div>
             </div>
-            
-            <!-- Row 3: Full Width Role Bottlenecks -->
-            <div class="card safe" style="grid-column: 1 / -1;">
-                <div class="card-title">⏳ Departmental Bottlenecks (Pending Tasks)</div>
-                <div style="display:flex; justify-content:space-around; flex-wrap:wrap; gap:10px; text-align:center;">
-                    {% for b in dash.bottlenecks %}
-                        <div>
-                            <div style="font-family:'Orbitron'; font-size:24px; color:var(--gold);">{{ b.count }}</div>
-                            <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">{{ b.assigned_to__role }}</div>
-                        </div>
-                    {% empty %}
-                        <div class="text-green" style="margin-top:10px;">✓ All Departments Cleared</div>
-                    {% endfor %}
+
+            <!-- COLUMN 3: ALERTS & BOTTLENECKS -->
+            <div class="col">
+                <div class="card {% if dash.overdue_tasks > 0 %}alert-card{% endif %}" style="flex: 1;">
+                    <div class="card-title" style="color: {% if dash.overdue_tasks > 0 %}var(--red){% else %}var(--muted){% endif %};">🚨 Overdue Bottlenecks</div>
+                    <div class="big-val {% if dash.overdue_tasks > 0 %}val-red{% else %}val-cyan{% endif %} counter" data-target="{{ dash.overdue_tasks|default:'0' }}">0</div>
+                </div>
+                <div class="card" style="flex: 2;">
+                    <div class="card-title">⚠️ Critical Alerts & Court Cases</div>
+                    <div style="overflow-y: auto;">
+                        {% for cpo in dash.expiring_cpos %}
+                            <div class="list-item"><span>Expiring CPO</span> <span style="color:var(--red); font-weight:bold;">{{ cpo.0|truncatechars:15 }}</span></div>
+                        {% endfor %}
+                        {% for letter in dash.overdue_letters %}
+                            <div class="list-item"><span>Overdue Letter</span> <span style="color:var(--red); font-weight:bold;">{{ letter|truncatechars:15 }}</span></div>
+                        {% endfor %}
+                        {% for case in dash.upcoming_cases %}
+                            <div class="list-item"><span>Hearing: {{ case.0|truncatechars:15 }}</span> <span style="color:var(--gold);">{{ case.1|date:"d M" }}</span></div>
+                        {% endfor %}
+                        {% if not dash.expiring_cpos and not dash.overdue_letters and not dash.upcoming_cases %}
+                            <div style="height:100%; display:flex; align-items:center; justify-content:center; color:var(--green); font-size:1.5vw;">✓ ALL SYSTEMS CLEAR</div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -128,7 +191,7 @@
 </div>
 
 <div class="ticker-wrap">
-    <div class="ticker-title">LIVE</div>
+    <div class="ticker-title">LIVE WIRE</div>
     <div class="ticker">
         {% for msg in ticker_messages %}
             <div class="ticker-item">{{ msg }}</div>
@@ -142,6 +205,7 @@
 </div>
 
 <script>
+    // 1. Real-time Clock
     function updateClock() {
         const now = new Date();
         document.getElementById('clock').innerText = now.toLocaleTimeString('en-US', { hour12: false });
@@ -149,37 +213,35 @@
     setInterval(updateClock, 1000);
     updateClock();
 
+    // 2. Smooth Number Counter
     function animateValue(obj, start, end, duration) {
         end = isNaN(end) ? 0 : end;
         let startTimestamp = null;
         const step = (timestamp) => {
             if (!startTimestamp) startTimestamp = timestamp;
             const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-            const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-            obj.innerHTML = Math.floor(easeOutQuart * (end - start) + start).toLocaleString();
+            // Easing function for smooth count
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            const current = Math.floor(easeOut * (end - start) + start);
+            obj.innerHTML = current.toLocaleString();
             if (progress < 1) window.requestAnimationFrame(step);
         };
         window.requestAnimationFrame(step);
     }
 
+    // 3. Company Switcher & Animator
     function triggerAnimations(viewElement) {
-        const cards = viewElement.querySelectorAll('.card');
-        cards.forEach((card, index) => {
-            card.classList.remove('animate-in');
-            setTimeout(() => { card.classList.add('animate-in'); }, index * 150);
-        });
-
-        const stats = viewElement.querySelectorAll('.big-stat');
+        const stats = viewElement.querySelectorAll('.counter');
         stats.forEach(stat => {
             const target = parseInt(stat.getAttribute('data-target')) || 0;
             stat.innerHTML = '0'; 
-            setTimeout(() => { animateValue(stat, 0, target, 2000); }, 400);
+            setTimeout(() => { animateValue(stat, 0, target, 2000); }, 300);
         });
     }
 
     const views = document.querySelectorAll('.company-view');
     let currentView = 0;
-    const toggleSpeed = {{ speed }} * 1000; // From backend
+    const toggleSpeed = {{ speed }} * 1000; 
     
     if (views.length > 0) triggerAnimations(views[0]);
 
