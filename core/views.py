@@ -102,6 +102,17 @@ def task_detail(request, pk):
         
     from .models import Product
     all_products = Product.objects.filter(company=task.company)
+    if request.method == 'POST' and 'comment_text' in request.POST:
+        from .models import TaskComment
+        text = request.POST.get('comment_text')
+        if text:
+            TaskComment.objects.create(task=task, author=emp, text=text)
+            # Notify the person who created the task (if different from commenter)
+            if task.assigned_by and task.assigned_by != emp:
+                from .services import notify
+                notify(task.assigned_by, f'New Comment on {task.code}', f'{emp.full_name}: {text}', task)
+        return redirect('task_detail', pk=task.id)
+
     return render(request, 'task_detail.html', {'task': task, 'tender': tender, 'all_products': all_products})
 
 @login_required

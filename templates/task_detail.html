@@ -1,7 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}{{ task.title }}{% endblock %}
 {% block content %}
-<h2>{{ task.title }}</h2>
+<div style="display:flex; justify-content:space-between; align-items:center;">
+  <h2>{{ task.title }}</h2>
+  {% if user.employee.role in "ADMIN,CEO,GM,VGM" and task.status != 'COMPLETED' %}
+    <a href="{% url 'reassign_task' task.id %}" class="btn btn-grey" style="padding:6px 12px; font-size:11px; margin:0;">Reassign</a>
+  {% endif %}
+</div>
 <div class="card">
   <div class="kv"><span class="k">Task</span><span class="v">{{ task.code }}</span></div>
   <div class="kv"><span class="k">Status</span><span class="v"><span class="pill {{ task.status|lower }}">{{ task.get_status_display }}</span></span></div>
@@ -357,5 +362,25 @@
 <div class="card"><div class="meta">This task has been completed.</div></div>
 {% endif %}
 
-<a class="btn btn-grey" href="{% url 'dashboard' %}">Back to Action Center</a>
+<h3 style="font-size:14px; color:#e8b64c; margin:25px 0 10px 0;">💬 Communication Log</h3>
+
+{% for comment in task.comments.all %}
+  <div style="background:#1a1f2b; padding:10px; border-radius:8px; margin-bottom:8px; border-left:3px solid #4cc7e8;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+      <strong style="font-size:12px; color:#fff;">{{ comment.author.full_name }}</strong>
+      <span class="meta" style="font-size:10px;">{{ comment.created_at|date:"d M H:i" }}</span>
+    </div>
+    <div style="font-size:12px; color:#c8cfdd;">{{ comment.text }}</div>
+  </div>
+{% empty %}
+  <p class="meta" style="font-size:12px; margin-bottom:15px;">No comments yet.</p>
+{% endfor %}
+
+<form method="post" style="margin-bottom:20px;">
+  {% csrf_token %}
+  <input type="text" name="comment_text" placeholder="Type a message or note..." required style="margin-bottom:8px;">
+  <button type="submit" class="btn btn-blue" style="padding:8px 12px; font-size:12px;">Post Comment</button>
+</form>
+
+<a class="btn btn-grey wide" href="{% url 'dashboard' %}">Back to Action Center</a>
 {% endblock %}

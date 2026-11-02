@@ -71,7 +71,12 @@ input[type=text],input[type=password],input[type=number],input[type=date],select
 <div class="topbar">
   <a class="brand" href="{% url 'dashboard' %}">&#8734; INFINITY</a>
   <div class="spacer"></div>
-  <span style="font-size:10px;color:#8f99b0;margin-right:10px;">{{ user.employee.full_name }}<br>({{ user.employee.get_role_display }})</span>
+  
+  <form method="get" action="{% url 'global_search' %}" style="margin:0 10px 0 0; display:flex; align-items:center;">
+    <input type="text" name="q" placeholder="Search..." style="padding:6px 10px; border-radius:20px; font-size:12px; width:100px; margin:0; background:#0f1115; border:1px solid #333a4d;">
+  </form>
+
+  <span style="font-size:10px;color:#8f99b0;margin-right:10px; display:none;">{{ user.employee.full_name }}<br>({{ user.employee.get_role_display }})</span>
   <a class="bell" href="{% url 'notifications' %}">&#128276;{% if unread_count %}<span class="badge">{{ unread_count }}</span>{% endif %}</a>
   <form method="post" action="{% url 'logout' %}" style="margin:0">{% csrf_token %}
     <button class="linkbtn" type="submit" style="padding:4px 8px;">Out</button>

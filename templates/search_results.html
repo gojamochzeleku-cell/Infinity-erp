@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Search Results for "{{ query }}"</h2>
+
+{% if not query %}
+  <p class="empty">Please enter a search term.</p>
+{% else %}
+
+  {% if tenders %}
+  <h3 style="font-size:14px; color:#e8b64c; margin:20px 0 10px 0;">Tenders</h3>
+  {% for t in tenders %}
+    <a href="{% url 'tender_detail' t.id %}" class="card" style="display:block; padding:12px; margin-bottom:8px;">
+      <div style="font-weight:bold; font-size:14px;">{{ t.serial_number }}</div>
+      <div class="meta">{{ t.bid_title }}</div>
+    </a>
+  {% endfor %}
+  {% endif %}
+
+  {% if documents %}
+  <h3 style="font-size:14px; color:#4cc7e8; margin:20px 0 10px 0;">Documents</h3>
+  {% for d in documents %}
+    <a href="{% url 'document_list' %}" class="card" style="display:block; padding:12px; margin-bottom:8px;">
+      <div style="font-weight:bold; font-size:14px; color:#e8b64c;">{{ d.doc_id }}</div>
+      <div class="meta">{{ d.title }}</div>
+    </a>
+  {% endfor %}
+  {% endif %}
+
+  {% if employees %}
+  <h3 style="font-size:14px; color:#5fd68a; margin:20px 0 10px 0;">Employees</h3>
+  {% for e in employees %}
+    <a href="{% url 'employee_profile' e.id %}" class="card" style="display:block; padding:12px; margin-bottom:8px;">
+      <div style="font-weight:bold; font-size:14px;">{{ e.full_name }}</div>
+      <div class="meta">{{ e.get_role_display }}</div>
+    </a>
+  {% endfor %}
+  {% endif %}
+
+  {% if not tenders and not documents and not employees %}
+    <p class="empty">No results found for "{{ query }}".</p>
+  {% endif %}
+
+{% endif %}
+
+<a class="btn btn-grey wide" href="{% url 'dashboard' %}" style="margin-top:20px;">Back to Dashboard</a>
+{% endblock %}
