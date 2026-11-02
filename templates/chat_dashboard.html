@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+  <h2>💬 Chats</h2>
+</div>
+
+<div class="card" style="background:#1a1f2b; margin-bottom:20px;">
+  <h3 style="font-size:13px; color:#4cc7e8; margin-bottom:10px;">+ Start New Chat</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="text" name="name" placeholder="Group Name (or type Private)" required style="margin-bottom:8px;">
+    <label style="display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:13px;">
+      <input type="checkbox" name="is_group" style="width:18px; height:18px;"> Is this a Group Chat?
+    </label>
+    <label class="meta">Select Participants</label>
+    <select name="participants" multiple style="height:100px; margin-bottom:10px;">
+      {% for e in others %}
+        <option value="{{ e.id }}">{{ e.full_name }} ({{ e.get_role_display }})</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-blue wide" type="submit">Create Chat</button>
+  </form>
+</div>
+
+<h3 style="font-size:14px; margin-bottom:10px;">Recent Chats</h3>
+{% for r in rooms %}
+  <a href="{% url 'chat_room' r.id %}" class="card" style="display:block; padding:15px; margin-bottom:10px; border-left:4px solid #4cc7e8;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div style="font-weight:bold; color:#fff;">{{ r.name }}</div>
+        <div class="meta" style="font-size:11px;">{{ r.participants.count }} members</div>
+      </div>
+      <div style="font-size:20px; color:#8f99b0;">→</div>
+    </div>
+  </a>
+{% empty %}
+  <p class="empty">No chats yet. Start one above.</p>
+{% endfor %}
+{% endblock %}

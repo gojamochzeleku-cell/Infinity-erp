@@ -610,3 +610,26 @@ class TaskComment(models.Model):
 
     def __str__(self):
         return f"{self.author.full_name} on {self.task.code}"
+
+class ChatRoom(models.Model):
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    is_group = models.BooleanField(default=False)
+    participants = models.ManyToManyField(Employee, related_name='chat_rooms')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class ChatMessage(models.Model):
+    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(Employee, on_delete=models.CASCADE)
+    text = models.TextField(blank=True)
+    audio_file = models.FileField(upload_to='chat_audio/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.sender.full_name} - {self.created_at}"

@@ -98,8 +98,8 @@ input[type=text],input[type=password],input[type=number],input[type=date],select
   <a href="{% url 'tender_list' %}" class="{% if '/tenders/' in request.path %}active{% endif %}">
     <span class="icon">&#128196;</span> Tenders
   </a>
-  <a href="{% url 'resource_list' %}" class="{% if '/library/' in request.path %}active{% endif %}">
-    <span class="icon">&#128218;</span> Library
+  <a href="{% url 'chat_dashboard' %}" class="{% if '/chat/' in request.path %}active{% endif %}">
+    <span class="icon">💬</span> Chat
   </a>
   <a href="{% url 'mail_list' %}" class="{% if '/mail/' in request.path %}active{% endif %}">
     <span class="icon">&#9993;</span> Mail
