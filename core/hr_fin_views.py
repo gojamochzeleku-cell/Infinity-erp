@@ -119,6 +119,7 @@ def staff_directory(request):
 @login_required
 def employee_profile(request, pk):
     from .models import EmployeeDocument, PerformanceReview
+    company = getattr(request, 'company', None)
     emp = get_object_or_404(Employee, pk=pk)
     reviewer = getattr(request.user, 'employee', None)
     
