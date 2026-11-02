@@ -62,3 +62,54 @@ def telegram_auth(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+import requests
+from django.http import HttpResponse
+from django.conf import settings
+
+@csrf_exempt
+def telegram_webhook(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            message = data.get('message', {})
+            chat_id = message.get('chat', {}).get('id')
+            text = message.get('text', '')
+            
+            bot_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+            if not bot_token:
+                return HttpResponse("Bot token missing", status=500)
+
+            # If the user types /start
+            if text.startswith('/start'):
+                # Determine the Render URL
+                base_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://infinity-erp.onrender.com')
+                
+                reply_text = "Welcome to *Infinity Investment Institute*! 🏢\n\nManage your tenders, track tasks, and approve requests directly from here."
+                
+                reply_markup = {
+                    "inline_keyboard": [
+                        [
+                            {
+                                "text": "🚀 Open Infinity ERP",
+                                "web_app": {"url": base_url}
+                            }
+                        ]
+                    ]
+                }
+                
+                # Send the message back to the user
+                url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+                payload = {
+                    "chat_id": chat_id,
+                    "text": reply_text,
+                    "parse_mode": "Markdown",
+                    "reply_markup": reply_markup
+                }
+                requests.post(url, json=payload)
+
+            return HttpResponse("OK")
+        except Exception as e:
+            return HttpResponse(f"Error: {e}", status=500)
+    return HttpResponse("Webhook is active", status=200)
