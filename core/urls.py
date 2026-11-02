@@ -1,9 +1,13 @@
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
-from . import views, tender_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
+from . import views, tender_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
 
 urlpatterns = [
+    path('export/tenders/', advanced_views.export_tenders_csv, name='export_tenders'),
+    path('export/cashflow/', advanced_views.export_cashflow_csv, name='export_cashflow'),
+    path('calendar/', advanced_views.corporate_calendar, name='corporate_calendar'),
+    path('audit-trail/', advanced_views.audit_trail, name='audit_trail'),
     path('search/', global_views.global_search, name='global_search'),
     path('task/<int:pk>/reassign/', global_views.reassign_task, name='reassign_task'),
     path('telegram-auth/', telegram_views.telegram_auth, name='telegram_auth'),

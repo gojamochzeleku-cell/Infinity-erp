@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>📅 Corporate Calendar</h2>
+<p class="meta" style="margin-bottom:15px;">All company events for the next 30 days.</p>
+
+{% for day, events in grouped_events.items %}
+  <div class="card" style="padding:15px; margin-bottom:15px; border-left:4px solid {% if day == today %}#e8b64c{% else %}#333a4d{% endif %};">
+    <h3 style="font-size:15px; color:{% if day == today %}#e8b64c{% else %}#fff{% endif %}; margin-bottom:10px; border-bottom:1px solid #333a4d; padding-bottom:5px;">
+      {{ day|date:"l, d M Y" }} {% if day == today %}(TODAY){% endif %}
+    </h3>
+    {% for e in events %}
+      <div style="display:flex; gap:10px; margin-bottom:8px; font-size:13px;">
+        {% if e.type == 'TENDER' %}<span style="color:#4cc7e8;">📄</span>
+        {% elif e.type == 'LEGAL' %}<span style="color:#e2504a;">⚖️</span>
+        {% elif e.type == 'TASK' %}<span style="color:#e8b64c;">📌</span>
+        {% else %}<span style="color:#5fd68a;">👥</span>{% endif %}
+        <div style="color:#c8cfdd;">{{ e.title }}</div>
+      </div>
+    {% endfor %}
+  </div>
+{% empty %}
+  <p class="empty">No events scheduled for the next 30 days.</p>
+{% endfor %}
+
+<a class="btn btn-grey wide" href="{% url 'dashboard' %}" style="margin-top:20px;">Back to Dashboard</a>
+{% endblock %}

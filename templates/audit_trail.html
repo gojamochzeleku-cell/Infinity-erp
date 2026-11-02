@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+  <h2>🕵️ Full Audit Trail</h2>
+</div>
+
+<form method="get" style="display:flex; gap:8px; margin-bottom:15px;">
+  <input type="text" name="q" value="{{ query }}" placeholder="Search by action, user, or detail..." style="margin:0; flex:1;">
+  <button class="btn btn-grey" type="submit" style="margin:0; padding:0 15px;">Search</button>
+</form>
+
+{% for log in logs %}
+  <div class="card" style="padding:12px; margin-bottom:8px; border-left:3px solid #8f99b0;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+      <strong style="color:#e8b64c; font-size:12px;">{{ log.action }}</strong>
+      <span class="meta" style="font-size:10px;">{{ log.created_at|date:"d M Y H:i:s" }}</span>
+    </div>
+    <div style="font-size:12px; margin-bottom:4px;">{{ log.detail }}</div>
+    <div class="meta" style="font-size:10px; color:#4cc7e8;">User: {{ log.actor.full_name|default:"System" }}</div>
+  </div>
+{% empty %}
+  <p class="empty">No audit logs found.</p>
+{% endfor %}
+{% endblock %}
