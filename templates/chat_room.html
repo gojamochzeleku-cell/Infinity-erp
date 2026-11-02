@@ -4,20 +4,40 @@
 <style>
   .chat-container { display: flex; flex-direction: column; height: calc(100vh - 160px); }
   .chat-messages { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; background: #0f1115; border-radius: 12px; border: 1px solid #232838; margin-bottom: 10px; }
-  .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 13px; position: relative; word-wrap: break-word; }
-  .msg-me { align-self: flex-end; background: #1f8a4c; color: #fff; border-bottom-right-radius: 2px; }
-  .msg-other { align-self: flex-start; background: #232838; color: #e6e8ee; border-bottom-left-radius: 2px; }
-  .msg-meta { font-size: 9px; opacity: 0.7; text-align: right; margin-top: 4px; }
+  
+  /* WhatsApp Style Bubbles */
+  .msg-wrapper { display: flex; flex-direction: column; max-width: 85%; position: relative; }
+  .msg-wrapper.me { align-self: flex-end; align-items: flex-end; }
+  .msg-wrapper.other { align-self: flex-start; align-items: flex-start; }
+  
+  .msg-bubble { padding: 8px 12px; border-radius: 12px; font-size: 13px; position: relative; word-wrap: break-word; display: flex; flex-direction: column; min-width: 120px; }
+  .msg-me { background: #1f8a4c; color: #fff; border-top-right-radius: 2px; }
+  .msg-other { background: #232838; color: #e6e8ee; border-top-left-radius: 2px; }
+  
+  .msg-meta { font-size: 9px; opacity: 0.7; text-align: right; margin-top: 4px; display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
+  .msg-meta .delete-btn { color: #ff9b96; text-decoration: none; cursor: pointer; font-size: 14px; }
+  .msg-meta .delete-btn:hover { color: #fff; }
+  
+  /* Input Bar */
   .chat-input { display: flex; gap: 8px; align-items: center; }
   .chat-input input[type="text"] { flex: 1; margin: 0; border-radius: 20px; }
-  .voice-btn { background: #e2504a; color: #fff; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-  .voice-btn.recording { animation: pulse 1s infinite; }
-  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+  
+  /* WhatsApp-style Record Button */
+  .voice-btn { background: #e2504a; color: #fff; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; user-select: none; touch-action: none; }
+  .voice-btn.recording { animation: pulse-red 1s infinite; background: #ff0000; }
+  @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(255, 0, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } }
+  
+  /* Recording Overlay */
+  #recording-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; color: #fff; }
+  #recording-overlay.active { display: flex; }
 </style>
 
 <div style="display:flex; align-items:center; margin-bottom:15px; gap:10px;">
-  <a href="{% url 'chat_dashboard' %}" style="color:#e8b64c; font-size:20px;">←</a>
-  <h2 style="margin:0;">{{ room.name }}</h2>
+  <a href="{% url 'chat_dashboard' %}" style="color:#e8b64c; font-size:24px;">←</a>
+  <div>
+    <h2 style="margin:0; font-size:16px;">{{ room.name }}</h2>
+    <div class="meta" style="font-size:11px;">{{ room.participants.count }} members</div>
+  </div>
 </div>
 
 <div class="chat-container">
@@ -28,18 +48,27 @@
   <div class="chat-input">
     <button type="button" class="voice-btn" id="record-btn" title="Hold to record">🎤</button>
     <input type="text" id="msg-input" placeholder="Type a message..." autocomplete="off">
-    <button class="btn btn-green" id="send-btn" style="margin:0; border-radius:50%; width:45px; height:45px; padding:0;">➤</button>
+    <button class="btn btn-green" id="send-btn" style="margin:0; border-radius:50%; width:45px; height:45px; padding:0; display:flex; align-items:center; justify-content:center;">➤</button>
   </div>
+</div>
+
+<!-- Recording Overlay -->
+<div id="recording-overlay">
+  <div style="font-size:50px; margin-bottom:20px; animation: pulse-red 1s infinite; border-radius:50%; padding:20px;">🎤</div>
+  <h2 style="color:#e2504a; margin-bottom:10px;">Recording...</h2>
+  <p style="color:#8f99b0;">Release to send</p>
 </div>
 
 <script>
     const roomId = {{ room.id }};
     const myId = {{ user.employee.id }};
+    const csrfToken = '{{ csrf_token }}';
     let lastMsgId = 0;
     const chatBox = document.getElementById('chat-box');
     const msgInput = document.getElementById('msg-input');
     const sendBtn = document.getElementById('send-btn');
     const recordBtn = document.getElementById('record-btn');
+    const recordingOverlay = document.getElementById('recording-overlay');
 
     // 1. Fetch Messages (Polling)
     function fetchMessages() {
@@ -57,25 +86,50 @@
     }
 
     function appendMessage(msg) {
-        const div = document.createElement('div');
-        div.className = 'msg ' + (msg.sender_id === myId ? 'msg-me' : 'msg-other');
+        const wrapper = document.createElement('div');
+        wrapper.className = 'msg-wrapper ' + (msg.sender_id === myId ? 'me' : 'other');
+        wrapper.id = 'msg-' + msg.id;
         
         let content = '';
         if (msg.text) content += `<div>${msg.text}</div>`;
-        if (msg.audio_url) content += `<audio controls src="${msg.audio_url}" style="max-width:100%; margin-top:5px;"></audio>`;
+        if (msg.audio_url) content += `<audio controls src="${msg.audio_url}" style="max-width:100%; margin-top:5px; height:35px;"></audio>`;
         
-        div.innerHTML = `
-            ${msg.sender_id !== myId ? `<div style="font-size:10px; font-weight:bold; color:#4cc7e8; margin-bottom:4px;">${msg.sender}</div>` : ''}
-            ${content}
-            <div class="msg-meta">${msg.time}</div>
+        let deleteBtn = '';
+        if (msg.sender_id === myId) {
+            deleteBtn = `<a class="delete-btn" onclick="deleteMsg(${msg.id})" title="Delete">🗑️</a>`;
+        }
+
+        wrapper.innerHTML = `
+            <div class="msg-bubble ${msg.sender_id === myId ? 'msg-me' : 'msg-other'}">
+                ${msg.sender_id !== myId ? `<div style="font-size:10px; font-weight:bold; color:#4cc7e8; margin-bottom:4px;">${msg.sender}</div>` : ''}
+                ${content}
+                <div class="msg-meta">
+                    ${msg.time}
+                    ${deleteBtn}
+                </div>
+            </div>
         `;
-        chatBox.appendChild(div);
+        chatBox.appendChild(wrapper);
     }
 
-    setInterval(fetchMessages, 3000); // Poll every 3 seconds
-    fetchMessages(); // Initial load
+    setInterval(fetchMessages, 3000); 
+    fetchMessages(); 
 
-    // 2. Send Text Message
+    // 2. Delete Message
+    function deleteMsg(id) {
+        if(confirm("Delete this message?")) {
+            fetch(`/chat/message/${id}/delete/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken }
+            }).then(res => {
+                if (res.ok) {
+                    document.getElementById('msg-' + id).remove();
+                }
+            });
+        }
+    }
+
+    // 3. Send Text Message
     function sendMessage(text, audioBlob = null) {
         const formData = new FormData();
         if (text) formData.append('text', text);
@@ -83,53 +137,73 @@
         
         fetch(`/chat/${roomId}/send/`, {
             method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            headers: { 'X-CSRFToken': csrfToken },
             body: formData
         }).then(() => {
             msgInput.value = '';
-            fetchMessages(); // Refresh instantly
+            fetchMessages(); 
         });
     }
 
     sendBtn.onclick = () => { if (msgInput.value.trim()) sendMessage(msgInput.value.trim()); };
     msgInput.onkeypress = (e) => { if (e.key === 'Enter' && msgInput.value.trim()) sendMessage(msgInput.value.trim()); };
 
-    // 3. Voice Recording
+    // 4. Hold-to-Record Logic
     let mediaRecorder;
     let audioChunks = [];
     let isRecording = false;
+    let startTime;
 
-    recordBtn.onclick = async () => {
-        if (!isRecording) {
-            // Start recording
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                
-                mediaRecorder.ondataavailable = event => {
-                    audioChunks.push(event.data);
-                };
-                
-                mediaRecorder.onstop = () => {
+    async function startRecording(e) {
+        if (e) e.preventDefault();
+        if (isRecording) return;
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+            
+            mediaRecorder.onstop = () => {
+                const duration = (Date.now() - startTime) / 1000;
+                // Only send if the recording is longer than 1 second (prevents accidental taps)
+                if (duration > 1) {
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                     sendMessage(null, audioBlob);
-                    audioChunks = [];
-                };
-                
-                mediaRecorder.start();
-                isRecording = true;
-                recordBtn.classList.add('recording');
-                recordBtn.innerHTML = '⏹️';
-            } catch (err) {
-                alert('Microphone access denied or not available.');
-            }
-        } else {
-            // Stop recording
-            mediaRecorder.stop();
-            isRecording = false;
-            recordBtn.classList.remove('recording');
-            recordBtn.innerHTML = '🎤';
+                }
+                audioChunks = [];
+            };
+            
+            mediaRecorder.start();
+            startTime = Date.now();
+            isRecording = true;
+            recordBtn.classList.add('recording');
+            recordingOverlay.classList.add('active');
+        } catch (err) {
+            alert('Microphone access denied.');
         }
-    };
+    }
+
+    function stopRecording(e) {
+        if (e) e.preventDefault();
+        if (!isRecording) return;
+        
+        mediaRecorder.stop();
+        isRecording = false;
+        recordBtn.classList.remove('recording');
+        recordingOverlay.classList.remove('active');
+    }
+
+    // Attach Touch and Mouse events for Hold-to-Record
+    recordBtn.addEventListener('touchstart', startRecording);
+    recordBtn.addEventListener('touchend', stopRecording);
+    recordBtn.addEventListener('touchcancel', stopRecording);
+    
+    // Fallback for Desktop/Mouse
+    recordBtn.addEventListener('mousedown', startRecording);
+    recordBtn.addEventListener('mouseup', stopRecording);
+    recordBtn.addEventListener('mouseleave', () => { if(isRecording) stopRecording(); });
 </script>
 {% endblock %}

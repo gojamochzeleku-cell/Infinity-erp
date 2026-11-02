@@ -4,6 +4,7 @@ from django.urls import path
 from . import views, tender_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
 
 urlpatterns = [
+    path('chat/message/<int:pk>/delete/', chat_views.delete_message, name='delete_message'),
     path('reports/', report_views.reports_center, name='reports_center'),
     path('chat/', chat_views.chat_dashboard, name='chat_dashboard'),
     path('chat/<int:pk>/', chat_views.chat_room, name='chat_room'),

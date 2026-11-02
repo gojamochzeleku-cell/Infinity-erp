@@ -75,3 +75,19 @@ def get_messages(request, pk):
             'time': timezone.localtime(m.created_at).strftime('%I:%M %p')
         })
     return JsonResponse({'messages': data})
+
+
+@login_required
+def delete_message(request, pk):
+    if request.method != 'POST': 
+        return JsonResponse({'error': 'POST required'}, status=400)
+    
+    emp = getattr(request.user, 'employee', None)
+    msg = get_object_or_404(ChatMessage, pk=pk)
+    
+    # Only the sender or Admin/CEO can delete
+    if msg.sender == emp or emp.role in ('ADMIN', 'CEO', 'GM'):
+        msg.delete()
+        return JsonResponse({'status': 'success'})
+        
+    return JsonResponse({'error': 'Unauthorized'}, status=403)
