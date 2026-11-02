@@ -633,3 +633,12 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"{self.sender.full_name} - {self.created_at}"
+
+
+class PasswordResetCode(models.Model):
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.employee.user.username} - {self.code}"

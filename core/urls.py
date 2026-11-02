@@ -1,9 +1,11 @@
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
-from . import views, tender_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
+from . import views, tender_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
 
 urlpatterns = [
+    path('forgot-password/', recovery_views.forgot_password, name='forgot_password'),
+    path('verify-reset-code/', recovery_views.verify_reset_code, name='verify_reset_code'),
     path('telegram-webhook/', telegram_views.telegram_webhook, name='telegram_webhook'),
     path('chat/message/<int:pk>/delete/', chat_views.delete_message, name='delete_message'),
     path('reports/', report_views.reports_center, name='reports_center'),

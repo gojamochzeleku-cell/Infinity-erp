@@ -13,6 +13,9 @@
     <input type="password" name="password" placeholder="Password" autocomplete="current-password" required>
     {% if form.errors %}<div style="color:#e2504a;font-size:12px;margin-bottom:10px">Wrong username or password.</div>{% endif %}
     <button class="btn btn-green wide" type="submit">Sign in</button>
+    <div style="text-align:center; margin-top:15px;">
+      <a href="{% url 'forgot_password' %}" style="color:#4cc7e8; font-size:12px; text-decoration:none;">Forgot Password?</a>
+    </div>
   </form>
 </div>
 {% endblock %}
