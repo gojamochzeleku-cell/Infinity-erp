@@ -150,14 +150,26 @@ input[type=text],input[type=password],input[type=number],input[type=date],select
                             if (data.status === 'success') {
                                 window.location.href = data.redirect;
                             } else {
-                                console.log("Telegram auth failed:", data.error);
-                                // If it fails, just let them see the normal login page
-                                window.location.reload(); 
+                                // Show the error clearly instead of reloading
+                                document.body.innerHTML = `
+                                    <div style="text-align:center; padding:40px 20px; font-family:sans-serif; color:white; background:#0f1115; height:100vh;">
+                                        <div style="font-size:40px; margin-bottom:20px;">⚠️</div>
+                                        <h2 style="color:#e2504a; margin-bottom:10px;">Telegram Login Failed</h2>
+                                        <p style="color:#8f99b0; font-size:14px; margin-bottom:30px;">${data.error}</p>
+                                        <a href="/login/" style="background:#4cc7e8; color:#000; padding:12px 24px; text-decoration:none; border-radius:8px; font-weight:bold;">Go to Manual Login</a>
+                                    </div>
+                                `;
                             }
                         })
                         .catch(err => {
-                            console.log("Network error", err);
-                            window.location.reload();
+                            document.body.innerHTML = `
+                                <div style="text-align:center; padding:40px 20px; font-family:sans-serif; color:white; background:#0f1115; height:100vh;">
+                                    <div style="font-size:40px; margin-bottom:20px;">📡</div>
+                                    <h2 style="color:#e2504a; margin-bottom:10px;">Network Error</h2>
+                                    <p style="color:#8f99b0; font-size:14px; margin-bottom:30px;">Could not connect to the authentication server.</p>
+                                    <a href="/login/" style="background:#4cc7e8; color:#000; padding:12px 24px; text-decoration:none; border-radius:8px; font-weight:bold;">Go to Manual Login</a>
+                                </div>
+                            `;
                         });
                     }
                 }
