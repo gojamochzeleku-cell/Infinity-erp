@@ -120,12 +120,22 @@
         if(confirm("Delete this message?")) {
             fetch(`/chat/message/${id}/delete/`, {
                 method: 'POST',
-                headers: { 'X-CSRFToken': csrfToken }
-            }).then(res => {
-                if (res.ok) {
-                    document.getElementById('msg-' + id).remove();
+                headers: { 
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
                 }
-            });
+            })
+            .then(async res => {
+                const data = await res.json();
+                if (res.ok) {
+                    // Successfully deleted from DB, remove from screen
+                    document.getElementById('msg-' + id).remove();
+                } else {
+                    // Show the exact error from the server
+                    alert("Failed to delete: " + (data.error || "Unknown error"));
+                }
+            })
+            .catch(err => alert("Network Error: Could not reach server."));
         }
     }
 
