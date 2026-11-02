@@ -1,39 +1,88 @@
 {% extends 'base.html' %}
+{% block title %}Chats{% endblock %}
 {% block content %}
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-  <h2>💬 Chats</h2>
+
+<style>
+    .chat-card { background: #151922; border: 1px solid #232838; border-radius: 12px; padding: 15px; margin-bottom: 12px; display: flex; align-items: center; gap: 15px; transition: 0.2s; }
+    .chat-card:hover { border-color: #4cc7e8; transform: translateY(-2px); }
+    .avatar { width: 45px; height: 45px; border-radius: 50%; background: linear-gradient(135deg, #1f6f8a, #4cc7e8); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; flex-shrink: 0; }
+    .avatar-group { background: linear-gradient(135deg, #8a4b1f, #e8b64c); }
+    
+    .participant-list { max-height: 250px; overflow-y: auto; border: 1px solid #333a4d; border-radius: 8px; padding: 5px; background: #0f1115; margin-bottom: 15px; }
+    .participant-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #1d2230; cursor: pointer; border-radius: 6px; transition: 0.2s; }
+    .participant-item:hover { background: #1a1f2b; }
+    .participant-item:last-child { border-bottom: none; }
+    .participant-item input[type="checkbox"] { display: none; }
+    .custom-check { width: 22px; height: 22px; border: 2px solid #333a4d; border-radius: 6px; margin-right: 12px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+    .participant-item input[type="checkbox"]:checked + .custom-check { background: #4cc7e8; border-color: #4cc7e8; }
+    .participant-item input[type="checkbox"]:checked + .custom-check::after { content: '✓'; color: #000; font-weight: bold; font-size: 14px; }
+</style>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+  <h2 style="color:#e8b64c;">💬 Messages</h2>
 </div>
 
-<div class="card" style="background:#1a1f2b; margin-bottom:20px;">
-  <h3 style="font-size:13px; color:#4cc7e8; margin-bottom:10px;">+ Start New Chat</h3>
-  <form method="post">
-    {% csrf_token %}
-    <input type="text" name="name" placeholder="Group Name (or type Private)" required style="margin-bottom:8px;">
-    <label style="display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:13px;">
-      <input type="checkbox" name="is_group" style="width:18px; height:18px;"> Is this a Group Chat?
-    </label>
-    <label class="meta">Select Participants</label>
-    <select name="participants" multiple style="height:100px; margin-bottom:10px;">
-      {% for e in others %}
-        <option value="{{ e.id }}">{{ e.full_name }} ({{ e.get_role_display }})</option>
-      {% endfor %}
-    </select>
-    <button class="btn btn-blue wide" type="submit">Create Chat</button>
-  </form>
-</div>
+<details>
+  <summary style="background:#1a1f2b; padding:15px; border-radius:12px; font-weight:bold; cursor:pointer; border:1px solid #333a4d; margin-bottom:20px; list-style:none; display:flex; justify-content:space-between; align-items:center;">
+    <span>+ Start New Conversation</span>
+    <span style="color:#4cc7e8; font-size:20px;">▼</span>
+  </summary>
+  
+  <div class="card" style="border-top-left-radius:0; border-top-right-radius:0; margin-top:-20px; margin-bottom:20px; border-color:#333a4d;">
+    <form method="post">
+      {% csrf_token %}
+      
+      <label class="meta">Chat Name (e.g., "Finance Team" or "Private Chat")</label>
+      <input type="text" name="name" required placeholder="Enter name..." style="margin-bottom:15px;">
+      
+      <label style="display:flex; align-items:center; gap:10px; margin-bottom:15px; font-size:14px; background:#0f1115; padding:12px; border-radius:8px; border:1px solid #333a4d; cursor:pointer;">
+        <input type="checkbox" name="is_group" style="width:20px; height:20px;">
+        <strong>Is this a Group Chat?</strong>
+      </label>
 
-<h3 style="font-size:14px; margin-bottom:10px;">Recent Chats</h3>
-{% for r in rooms %}
-  <a href="{% url 'chat_room' r.id %}" class="card" style="display:block; padding:15px; margin-bottom:10px; border-left:4px solid #4cc7e8;">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <div style="font-weight:bold; color:#fff;">{{ r.name }}</div>
-        <div class="meta" style="font-size:11px;">{{ r.participants.count }} members</div>
+      <label class="meta">Select Participants</label>
+      <div class="participant-list">
+        {% for e in others %}
+          <label class="participant-item">
+            <input type="checkbox" name="participants" value="{{ e.id }}">
+            <div class="custom-check"></div>
+            <div class="avatar" style="width:35px; height:35px; font-size:14px; margin-right:10px;">{{ e.full_name|first }}</div>
+            <div>
+              <div style="font-weight:bold; font-size:13px; color:#fff;">{{ e.full_name }}</div>
+              <div class="meta" style="font-size:10px;">{{ e.get_role_display }}</div>
+            </div>
+          </label>
+        {% endfor %}
       </div>
-      <div style="font-size:20px; color:#8f99b0;">→</div>
+
+      <button class="btn btn-green wide" type="submit" style="margin-top:10px;">Start Chat</button>
+    </form>
+  </div>
+</details>
+
+<h3 style="font-size:14px; color:#8f99b0; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;">Recent Chats</h3>
+
+{% for r in rooms %}
+  <a href="{% url 'chat_room' r.id %}" class="chat-card">
+    <div class="avatar {% if r.is_group %}avatar-group{% endif %}">
+      {% if r.is_group %}👥{% else %}{{ r.name|first }}{% endif %}
     </div>
+    <div style="flex:1;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline;">
+        <div style="font-weight:bold; color:#fff; font-size:15px;">{{ r.name }}</div>
+        <div class="meta" style="font-size:10px;">{{ r.created_at|date:"d M" }}</div>
+      </div>
+      <div class="meta" style="font-size:12px; margin-top:3px;">
+        {% if r.is_group %}{{ r.participants.count }} members{% else %}Private Conversation{% endif %}
+      </div>
+    </div>
+    <div style="color:#4cc7e8; font-size:18px;">➔</div>
   </a>
 {% empty %}
-  <p class="empty">No chats yet. Start one above.</p>
+  <div class="card" style="text-align:center; padding:30px; border-style:dashed;">
+    <div style="font-size:30px; margin-bottom:10px;">💬</div>
+    <div style="color:#8f99b0;">No chats yet. Start a conversation above.</div>
+  </div>
 {% endfor %}
+
 {% endblock %}
