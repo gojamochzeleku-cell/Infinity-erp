@@ -85,6 +85,7 @@ input[type=text],input[type=password],input[type=number],input[type=date],select
 {% endif %}
 
 <!-- Bottom Navigation -->
+{% if current_company %}
 <div class="bottomnav">
   <a href="{% url 'dashboard' %}" class="{% if request.path == '/dashboard/' %}active{% endif %}">
     <span class="icon">&#128230;</span> Action Center
@@ -104,6 +105,7 @@ input[type=text],input[type=password],input[type=number],input[type=date],select
   </a>
   {% endif %}
 </div>
+{% endif %}
 {% endif %}
 
 <main>
@@ -195,18 +197,17 @@ input[type=text],input[type=password],input[type=number],input[type=date],select
                         submitter.innerHTML = '<span class="spinner"></span> Processing...';
                         submitter.classList.add('btn-loading');
                         
-                        // Disable ALL submit buttons in this form to prevent double-clicks
+                        // Prevent double-clicks WITHOUT disabling the button (which cancels form submit)
                         const allSubmitBtns = form.querySelectorAll('button[type="submit"], button:not([type])');
                         allSubmitBtns.forEach(btn => {
-                            btn.disabled = true;
+                            btn.style.pointerEvents = 'none';
                             btn.classList.add('btn-loading');
                         });
                         
-                        // Safety fallback: If the server takes too long or validation fails, 
-                        // re-enable the buttons after 10 seconds so the user isn't permanently stuck.
+                        // Safety fallback
                         setTimeout(() => {
                             allSubmitBtns.forEach(btn => {
-                                btn.disabled = false;
+                                btn.style.pointerEvents = 'auto';
                                 btn.classList.remove('btn-loading');
                             });
                             if (submitter) {

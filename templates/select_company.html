@@ -6,7 +6,7 @@
   <p class="meta" style="font-size: 13px;">Select a workspace to continue</p>
 </div>
 
-<form method="post">
+<form method="post" action="/select-company/">
   {% csrf_token %}
   <div style="display: flex; flex-direction: column; gap: 15px;">
     {% for c in companies %}
