@@ -1,37 +1,132 @@
 {% extends 'base.html' %}
 {% block title %}File Document{% endblock %}
 {% block content %}
+<style>
+  .filing-step { background: #1a1f2b; border-left: 4px solid #e8b64c; padding: 10px 15px; border-radius: 4px; margin-bottom: 15px; }
+  .filing-step strong { color: #e8b64c; font-size: 14px; }
+  .filing-step p { color: #8f99b0; font-size: 12px; margin-top: 4px; }
+  select, input[type="text"] { background: #0f1115; border: 1px solid #333a4d; color: #fff; padding: 12px; border-radius: 8px; width: 100%; margin-bottom: 12px; }
+  label { font-size: 12px; color: #8f99b0; margin-bottom: 5px; display: block; font-weight: bold; }
+</style>
+
 <h2>Standard Physical Filing</h2>
-<div class="card" style="background:#1a1f2b; margin-bottom:20px;">
+
+<div class="card" style="background:#151922; margin-bottom:20px;">
+  <div class="kv"><span class="k">Company</span><span class="v" style="color:#4cc7e8; font-weight:bold;">{{ doc.company.name }}</span></div>
   <div class="kv"><span class="k">Doc ID</span><span class="v" style="color:#e8b64c; font-weight:bold;">{{ doc.doc_id }}</span></div>
   <div class="kv"><span class="k">Title</span><span class="v">{{ doc.title }}</span></div>
-  <div class="kv"><span class="k">Category</span><span class="v">{{ doc.get_category_display }}</span></div>
 </div>
-  
+
 <div class="card">
-  <p class="meta" style="margin-bottom:15px; font-size:12px;">Please enter the exact physical location following the company hierarchy: Room → Cabinet → Shelf → Box → Folder.</p>
   <form method="post">
     {% csrf_token %}
-    <label class="meta">Room</label>
-    <input type="text" name="room" placeholder="e.g., Main Archive Room" required>
     
-    <label class="meta">Cabinet</label>
-    <input type="text" name="cabinet" placeholder="e.g., Cabinet A" required>
+    <div class="filing-step">
+      <strong>Step 1: Locate the Cabinet</strong>
+      <p>Select the physical cabinet where this file belongs.</p>
+    </div>
+
+    <label>Cabinet</label>
+    <select name="cabinet" required>
+      {% if doc.company.short_name == 'CHI' %}
+        <option value="CHI-01 (Tenders & Ops)">CHI-01 (Tenders & Operations)</option>
+        <option value="CHI-02 (Finance)">CHI-02 (Finance & Banking)</option>
+        <option value="CHI-03 (Legal & HR)">CHI-03 (Legal & HR)</option>
+        <option value="CHI-04 (Mail & Admin)">CHI-04 (Mail & General Admin)</option>
+      {% elif doc.company.short_name == 'YAH' %}
+        <option value="YAH-01 (Tenders & Ops)">YAH-01 (Tenders & Operations)</option>
+        <option value="YAH-02 (Finance)">YAH-02 (Finance & Banking)</option>
+        <option value="YAH-03 (Legal & HR)">YAH-03 (Legal & HR)</option>
+        <option value="YAH-04 (Mail & Admin)">YAH-04 (Mail & General Admin)</option>
+      {% else %}
+        <option value="General Cabinet">General Cabinet</option>
+      {% endif %}
+    </select>
+
+    <div class="filing-step">
+      <strong>Step 2: Select the Shelf Partition</strong>
+      <p>Top is for Active/Current files. Bottom is for Archive/Closed files.</p>
+    </div>
+
+    <label>Shelf Partition</label>
+    <select name="shelf" required>
+      <option value="Top Partition (Active)">Top Partition (Active)</option>
+      <option value="Bottom Partition (Archive)">Bottom Partition (Archive)</option>
+    </select>
+
+    <div class="filing-step">
+      <strong>Step 3: Choose the File Holder (Binder)</strong>
+      <p>Select the exact binder name written on the spine.</p>
+    </div>
+
+    <label>File Holder (Binder / Box)</label>
+    <select name="box" required>
+      {% if doc.company.short_name == 'CHI' %}
+        <optgroup label="Tenders & Operations (Blue)">
+          <option value="CHI - ACTIVE TENDERS - 2026">CHI - ACTIVE TENDERS - 2026</option>
+          <option value="CHI - ACTIVE IMPORTS - 2026">CHI - ACTIVE IMPORTS - 2026</option>
+          <option value="CHI - SUBMITTED BIDS - 2026">CHI - SUBMITTED BIDS - 2026</option>
+          <option value="CHI - WON & LOST TENDERS - 2026">CHI - WON & LOST TENDERS - 2026</option>
+        </optgroup>
+        <optgroup label="Finance & Banking (Black)">
+          <option value="CHI - BANK GUARANTEES & CPOs">CHI - BANK GUARANTEES & CPOs</option>
+          <option value="CHI - LETTERS OF CREDIT (LCs) - 2026">CHI - LETTERS OF CREDIT (LCs) - 2026</option>
+          <option value="CHI - PAYROLL & SALARIES - 2026">CHI - PAYROLL & SALARIES - 2026</option>
+          <option value="CHI - INVOICES & PAYMENTS - 2026">CHI - INVOICES & PAYMENTS - 2026</option>
+        </optgroup>
+        <optgroup label="Legal & HR (Red / Green)">
+          <option value="CHI - SIGNED AGREEMENTS">CHI - SIGNED AGREEMENTS</option>
+          <option value="CHI - ACTIVE COURT CASES">CHI - ACTIVE COURT CASES</option>
+          <option value="CHI - PERSONNEL FILES">CHI - PERSONNEL FILES</option>
+          <option value="CHI - LEAVE & MEDICAL - 2026">CHI - LEAVE & MEDICAL - 2026</option>
+        </optgroup>
+        <optgroup label="Mail & Admin (Grey)">
+          <option value="CHI - INCOMING MAIL - 2026">CHI - INCOMING MAIL - 2026</option>
+          <option value="CHI - OUTGOING MAIL - 2026">CHI - OUTGOING MAIL - 2026</option>
+          <option value="CHI - TRADE LICENSES & ISO">CHI - TRADE LICENSES & ISO</option>
+          <option value="CHI - SUPPLIER CATALOGS">CHI - SUPPLIER CATALOGS</option>
+        </optgroup>
+      {% elif doc.company.short_name == 'YAH' %}
+        <optgroup label="Tenders & Operations (Blue)">
+          <option value="YAH - ACTIVE TENDERS - 2026">YAH - ACTIVE TENDERS - 2026</option>
+          <option value="YAH - ACTIVE IMPORTS - 2026">YAH - ACTIVE IMPORTS - 2026</option>
+          <option value="YAH - SUBMITTED BIDS - 2026">YAH - SUBMITTED BIDS - 2026</option>
+          <option value="YAH - WON & LOST TENDERS - 2026">YAH - WON & LOST TENDERS - 2026</option>
+        </optgroup>
+        <optgroup label="Finance & Banking (Black)">
+          <option value="YAH - BANK GUARANTEES & CPOs">YAH - BANK GUARANTEES & CPOs</option>
+          <option value="YAH - LETTERS OF CREDIT (LCs) - 2026">YAH - LETTERS OF CREDIT (LCs) - 2026</option>
+          <option value="YAH - PAYROLL & SALARIES - 2026">YAH - PAYROLL & SALARIES - 2026</option>
+          <option value="YAH - INVOICES & PAYMENTS - 2026">YAH - INVOICES & PAYMENTS - 2026</option>
+        </optgroup>
+        <optgroup label="Legal & HR (Red / Green)">
+          <option value="YAH - SIGNED AGREEMENTS">YAH - SIGNED AGREEMENTS</option>
+          <option value="YAH - ACTIVE COURT CASES">YAH - ACTIVE COURT CASES</option>
+          <option value="YAH - PERSONNEL FILES">YAH - PERSONNEL FILES</option>
+          <option value="YAH - LEAVE & MEDICAL - 2026">YAH - LEAVE & MEDICAL - 2026</option>
+        </optgroup>
+        <optgroup label="Mail & Admin (Grey)">
+          <option value="YAH - INCOMING MAIL - 2026">YAH - INCOMING MAIL - 2026</option>
+          <option value="YAH - OUTGOING MAIL - 2026">YAH - OUTGOING MAIL - 2026</option>
+          <option value="YAH - TRADE LICENSES & ISO">YAH - TRADE LICENSES & ISO</option>
+          <option value="YAH - SUPPLIER CATALOGS">YAH - SUPPLIER CATALOGS</option>
+        </optgroup>
+      {% endif %}
+    </select>
+
+    <div class="filing-step">
+      <strong>Step 4: Enter the Tab (Folder) Name</strong>
+      <p>Type the Tender Serial, Employee Name, Month, or Case Number.</p>
+    </div>
+
+    <label>Folder / Tab Name</label>
+    <input type="text" name="folder" placeholder="e.g. TND-2026-0001" required>
     
-    <label class="meta">Shelf</label>
-    <input type="text" name="shelf" placeholder="e.g., Shelf 3">
+    <label>Expiry Date (Optional)</label>
+    <input type="date" name="expiry_date" style="margin-bottom:20px;">
     
-    <label class="meta">Box</label>
-    <input type="text" name="box" placeholder="e.g., Box 12">
-    
-    <label class="meta">Folder</label>
-    <input type="text" name="folder" placeholder="e.g., Folder 2026 Tenders">
-    
-    <label class="meta">Expiry Date (Optional)</label>
-    <input type="date" name="expiry_date">
-    
-    <button class="btn btn-green wide" type="submit" style="margin-top:15px;">Confirm Physical Filing</button>
-    <a class="btn btn-grey wide" href="{% url 'document_list' %}">Cancel</a>
+    <button class="btn btn-green wide" type="submit" style="padding:15px; font-size:16px;">✓ Confirm Filing Location</button>
+    <a class="btn btn-grey wide" href="{% url 'document_list' %}" style="margin-top:10px;">Cancel</a>
   </form>
 </div>
 {% endblock %}
