@@ -41,6 +41,16 @@
   <a href="{% url 'cashflow_dashboard' %}" class="exec-btn">
     <span class="icon">💰</span> Financial<br>Ledger
   </a>
+
+  {% if user.employee.role == 'ADMIN' or user.employee.role == 'IT' %}
+  <a href="{% url 'it_dashboard' %}" class="exec-btn" style="border-color:#e2504a;">
+    <span class="icon">🛠️</span> IT Command<br>Center
+  </a>
+  <a href="{% url 'it_user_management' %}" class="exec-btn" style="border-color:#e2504a;">
+    <span class="icon">👥</span> Manage<br>Users
+  </a>
+  {% endif %}
+
   <a href="{% url 'reports_center' %}" class="exec-btn" style="border-color:#4cc7e8;">
     <span class="icon">📊</span> Business<br>Reports
   </a>
