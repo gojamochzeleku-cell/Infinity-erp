@@ -41,7 +41,7 @@
       <div style="font-size:13px; font-weight:bold;">{{ d.title }}</div>
       <div class="meta" style="font-size:11px;">{{ d.get_doc_type_display }}</div>
     </div>
-    {% if d.file %}
+    {% if d.file and d.file.name %}
       <a href="{{ d.file.url }}" target="_blank" class="btn btn-grey" style="padding:6px 10px; font-size:11px;">Open</a>
     {% else %}
       <span class="meta" style="font-size:11px;">No File Attached</span>

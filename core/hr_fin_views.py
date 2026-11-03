@@ -129,7 +129,9 @@ def employee_profile(request, pk):
 
     if request.method == 'POST':
         if 'update_telegram' in request.POST:
-            emp.telegram_id = request.POST.get('telegram_id')
+            # .strip() removes any invisible spaces added by mobile keyboards
+            tg_input = request.POST.get('telegram_id', '').strip()
+            emp.telegram_id = tg_input
             emp.save()
             return redirect('employee_profile', pk=emp.pk)
         elif 'doc_type' in request.POST and company:
