@@ -116,48 +116,46 @@ def staff_directory(request):
         
     return render(request, 'staff_directory.html', {'employees': employees, 'query': query})
 
-import traceback
-from django.http import HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
 
 @login_required
 def employee_profile(request, pk):
-    try:
-        from .models import EmployeeDocument, PerformanceReview
-        company = getattr(request, 'company', None)
-        emp = get_object_or_404(Employee, pk=pk)
-        reviewer = getattr(request.user, 'employee', None)
-        
-        # Allow HR/Admin/CEO/GM OR the user viewing their own profile
-        if not reviewer or (reviewer.role not in ('ADMIN', 'CEO', 'GM', 'HR') and reviewer.pk != emp.pk):
-            return redirect('dashboard')
+    from .models import EmployeeDocument, PerformanceReview
+    company = getattr(request, 'company', None)
+    emp = get_object_or_404(Employee, pk=pk)
+    reviewer = getattr(request.user, 'employee', None)
+    
+    # Allow HR/Admin/CEO/GM OR the user viewing their own profile
+    if not reviewer or (reviewer.role not in ('ADMIN', 'CEO', 'GM', 'HR') and reviewer.pk != emp.pk):
+        return redirect('dashboard')
 
-        if request.method == 'POST':
-            if 'update_telegram' in request.POST:
-                tg_input = request.POST.get('telegram_id', '').strip()
-                emp.telegram_id = tg_input
-                emp.save()
-                return redirect('employee_profile', pk=emp.pk)
-            elif 'doc_type' in request.POST and company:
-                doc_type = request.POST.get('doc_type')
-                title = request.POST.get('title')
-                file_obj = request.FILES.get('file')
-                if file_obj:
-                    from .models import Document
-                    reg_doc = Document.objects.create(
-                        company=company, title=f"HR: {emp.full_name} - {title}", 
-                        file=file_obj, uploaded_by=reviewer, category='HR'
-                    )
-                    EmployeeDocument.objects.create(
-                        employee=emp, doc_type=doc_type, title=title, file=file_obj, registry_doc=reg_doc
-                    )
-            elif 'rating' in request.POST and reviewer.role in ('ADMIN', 'CEO', 'GM', 'HR'):
-                rating = request.POST.get('rating')
-                feedback = request.POST.get('feedback')
-                PerformanceReview.objects.create(employee=emp, reviewer=reviewer, rating=rating, feedback=feedback)
-                
+    if request.method == 'POST':
+        if 'update_telegram' in request.POST:
+            tg_input = request.POST.get('telegram_id', '').strip()
+            emp.telegram_id = tg_input
+            emp.save()
             return redirect('employee_profile', pk=emp.pk)
+        elif 'doc_type' in request.POST and company:
+            doc_type = request.POST.get('doc_type')
+            title = request.POST.get('title')
+            file_obj = request.FILES.get('file')
+            if file_obj:
+                from .models import Document
+                reg_doc = Document.objects.create(
+                    company=company, title=f"HR: {emp.full_name} - {title}", 
+                    file=file_obj, uploaded_by=reviewer, category='HR'
+                )
+                EmployeeDocument.objects.create(
+                    employee=emp, doc_type=doc_type, title=title, file=file_obj, registry_doc=reg_doc
+                )
+        elif 'rating' in request.POST and reviewer.role in ('ADMIN', 'CEO', 'GM', 'HR'):
+            rating = request.POST.get('rating')
+            feedback = request.POST.get('feedback')
+            PerformanceReview.objects.create(employee=emp, reviewer=reviewer, rating=rating, feedback=feedback)
+            
+        return redirect('employee_profile', pk=emp.pk)
 
-        return render(request, 'employee_profile.html', {'target_emp': emp, 'company': company})
+    return render(request, 'employee_profile.html', {'target_emp': emp, 'company': company})
     
     except Exception as e:
         # THIS WILL SHOW US THE EXACT ERROR ON SCREEN

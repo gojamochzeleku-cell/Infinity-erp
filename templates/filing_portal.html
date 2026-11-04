@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Filing System Portal{% endblock %}
+{% block content %}
+<style>
+  .portal-card { background: #151922; border: 1px solid #333a4d; border-radius: 12px; padding: 20px; margin-bottom: 15px; display: flex; align-items: center; gap: 15px; text-decoration: none; transition: 0.2s; }
+  .portal-card:hover { border-color: #e8b64c; transform: translateY(-2px); }
+  .portal-icon { font-size: 30px; background: #1a1f2b; padding: 15px; border-radius: 12px; }
+  .portal-text h3 { color: #fff; font-size: 16px; margin-bottom: 4px; }
+  .portal-text p { color: #8f99b0; font-size: 12px; margin: 0; }
+</style>
+
+<h2 style="color:#e8b64c;">🖨️ Filing System Portal</h2>
+<p class="meta" style="margin-bottom:20px;">Print standard labels and view the archive room map.</p>
+
+<a href="{% url 'print_visual_map' %}" target="_blank" class="portal-card">
+  <div class="portal-icon">🗺️</div>
+  <div class="portal-text">
+    <h3>Archive Room Visual Map</h3>
+    <p>Shows the layout of all 10 cabinets for both companies.</p>
+  </div>
+</a>
+
+<a href="{% url 'print_cabinet_labels' %}" target="_blank" class="portal-card">
+  <div class="portal-icon">🗄️</div>
+  <div class="portal-text">
+    <h3>Cabinet Door Labels (13x8cm)</h3>
+    <p>Print, cut, and stick on the outside of the cabinets.</p>
+  </div>
+</a>
+
+<a href="{% url 'print_spine_labels' %}" target="_blank" class="portal-card">
+  <div class="portal-icon">🏷️</div>
+  <div class="portal-text">
+    <h3>Binder Spine Labels (5x15cm)</h3>
+    <p>Print, cut, and slide into the plastic window of the binders.</p>
+  </div>
+</a>
+
+<a class="btn btn-grey wide" href="{% url 'dashboard' %}" style="margin-top:20px;">Back to Dashboard</a>
+{% endblock %}

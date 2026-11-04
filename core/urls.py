@@ -1,9 +1,13 @@
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
-from . import views, tender_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
+from . import views, tender_views, filing_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
 
 urlpatterns = [
+    path('filing-portal/', filing_views.filing_portal, name='filing_portal'),
+    path('print/spine-labels/', filing_views.print_spine_labels, name='print_spine_labels'),
+    path('print/cabinet-labels/', filing_views.print_cabinet_labels, name='print_cabinet_labels'),
+    path('print/visual-map/', filing_views.print_visual_map, name='print_visual_map'),
     path('forgot-password/', recovery_views.forgot_password, name='forgot_password'),
     path('verify-reset-code/', recovery_views.verify_reset_code, name='verify_reset_code'),
     path('telegram-webhook/', telegram_views.telegram_webhook, name='telegram_webhook'),
