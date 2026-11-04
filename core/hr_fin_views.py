@@ -2,10 +2,17 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.urls import reverse
+from django.db.models import Q, Sum
+from django.contrib.auth.models import User
 from decimal import Decimal
 from dateutil import parser as date_parser
-from .models import Employee, LeaveRequest, ExpenseRequest, Task, Company, ROLE_CHOICES
+
+from .models import (
+    Employee, LeaveRequest, ExpenseRequest, Task, Company, 
+    ROLE_CHOICES, EmployeeDocument, PerformanceReview, Document, PayrollRecord
+)
 from .chain import create_task, find_role
+from .services import notify, log_action
 
 @login_required
 def request_leave(request):
@@ -24,15 +31,15 @@ def request_leave(request):
             start_date=start, end_date=end, reason=reason
         )
         
-        # Create Task for HR
         hr_manager = find_role(company, 'HR')
         if hr_manager:
-            Task.objects.create(
+            task = Task.objects.create(
                 code='HR_LEAVE', title=f'Approve Leave: {emp.full_name}',
                 description=f'{ltype} Leave from {start} to {end}. Reason: {reason}',
                 kind='ROUTINE', company=company, assigned_to=hr_manager,
                 payload={'leave_id': leave.id}
             )
+            notify(hr_manager, 'New Leave Request', task.title, task)
         return redirect('dashboard')
 
     return render(request, 'request_leave.html')
@@ -53,12 +60,13 @@ def request_expense(request):
         
         fin_manager = find_role(company, 'FIN')
         if fin_manager:
-            Task.objects.create(
+            task = Task.objects.create(
                 code='FIN_EXPENSE', title=f'Approve Expense: {emp.full_name}',
                 description=f'Amount: {amount} ETB. Reason: {reason}',
                 kind='ROUTINE', company=company, assigned_to=fin_manager,
                 payload={'expense_id': exp.id}
             )
+            notify(fin_manager, 'New Expense Request', task.title, task)
         return redirect('dashboard')
 
     return render(request, 'request_expense.html')
@@ -72,7 +80,6 @@ def register_employee(request):
         return redirect('dashboard')
 
     if request.method == 'POST':
-        from django.contrib.auth.models import User
         username = request.POST.get('username', '').strip()
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
@@ -93,7 +100,6 @@ def register_employee(request):
             is_group_level=True
         )
         
-        from .services import log_action
         log_action(emp, 'REGISTER_EMPLOYEE', f'Created user {username} with role {role}', 'Employee', user.id, company)
         
         return render(request, 'register_employee.html', {'success': f'Successfully registered {first_name} {last_name} ({username})!', 'roles': ROLE_CHOICES})
@@ -102,19 +108,16 @@ def register_employee(request):
 
 @login_required
 def staff_directory(request):
-    company = getattr(request, 'company', None)
     query = request.GET.get('q', '')
     employees = Employee.objects.all()
     
     if query:
-        from django.db.models import Q
         employees = employees.filter(Q(user__first_name__icontains=query) | Q(user__last_name__icontains=query) | Q(role__icontains=query))
         
     return render(request, 'staff_directory.html', {'employees': employees, 'query': query})
 
 @login_required
 def employee_profile(request, pk):
-    from .models import EmployeeDocument, PerformanceReview, Document
     company = getattr(request, 'company', None)
     emp = get_object_or_404(Employee, pk=pk)
     reviewer = getattr(request.user, 'employee', None)
@@ -128,6 +131,7 @@ def employee_profile(request, pk):
             emp.telegram_id = tg_input
             emp.save()
             return redirect('employee_profile', pk=emp.pk)
+            
         elif 'doc_type' in request.POST and company:
             doc_type = request.POST.get('doc_type')
             title = request.POST.get('title')
@@ -140,6 +144,7 @@ def employee_profile(request, pk):
                 EmployeeDocument.objects.create(
                     employee=emp, doc_type=doc_type, title=title, file=file_obj, registry_doc=reg_doc
                 )
+                
         elif 'rating' in request.POST and reviewer.role in ('ADMIN', 'CEO', 'GM', 'HR'):
             rating = request.POST.get('rating')
             feedback = request.POST.get('feedback')
@@ -151,7 +156,6 @@ def employee_profile(request, pk):
 
 @login_required
 def generate_payroll(request):
-    from .models import PayrollRecord
     company = getattr(request, 'company', None)
     emp = getattr(request.user, 'employee', None)
     
@@ -162,7 +166,6 @@ def generate_payroll(request):
         month = request.POST.get('month')
         year = request.POST.get('year')
         
-        from django.db.models import Sum
         total = Employee.objects.filter(is_active=True).aggregate(Sum('base_salary'))['base_salary__sum'] or 0
         
         if total > 0:
@@ -180,7 +183,6 @@ def generate_payroll(request):
 
 @login_required
 def payroll_history(request):
-    from .models import PayrollRecord
     company = getattr(request, 'company', None)
     payrolls = PayrollRecord.objects.filter(company=company).order_by('-created_at') if company else []
     return render(request, 'payroll_history.html', {'payrolls': payrolls})
