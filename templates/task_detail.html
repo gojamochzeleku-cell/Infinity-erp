@@ -81,6 +81,93 @@
     }
 </script>
 
+
+<script>
+    // Voice-to-Text Dictation Logic
+    document.addEventListener('DOMContentLoaded', function() {
+        // Find all textareas in the form
+        const textareas = document.querySelectorAll('textarea');
+        
+        textareas.forEach(textarea => {
+            // Wrap the textarea in a relative container so we can position the mic button
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'relative';
+            textarea.parentNode.insertBefore(wrapper, textarea);
+            wrapper.appendChild(textarea);
+            
+            // Create the mic button
+            const micBtn = document.createElement('button');
+            micBtn.type = 'button';
+            micBtn.innerHTML = '🎤';
+            micBtn.style.position = 'absolute';
+            micBtn.style.bottom = '10px';
+            micBtn.style.right = '10px';
+            micBtn.style.background = '#e2504a';
+            micBtn.style.color = 'white';
+            micBtn.style.border = 'none';
+            micBtn.style.borderRadius = '50%';
+            micBtn.style.width = '35px';
+            micBtn.style.height = '35px';
+            micBtn.style.fontSize = '16px';
+            micBtn.style.cursor = 'pointer';
+            micBtn.style.zIndex = '10';
+            micBtn.title = 'Click to dictate';
+            
+            wrapper.appendChild(micBtn);
+            
+            // Add padding to textarea so text doesn't go under the button
+            textarea.style.paddingBottom = '40px';
+
+            // Speech Recognition Logic
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (SpeechRecognition) {
+                const recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US'; // Can be changed to 'am-ET' for Amharic if supported
+
+                let isRecording = false;
+
+                micBtn.addEventListener('click', () => {
+                    if (isRecording) {
+                        recognition.stop();
+                        micBtn.style.background = '#e2504a';
+                        micBtn.innerHTML = '🎤';
+                    } else {
+                        recognition.start();
+                        micBtn.style.background = '#1f8a4c';
+                        micBtn.innerHTML = '🛑';
+                    }
+                    isRecording = !isRecording;
+                });
+
+                recognition.onresult = (event) => {
+                    let finalTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        }
+                    }
+                    if (finalTranscript) {
+                        textarea.value += (textarea.value ? ' ' : '') + finalTranscript;
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.log('Speech recognition error', event.error);
+                    micBtn.style.background = '#e2504a';
+                    micBtn.innerHTML = '🎤';
+                    isRecording = false;
+                };
+            } else {
+                // Hide button if browser doesn't support speech recognition
+                micBtn.style.display = 'none';
+            }
+        });
+    });
+</script>
+
 {% endblock %}
 {% block content %}
 <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -563,6 +650,93 @@
             document.getElementById('signature_data').value = dataURL;
         });
     }
+</script>
+
+
+<script>
+    // Voice-to-Text Dictation Logic
+    document.addEventListener('DOMContentLoaded', function() {
+        // Find all textareas in the form
+        const textareas = document.querySelectorAll('textarea');
+        
+        textareas.forEach(textarea => {
+            // Wrap the textarea in a relative container so we can position the mic button
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'relative';
+            textarea.parentNode.insertBefore(wrapper, textarea);
+            wrapper.appendChild(textarea);
+            
+            // Create the mic button
+            const micBtn = document.createElement('button');
+            micBtn.type = 'button';
+            micBtn.innerHTML = '🎤';
+            micBtn.style.position = 'absolute';
+            micBtn.style.bottom = '10px';
+            micBtn.style.right = '10px';
+            micBtn.style.background = '#e2504a';
+            micBtn.style.color = 'white';
+            micBtn.style.border = 'none';
+            micBtn.style.borderRadius = '50%';
+            micBtn.style.width = '35px';
+            micBtn.style.height = '35px';
+            micBtn.style.fontSize = '16px';
+            micBtn.style.cursor = 'pointer';
+            micBtn.style.zIndex = '10';
+            micBtn.title = 'Click to dictate';
+            
+            wrapper.appendChild(micBtn);
+            
+            // Add padding to textarea so text doesn't go under the button
+            textarea.style.paddingBottom = '40px';
+
+            // Speech Recognition Logic
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (SpeechRecognition) {
+                const recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US'; // Can be changed to 'am-ET' for Amharic if supported
+
+                let isRecording = false;
+
+                micBtn.addEventListener('click', () => {
+                    if (isRecording) {
+                        recognition.stop();
+                        micBtn.style.background = '#e2504a';
+                        micBtn.innerHTML = '🎤';
+                    } else {
+                        recognition.start();
+                        micBtn.style.background = '#1f8a4c';
+                        micBtn.innerHTML = '🛑';
+                    }
+                    isRecording = !isRecording;
+                });
+
+                recognition.onresult = (event) => {
+                    let finalTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        }
+                    }
+                    if (finalTranscript) {
+                        textarea.value += (textarea.value ? ' ' : '') + finalTranscript;
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.log('Speech recognition error', event.error);
+                    micBtn.style.background = '#e2504a';
+                    micBtn.innerHTML = '🎤';
+                    isRecording = false;
+                };
+            } else {
+                // Hide button if browser doesn't support speech recognition
+                micBtn.style.display = 'none';
+            }
+        });
+    });
 </script>
 
 {% endblock %}
