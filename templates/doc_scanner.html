@@ -1,24 +1,85 @@
 {% extends 'base.html' %}
 {% block title %}Scan Document{% endblock %}
 {% block content %}
-<div style="text-align:center; padding:30px 0;">
-  <div style="font-size:50px; margin-bottom:10px;">🔍</div>
-  <h2>Document Scanner</h2>
-  <p class="meta" style="margin-bottom:20px;">Scan the QR code on a physical file or type the Doc ID below.</p>
-</div>
 
-<div class="card" style="border:2px solid #4cc7e8;">
-  <form method="get" style="display:flex; gap:10px;">
-    <input type="text" name="scan_id" placeholder="e.g., CHI-DOC-0001" required style="flex:1; margin:0; font-size:16px; text-align:center; font-weight:bold; letter-spacing:1px;">
-    <button class="btn btn-blue" type="submit" style="margin:0;">Find</button>
+<!-- Load the QR Code Scanner Library -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+  #reader { width: 100%; max-width: 400px; margin: 0 auto; border-radius: 12px; overflow: hidden; border: 2px solid #4cc7e8; }
+  #reader video { object-fit: cover; }
+  .scanner-container { text-align: center; padding: 10px; }
+</style>
+
+<div class="scanner-container">
+  <div style="font-size:40px; margin-bottom:10px;">📷</div>
+  <h2 style="color:#4cc7e8;">Scan Physical Folder</h2>
+  <p class="meta" style="margin-bottom:20px;">Point your camera at the QR code on the document.</p>
+
+  <!-- The Camera Feed -->
+  <div id="reader"></div>
+
+  <!-- Hidden form to submit the scanned code -->
+  <form id="scan-form" method="get" action="" style="display:none;">
+    <input type="text" id="scan_id" name="scan_id">
   </form>
+
+  <div style="margin-top: 20px;">
+    <p class="meta">Or type the Doc ID manually:</p>
+    <form method="get" action="" style="display:flex; gap:10px; margin-top:10px;">
+      <input type="text" name="scan_id" placeholder="e.g. CHI-DOC-0001" required style="flex:1; margin:0; text-align:center; font-weight:bold;">
+      <button class="btn btn-blue" type="submit" style="margin:0;">Find</button>
+    </form>
+  </div>
+  
+  {% if error %}
+  <div class="card" style="border-color:#e2504a; background:#2a1515; text-align:center; color:#ff9b96; margin-top:15px;">
+    {{ error }}
+  </div>
+  {% endif %}
+
+  <a class="btn btn-grey wide" href="{% url 'document_list' %}" style="margin-top:20px;">Back to Registry</a>
 </div>
 
-{% if error %}
-<div class="card" style="border-color:#e2504a; background:#2a1515; text-align:center; color:#ff9b96;">
-  {{ error }}
-</div>
-{% endif %}
+<script>
+    // Initialize the scanner
+    const html5QrCode = new Html5Qrcode("reader");
+    
+    const config = { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+    };
 
-<a class="btn btn-grey wide" href="{% url 'dashboard' %}" style="margin-top:20px;">Back to Action Center</a>
+    // Start the camera
+    html5QrCode.start(
+        { facingMode: "environment" }, // Use back camera
+        config,
+        (decodedText, decodedResult) => {
+            // This runs when a QR code is successfully scanned
+            console.log(`Scan result: ${decodedText}`);
+            
+            // Stop scanning
+            html5QrCode.stop().then((ignore) => {
+                // Fill the form and submit it
+                document.getElementById('scan_id').value = decodedText;
+                document.getElementById('scan-form').submit();
+            }).catch((err) => {
+                console.log("Stop failed", err);
+            });
+        },
+        (errorMessage) => {
+            // This runs constantly while scanning (ignore errors)
+        }
+    ).catch((err) => {
+        // Camera failed to start (e.g., permission denied)
+        console.log("Camera error:", err);
+        document.getElementById('reader').innerHTML = `
+            <div style="background:#2a1515; color:#e2504a; padding:20px; text-align:center; font-size:14px;">
+                Camera access denied or not available.<br>Please use the manual entry below.
+            </div>
+        `;
+    });
+</script>
+
 {% endblock %}
