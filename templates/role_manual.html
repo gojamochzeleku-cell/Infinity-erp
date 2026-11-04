@@ -115,16 +115,18 @@
 <!-- ========================================== -->
 {% elif role == 'OFFICE' %}
 <details open>
-    <summary>The Master Filing Blueprint</summary>
+    <summary>The Master 10-Cabinet Filing Blueprint</summary>
     <div class="manual-content">
-        <p><strong>Company Isolation:</strong> The archive room is split. Left side is <strong>CHI</strong> (Capital), Right side is <strong>YAH</strong> (Yirga). Never mix them.</p>
+        <p><strong>Company Isolation:</strong> The archive room is split. Left is <strong>CHI</strong> (Capital), Right is <strong>YAH</strong> (Yirga). Never mix them.</p>
+        <p><strong>The 5-Level Hierarchy:</strong> Room ➔ Cabinet ➔ Shelf ➔ Binder ➔ Tab.</p>
         
-        <h4>🗄️ The 4 Master Cabinets (Per Company)</h4>
+        <h4>🗄️ The 10 Master Cabinets</h4>
         <ul>
-            <li><strong>CAB-01: Tenders & Ops</strong> (Blue Binders)</li>
-            <li><strong>CAB-02: Finance</strong> (Black Binders)</li>
-            <li><strong>CAB-03: Legal & HR</strong> (Red / Green Binders)</li>
-            <li><strong>CAB-04: Mail & Admin</strong> (Grey Binders)</li>
+            <li><strong>CAB-01 & 02: Tenders</strong> (Blue Binders) - Sourcing, Feasibility, Proposals.</li>
+            <li><strong>CAB-03 & 04: Procurement & Logistics</strong> (Black) - POs, Shipping, Customs, Delivery.</li>
+            <li><strong>CAB-05 & 06: Finance</strong> (Black) - CPOs, LCs, Payroll, Invoices.</li>
+            <li><strong>CAB-07 & 08: Legal & HR</strong> (Red / Green) - Agreements, Court Cases, Personnel.</li>
+            <li><strong>CAB-09 & 10: Mail & Admin</strong> (Grey) - Incoming/Outgoing Mail, Trade Licenses.</li>
         </ul>
 
         <h4>📚 Shelf Partitions</h4>
@@ -132,13 +134,24 @@
             <li><strong>TOP Partition:</strong> Active, Current, and Ongoing files.</li>
             <li><strong>BOTTOM Partition:</strong> Closed, Archived, or Lost files.</li>
         </ul>
+    </div>
+</details>
 
-        <h4>🏷️ How to Label the Binder Spine</h4>
+<details>
+    <summary>Labeling Guide</summary>
+    <div class="manual-content">
+        <h4>🏷️ On the Cabinet Door</h4>
+        <p>Write the Company Code, Cabinet Number, and Department (e.g., <code>CHI - CABINET 05: BANK GUARANTEES</code>).</p>
+
+        <h4>📚 On the Binder Spine</h4>
         <ul>
             <li><strong>Line 1:</strong> Company (CHI or YAH)</li>
-            <li><strong>Line 2:</strong> Binder Name (e.g., ACTIVE TENDERS)</li>
+            <li><strong>Line 2:</strong> Binder Name (e.g., ACTIVE CPOs)</li>
             <li><strong>Line 3:</strong> Year (e.g., 2026)</li>
         </ul>
+
+        <h4>🔖 On the Internal Tabs</h4>
+        <p>Write the Tender Serial, Employee Name, Month, or Case Number.</p>
     </div>
 </details>
 
@@ -146,24 +159,13 @@
     <summary>The Daily A-B-C Procedure</summary>
     <div class="manual-content">
         <h4>🅰️ Step 1: Prepare the Paper</h4>
-        <p>Upload the file to the ERP to get a Doc ID. Print it. Stick the printed QR Code on the top right corner. Hole-punch the paper.</p>
+        <p>Upload the file to the ERP to get a Doc ID. Print it. Stick the QR Code on the top right corner. Hole-punch the paper.</p>
         
         <h4>🅱️ Step 2: File the Paper</h4>
-        <p>Go to the correct cabinet and shelf partition. Pull the correct binder. Open it and find the tab (Tender ID, Month, or Employee Name). Clip the paper behind the tab.</p>
+        <p>Go to the correct Cabinet and Shelf partition. Pull the correct Binder. Find the correct Internal Tab (create one if it doesn't exist). Clip the paper behind the tab.</p>
 
         <h4>🅲 Step 3: Update the ERP</h4>
-        <p>Click <strong>Record Physical Filing</strong> in the ERP. Use the drop-downs to select the exact Cabinet, Shelf, and Binder you used. Type the Tab name.</p>
-    </div>
-</details>
-
-<details>
-    <summary>Check-out & Tracking</summary>
-    <div class="manual-content">
-        <ul>
-            <li><strong>Check-out:</strong> If a manager takes a physical file, click <strong>Check-out to Employee</strong>. When returned, click <strong>Mark as Returned</strong>.</li>
-            <li><strong>Scanning:</strong> Use <strong>🔍 Scan Document</strong> on the dashboard. Type the Doc ID to instantly find where the paper is located.</li>
-            <li><strong>Expiries:</strong> When filing a document, set an <strong>Expiry Date</strong> if applicable (e.g., Work Permits). It will alert the CEO 30 days before expiry.</li>
-        </ul>
+        <p>Click <strong>Record Physical Filing</strong> in the ERP. Use the drop-downs to select the exact Cabinet, Shelf, and Binder. Type the Tab name and Save.</p>
     </div>
 </details>
 
