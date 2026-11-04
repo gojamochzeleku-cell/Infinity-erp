@@ -72,102 +72,72 @@
 
     <div class="filing-step">
       <strong>Step 3: Choose the File Holder (Binder)</strong>
-      <p>Select the exact binder name. They are grouped by department color.</p>
+      <p>Select the exact binder name (20 per company).</p>
     </div>
 
     <label>File Holder (Binder)</label>
     <select name="box" required>
       {% if doc.company.short_name == 'CHI' %}
-        <optgroup label="🔵 Tenders & Operations (CAB 01 & 02)">
-          <option value="CHI - TENDER REGISTRATIONS">CHI - TENDER REGISTRATIONS</option>
-          <option value="CHI - FEASIBILITY & GO-NO-GO">CHI - FEASIBILITY & GO-NO-GO</option>
-          <option value="CHI - NO-GO / CANCELLED">CHI - NO-GO / CANCELLED</option>
-          <option value="CHI - PURCHASED BID DOCUMENTS">CHI - PURCHASED BID DOCUMENTS</option>
-          <option value="CHI - COMPLIANCE & TECH PROPOSALS">CHI - COMPLIANCE & TECH PROPOSALS</option>
-          <option value="CHI - FINANCIAL PROPOSALS">CHI - FINANCIAL PROPOSALS</option>
-          <option value="CHI - SUBMITTED BIDS">CHI - SUBMITTED BIDS</option>
+        <optgroup label="🔵 Tenders & Operations">
+          <option value="CHI - TENDER REGISTRATIONS & FEASIBILITY">CHI - TENDER REGISTRATIONS & FEASIBILITY</option>
+          <option value="CHI - PURCHASED DOCS & PROPOSALS">CHI - PURCHASED DOCS & PROPOSALS</option>
+          <option value="CHI - SUBMITTED & ACTIVE TENDERS">CHI - SUBMITTED & ACTIVE TENDERS</option>
+          <option value="CHI - WON & LOST TENDERS (ARCHIVE)">CHI - WON & LOST TENDERS (ARCHIVE)</option>
         </optgroup>
-        <optgroup label="⚫ Finance & Procurement (CAB 03, 04, 05, 06)">
-          <option value="CHI - PURCHASE ORDERS (POs)">CHI - PURCHASE ORDERS (POs)</option>
-          <option value="CHI - PROFORMA INVOICES">CHI - PROFORMA INVOICES</option>
-          <option value="CHI - SHIPPING & CUSTOMS (ACTIVE)">CHI - SHIPPING & CUSTOMS (ACTIVE)</option>
-          <option value="CHI - SHIPPING & CUSTOMS (CLOSED)">CHI - SHIPPING & CUSTOMS (CLOSED)</option>
-          <option value="CHI - CLEARING AGENTS">CHI - CLEARING AGENTS</option>
-          <option value="CHI - DUTY & TAX PAYMENTS">CHI - DUTY & TAX PAYMENTS</option>
-          <option value="CHI - INSPECTION & WAREHOUSE">CHI - INSPECTION & WAREHOUSE</option>
-          <option value="CHI - CUSTOMER GRN & DELIVERY">CHI - CUSTOMER GRN & DELIVERY</option>
-          <option value="CHI - ACTIVE CPOs">CHI - ACTIVE CPOs</option>
-          <option value="CHI - PERFORMANCE BONDS">CHI - PERFORMANCE BONDS</option>
-          <option value="CHI - LETTERS OF CREDIT (LCs)">CHI - LETTERS OF CREDIT (LCs)</option>
-          <option value="CHI - EXPIRED / RELEASED GUARANTEES">CHI - EXPIRED / RELEASED GUARANTEES</option>
-          <option value="CHI - INVOICES & BILLS">CHI - INVOICES & BILLS</option>
-          <option value="CHI - PAYROLL & SALARIES">CHI - PAYROLL & SALARIES</option>
-          <option value="CHI - TAX & GOVERNMENT FILINGS">CHI - TAX & GOVERNMENT FILINGS</option>
-          <option value="CHI - BANK STATEMENTS">CHI - BANK STATEMENTS</option>
+        <optgroup label="⚫ Procurement & Logistics">
+          <option value="CHI - PURCHASE ORDERS & PROFORMAS">CHI - PURCHASE ORDERS & PROFORMAS</option>
+          <option value="CHI - SHIPPING & CUSTOMS DOCS">CHI - SHIPPING & CUSTOMS DOCS</option>
+          <option value="CHI - CLEARING, DUTY & WAREHOUSE">CHI - CLEARING, DUTY & WAREHOUSE</option>
         </optgroup>
-        <optgroup label="🔴 Legal & HR (CAB 07 & 08)">
-          <option value="CHI - SIGNED AGREEMENTS">CHI - SIGNED AGREEMENTS</option>
-          <option value="CHI - ACTIVE COURT CASES">CHI - ACTIVE COURT CASES</option>
-          <option value="CHI - LEGAL NOTICES & DISPUTES">CHI - LEGAL NOTICES & DISPUTES</option>
-          <option value="CHI - CLOSED COURT CASES">CHI - CLOSED COURT CASES</option>
-          <option value="CHI - PERSONNEL FILES">CHI - PERSONNEL FILES</option>
-          <option value="CHI - CONTRACTS & APPRAISALS">CHI - CONTRACTS & APPRAISALS</option>
-          <option value="CHI - LEAVE & MEDICAL">CHI - LEAVE & MEDICAL</option>
-          <option value="CHI - WARNING LETTERS & DISCIPLINE">CHI - WARNING LETTERS & DISCIPLINE</option>
+        <optgroup label="⚫ Finance & Banking">
+          <option value="CHI - ACTIVE CPOs & PERFORMANCE BONDS">CHI - ACTIVE CPOs & PERFORMANCE BONDS</option>
+          <option value="CHI - LETTERS OF CREDIT (LCs) & SWIFT">CHI - LETTERS OF CREDIT (LCs) & SWIFT</option>
+          <option value="CHI - INVOICES & PAYMENT REQUESTS">CHI - INVOICES & PAYMENT REQUESTS</option>
+          <option value="CHI - PAYROLL, TAX & BANK STATEMENTS">CHI - PAYROLL, TAX & BANK STATEMENTS</option>
         </optgroup>
-        <optgroup label="⚪ Mail & Admin (CAB 09 & 10)">
+        <optgroup label="🔴 Legal & 🟢 HR">
+          <option value="CHI - SIGNED AGREEMENTS & CONTRACTS">CHI - SIGNED AGREEMENTS & CONTRACTS</option>
+          <option value="CHI - COURT CASES & LEGAL NOTICES">CHI - COURT CASES & LEGAL NOTICES</option>
+          <option value="CHI - PERSONNEL FILES & CONTRACTS">CHI - PERSONNEL FILES & CONTRACTS</option>
+          <option value="CHI - LEAVE, MEDICAL & DISCIPLINE">CHI - LEAVE, MEDICAL & DISCIPLINE</option>
+        </optgroup>
+        <optgroup label="⚪ Mail & Admin">
           <option value="CHI - INCOMING MAIL">CHI - INCOMING MAIL</option>
           <option value="CHI - OUTGOING MAIL">CHI - OUTGOING MAIL</option>
-          <option value="CHI - TRADE LICENSES & TIN">CHI - TRADE LICENSES & TIN</option>
-          <option value="CHI - ISO & COMPLIANCE CERTS">CHI - ISO & COMPLIANCE CERTS</option>
-          <option value="CHI - SUPPLIER CATALOGS">CHI - SUPPLIER CATALOGS</option>
-          <option value="CHI - OFFICE LEASES & UTILITIES">CHI - OFFICE LEASES & UTILITIES</option>
+          <option value="CHI - TRADE LICENSES, TIN & ISO">CHI - TRADE LICENSES, TIN & ISO</option>
+          <option value="CHI - SUPPLIER CATALOGS & PROFILES">CHI - SUPPLIER CATALOGS & PROFILES</option>
+          <option value="CHI - OFFICE LEASES, UTILITIES & GENERAL">CHI - OFFICE LEASES, UTILITIES & GENERAL</option>
         </optgroup>
       {% elif doc.company.short_name == 'YAH' %}
-        <optgroup label="🔵 Tenders & Operations (CAB 01 & 02)">
-          <option value="YAH - TENDER REGISTRATIONS">YAH - TENDER REGISTRATIONS</option>
-          <option value="YAH - FEASIBILITY & GO-NO-GO">YAH - FEASIBILITY & GO-NO-GO</option>
-          <option value="YAH - NO-GO / CANCELLED">YAH - NO-GO / CANCELLED</option>
-          <option value="YAH - PURCHASED BID DOCUMENTS">YAH - PURCHASED BID DOCUMENTS</option>
-          <option value="YAH - COMPLIANCE & TECH PROPOSALS">YAH - COMPLIANCE & TECH PROPOSALS</option>
-          <option value="YAH - FINANCIAL PROPOSALS">YAH - FINANCIAL PROPOSALS</option>
-          <option value="YAH - SUBMITTED BIDS">YAH - SUBMITTED BIDS</option>
+        <optgroup label="🔵 Tenders & Operations">
+          <option value="YAH - TENDER REGISTRATIONS & FEASIBILITY">YAH - TENDER REGISTRATIONS & FEASIBILITY</option>
+          <option value="YAH - PURCHASED DOCS & PROPOSALS">YAH - PURCHASED DOCS & PROPOSALS</option>
+          <option value="YAH - SUBMITTED & ACTIVE TENDERS">YAH - SUBMITTED & ACTIVE TENDERS</option>
+          <option value="YAH - WON & LOST TENDERS (ARCHIVE)">YAH - WON & LOST TENDERS (ARCHIVE)</option>
         </optgroup>
-        <optgroup label="⚫ Finance & Procurement (CAB 03, 04, 05, 06)">
-          <option value="YAH - PURCHASE ORDERS (POs)">YAH - PURCHASE ORDERS (POs)</option>
-          <option value="YAH - PROFORMA INVOICES">YAH - PROFORMA INVOICES</option>
-          <option value="YAH - SHIPPING & CUSTOMS (ACTIVE)">YAH - SHIPPING & CUSTOMS (ACTIVE)</option>
-          <option value="YAH - SHIPPING & CUSTOMS (CLOSED)">YAH - SHIPPING & CUSTOMS (CLOSED)</option>
-          <option value="YAH - CLEARING AGENTS">YAH - CLEARING AGENTS</option>
-          <option value="YAH - DUTY & TAX PAYMENTS">YAH - DUTY & TAX PAYMENTS</option>
-          <option value="YAH - INSPECTION & WAREHOUSE">YAH - INSPECTION & WAREHOUSE</option>
-          <option value="YAH - CUSTOMER GRN & DELIVERY">YAH - CUSTOMER GRN & DELIVERY</option>
-          <option value="YAH - ACTIVE CPOs">YAH - ACTIVE CPOs</option>
-          <option value="YAH - PERFORMANCE BONDS">YAH - PERFORMANCE BONDS</option>
-          <option value="YAH - LETTERS OF CREDIT (LCs)">YAH - LETTERS OF CREDIT (LCs)</option>
-          <option value="YAH - EXPIRED / RELEASED GUARANTEES">YAH - EXPIRED / RELEASED GUARANTEES</option>
-          <option value="YAH - INVOICES & BILLS">YAH - INVOICES & BILLS</option>
-          <option value="YAH - PAYROLL & SALARIES">YAH - PAYROLL & SALARIES</option>
-          <option value="YAH - TAX & GOVERNMENT FILINGS">YAH - TAX & GOVERNMENT FILINGS</option>
-          <option value="YAH - BANK STATEMENTS">YAH - BANK STATEMENTS</option>
+        <optgroup label="⚫ Procurement & Logistics">
+          <option value="YAH - PURCHASE ORDERS & PROFORMAS">YAH - PURCHASE ORDERS & PROFORMAS</option>
+          <option value="YAH - SHIPPING & CUSTOMS DOCS">YAH - SHIPPING & CUSTOMS DOCS</option>
+          <option value="YAH - CLEARING, DUTY & WAREHOUSE">YAH - CLEARING, DUTY & WAREHOUSE</option>
         </optgroup>
-        <optgroup label="🔴 Legal & HR (CAB 07 & 08)">
-          <option value="YAH - SIGNED AGREEMENTS">YAH - SIGNED AGREEMENTS</option>
-          <option value="YAH - ACTIVE COURT CASES">YAH - ACTIVE COURT CASES</option>
-          <option value="YAH - LEGAL NOTICES & DISPUTES">YAH - LEGAL NOTICES & DISPUTES</option>
-          <option value="YAH - CLOSED COURT CASES">YAH - CLOSED COURT CASES</option>
-          <option value="YAH - PERSONNEL FILES">YAH - PERSONNEL FILES</option>
-          <option value="YAH - CONTRACTS & APPRAISALS">YAH - CONTRACTS & APPRAISALS</option>
-          <option value="YAH - LEAVE & MEDICAL">YAH - LEAVE & MEDICAL</option>
-          <option value="YAH - WARNING LETTERS & DISCIPLINE">YAH - WARNING LETTERS & DISCIPLINE</option>
+        <optgroup label="⚫ Finance & Banking">
+          <option value="YAH - ACTIVE CPOs & PERFORMANCE BONDS">YAH - ACTIVE CPOs & PERFORMANCE BONDS</option>
+          <option value="YAH - LETTERS OF CREDIT (LCs) & SWIFT">YAH - LETTERS OF CREDIT (LCs) & SWIFT</option>
+          <option value="YAH - INVOICES & PAYMENT REQUESTS">YAH - INVOICES & PAYMENT REQUESTS</option>
+          <option value="YAH - PAYROLL, TAX & BANK STATEMENTS">YAH - PAYROLL, TAX & BANK STATEMENTS</option>
         </optgroup>
-        <optgroup label="⚪ Mail & Admin (CAB 09 & 10)">
+        <optgroup label="🔴 Legal & 🟢 HR">
+          <option value="YAH - SIGNED AGREEMENTS & CONTRACTS">YAH - SIGNED AGREEMENTS & CONTRACTS</option>
+          <option value="YAH - COURT CASES & LEGAL NOTICES">YAH - COURT CASES & LEGAL NOTICES</option>
+          <option value="YAH - PERSONNEL FILES & CONTRACTS">YAH - PERSONNEL FILES & CONTRACTS</option>
+          <option value="YAH - LEAVE, MEDICAL & DISCIPLINE">YAH - LEAVE, MEDICAL & DISCIPLINE</option>
+        </optgroup>
+        <optgroup label="⚪ Mail & Admin">
           <option value="YAH - INCOMING MAIL">YAH - INCOMING MAIL</option>
           <option value="YAH - OUTGOING MAIL">YAH - OUTGOING MAIL</option>
-          <option value="YAH - TRADE LICENSES & TIN">YAH - TRADE LICENSES & TIN</option>
-          <option value="YAH - ISO & COMPLIANCE CERTS">YAH - ISO & COMPLIANCE CERTS</option>
-          <option value="YAH - SUPPLIER CATALOGS">YAH - SUPPLIER CATALOGS</option>
-          <option value="YAH - OFFICE LEASES & UTILITIES">YAH - OFFICE LEASES & UTILITIES</option>
+          <option value="YAH - TRADE LICENSES, TIN & ISO">YAH - TRADE LICENSES, TIN & ISO</option>
+          <option value="YAH - SUPPLIER CATALOGS & PROFILES">YAH - SUPPLIER CATALOGS & PROFILES</option>
+          <option value="YAH - OFFICE LEASES, UTILITIES & GENERAL">YAH - OFFICE LEASES, UTILITIES & GENERAL</option>
         </optgroup>
       {% endif %}
     </select>
