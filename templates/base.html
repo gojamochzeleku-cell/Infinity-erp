@@ -3,6 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- PWA Settings -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#e8b64c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://api.qrserver.com/v1/create-qr-code/?size=192x192&data=Infinity">
+    
 <title>{% block title %}Infinity{% endblock %}</title>
 <style>
 *{box-sizing:border-box}
@@ -237,5 +245,16 @@ input[type=text],input[type=password],input[type=number],input[type=date],select
         });
     </script>
 
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker Registered'))
+                    .catch(err => console.log('Service Worker Failed', err));
+            });
+        }
+    </script>
+    
 </body>
 </html>

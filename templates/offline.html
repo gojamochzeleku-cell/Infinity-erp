@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Offline Mode{% endblock %}
+{% block content %}
+<div style="text-align:center; padding: 50px 20px;">
+  <div style="font-size: 60px; margin-bottom: 20px;">📡</div>
+  <h2 style="color:#e8b64c; font-size:24px; margin-bottom:10px;">You are Offline</h2>
+  <p class="meta" style="font-size:14px; max-width:300px; margin:0 auto; line-height:1.5;">
+    It looks like your internet connection has dropped. Don't worry, your physical files are safe.
+  </p>
+  <div class="card" style="margin-top:30px; border-color:#333a4d;">
+    <p class="meta" style="font-size:12px; margin-bottom:15px;">Once you reconnect to the internet, you can continue working.</p>
+    <button onclick="window.location.reload()" class="btn btn-green wide" style="margin:0;">Try Again</button>
+  </div>
+</div>
+{% endblock %}
