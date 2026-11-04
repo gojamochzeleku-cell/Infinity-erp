@@ -33,6 +33,12 @@
   <a href="{% url 'generate_supplier_link' tender.id %}" class="btn btn-blue wide" style="margin:0;">🔗 Get Supplier Upload Link</a>
 </div>
 
+<div class="card" style="border-color:#e8b64c;">
+  <div class="meta" style="margin-bottom:8px; color:#e8b64c;">SUBMISSION TOOLS</div>
+  <p class="meta" style="font-size:12px; margin-bottom:10px;">Download the official cover sheet to place on top of your physical bid submission.</p>
+  <a href="{% url 'generate_cover_sheet' tender.id %}" target="_blank" class="btn btn-gold wide" style="margin:0; background:#e8b64c; color:#000; font-weight:bold;">📄 Download Cover Sheet (PDF)</a>
+</div>
+
 {% if tender.status == 'DRAFT' %}
 <div class="card">
   <div class="meta" style="margin-bottom:8px">Ready to send?</div>
