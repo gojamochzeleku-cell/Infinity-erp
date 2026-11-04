@@ -2,10 +2,10 @@
 {% block title %}File Document{% endblock %}
 {% block content %}
 <style>
-  .filing-step { background: #1a1f2b; border-left: 4px solid #e8b64c; padding: 10px 15px; border-radius: 4px; margin-bottom: 15px; }
+  .filing-step { background: #1a1f2b; border-left: 4px solid #e8b64c; padding: 10px 15px; border-radius: 4px; margin-bottom: 15px; margin-top: 20px; }
   .filing-step strong { color: #e8b64c; font-size: 14px; }
-  .filing-step p { color: #8f99b0; font-size: 12px; margin-top: 4px; }
-  select, input[type="text"] { background: #0f1115; border: 1px solid #333a4d; color: #fff; padding: 12px; border-radius: 8px; width: 100%; margin-bottom: 12px; }
+  .filing-step p { color: #8f99b0; font-size: 12px; margin-top: 4px; margin-bottom: 0; }
+  select, input[type="text"] { background: #0f1115; border: 1px solid #333a4d; color: #fff; padding: 12px; border-radius: 8px; width: 100%; margin-bottom: 15px; font-size: 14px; }
   label { font-size: 12px; color: #8f99b0; margin-bottom: 5px; display: block; font-weight: bold; }
 </style>
 
@@ -21,7 +21,7 @@
   <form method="post">
     {% csrf_token %}
     
-    <div class="filing-step">
+    <div class="filing-step" style="margin-top: 0;">
       <strong>Step 1: Locate the Cabinet</strong>
       <p>Select the physical cabinet where this file belongs.</p>
     </div>
@@ -29,15 +29,31 @@
     <label>Cabinet</label>
     <select name="cabinet" required>
       {% if doc.company.short_name == 'CHI' %}
-        <option value="CHI-01 (Tenders & Ops)">CHI-01 (Tenders & Operations)</option>
-        <option value="CHI-02 (Finance)">CHI-02 (Finance & Banking)</option>
-        <option value="CHI-03 (Legal & HR)">CHI-03 (Legal & HR)</option>
-        <option value="CHI-04 (Mail & Admin)">CHI-04 (Mail & General Admin)</option>
+        <optgroup label="Capital Hailu (CHI)">
+          <option value="CHI-CAB-01 (Tender Sourcing)">CHI-CAB-01 (Tender Sourcing)</option>
+          <option value="CHI-CAB-02 (Tender Prep)">CHI-CAB-02 (Tender Prep & Submission)</option>
+          <option value="CHI-CAB-03 (Procurement)">CHI-CAB-03 (Procurement & Import)</option>
+          <option value="CHI-CAB-04 (Logistics)">CHI-CAB-04 (Logistics & Delivery)</option>
+          <option value="CHI-CAB-05 (Bank Guarantees)">CHI-CAB-05 (Bank Guarantees & LCs)</option>
+          <option value="CHI-CAB-06 (Accounting)">CHI-CAB-06 (Accounting & Payroll)</option>
+          <option value="CHI-CAB-07 (Legal)">CHI-CAB-07 (Legal & Contracts)</option>
+          <option value="CHI-CAB-08 (HR)">CHI-CAB-08 (Human Resources)</option>
+          <option value="CHI-CAB-09 (Mail)">CHI-CAB-09 (Incoming & Outgoing Mail)</option>
+          <option value="CHI-CAB-10 (Corporate Admin)">CHI-CAB-10 (Corporate Admin)</option>
+        </optgroup>
       {% elif doc.company.short_name == 'YAH' %}
-        <option value="YAH-01 (Tenders & Ops)">YAH-01 (Tenders & Operations)</option>
-        <option value="YAH-02 (Finance)">YAH-02 (Finance & Banking)</option>
-        <option value="YAH-03 (Legal & HR)">YAH-03 (Legal & HR)</option>
-        <option value="YAH-04 (Mail & Admin)">YAH-04 (Mail & General Admin)</option>
+        <optgroup label="Yirga Agedom (YAH)">
+          <option value="YAH-CAB-01 (Tender Sourcing)">YAH-CAB-01 (Tender Sourcing)</option>
+          <option value="YAH-CAB-02 (Tender Prep)">YAH-CAB-02 (Tender Prep & Submission)</option>
+          <option value="YAH-CAB-03 (Procurement)">YAH-CAB-03 (Procurement & Import)</option>
+          <option value="YAH-CAB-04 (Logistics)">YAH-CAB-04 (Logistics & Delivery)</option>
+          <option value="YAH-CAB-05 (Bank Guarantees)">YAH-CAB-05 (Bank Guarantees & LCs)</option>
+          <option value="YAH-CAB-06 (Accounting)">YAH-CAB-06 (Accounting & Payroll)</option>
+          <option value="YAH-CAB-07 (Legal)">YAH-CAB-07 (Legal & Contracts)</option>
+          <option value="YAH-CAB-08 (HR)">YAH-CAB-08 (Human Resources)</option>
+          <option value="YAH-CAB-09 (Mail)">YAH-CAB-09 (Incoming & Outgoing Mail)</option>
+          <option value="YAH-CAB-10 (Corporate Admin)">YAH-CAB-10 (Corporate Admin)</option>
+        </optgroup>
       {% else %}
         <option value="General Cabinet">General Cabinet</option>
       {% endif %}
@@ -56,60 +72,102 @@
 
     <div class="filing-step">
       <strong>Step 3: Choose the File Holder (Binder)</strong>
-      <p>Select the exact binder name written on the spine.</p>
+      <p>Select the exact binder name. They are grouped by department color.</p>
     </div>
 
-    <label>File Holder (Binder / Box)</label>
+    <label>File Holder (Binder)</label>
     <select name="box" required>
       {% if doc.company.short_name == 'CHI' %}
-        <optgroup label="Tenders & Operations (Blue)">
-          <option value="CHI - ACTIVE TENDERS - 2026">CHI - ACTIVE TENDERS - 2026</option>
-          <option value="CHI - ACTIVE IMPORTS - 2026">CHI - ACTIVE IMPORTS - 2026</option>
-          <option value="CHI - SUBMITTED BIDS - 2026">CHI - SUBMITTED BIDS - 2026</option>
-          <option value="CHI - WON & LOST TENDERS - 2026">CHI - WON & LOST TENDERS - 2026</option>
+        <optgroup label="🔵 Tenders & Operations (CAB 01 & 02)">
+          <option value="CHI - TENDER REGISTRATIONS">CHI - TENDER REGISTRATIONS</option>
+          <option value="CHI - FEASIBILITY & GO-NO-GO">CHI - FEASIBILITY & GO-NO-GO</option>
+          <option value="CHI - NO-GO / CANCELLED">CHI - NO-GO / CANCELLED</option>
+          <option value="CHI - PURCHASED BID DOCUMENTS">CHI - PURCHASED BID DOCUMENTS</option>
+          <option value="CHI - COMPLIANCE & TECH PROPOSALS">CHI - COMPLIANCE & TECH PROPOSALS</option>
+          <option value="CHI - FINANCIAL PROPOSALS">CHI - FINANCIAL PROPOSALS</option>
+          <option value="CHI - SUBMITTED BIDS">CHI - SUBMITTED BIDS</option>
         </optgroup>
-        <optgroup label="Finance & Banking (Black)">
-          <option value="CHI - BANK GUARANTEES & CPOs">CHI - BANK GUARANTEES & CPOs</option>
-          <option value="CHI - LETTERS OF CREDIT (LCs) - 2026">CHI - LETTERS OF CREDIT (LCs) - 2026</option>
-          <option value="CHI - PAYROLL & SALARIES - 2026">CHI - PAYROLL & SALARIES - 2026</option>
-          <option value="CHI - INVOICES & PAYMENTS - 2026">CHI - INVOICES & PAYMENTS - 2026</option>
+        <optgroup label="⚫ Finance & Procurement (CAB 03, 04, 05, 06)">
+          <option value="CHI - PURCHASE ORDERS (POs)">CHI - PURCHASE ORDERS (POs)</option>
+          <option value="CHI - PROFORMA INVOICES">CHI - PROFORMA INVOICES</option>
+          <option value="CHI - SHIPPING & CUSTOMS (ACTIVE)">CHI - SHIPPING & CUSTOMS (ACTIVE)</option>
+          <option value="CHI - SHIPPING & CUSTOMS (CLOSED)">CHI - SHIPPING & CUSTOMS (CLOSED)</option>
+          <option value="CHI - CLEARING AGENTS">CHI - CLEARING AGENTS</option>
+          <option value="CHI - DUTY & TAX PAYMENTS">CHI - DUTY & TAX PAYMENTS</option>
+          <option value="CHI - INSPECTION & WAREHOUSE">CHI - INSPECTION & WAREHOUSE</option>
+          <option value="CHI - CUSTOMER GRN & DELIVERY">CHI - CUSTOMER GRN & DELIVERY</option>
+          <option value="CHI - ACTIVE CPOs">CHI - ACTIVE CPOs</option>
+          <option value="CHI - PERFORMANCE BONDS">CHI - PERFORMANCE BONDS</option>
+          <option value="CHI - LETTERS OF CREDIT (LCs)">CHI - LETTERS OF CREDIT (LCs)</option>
+          <option value="CHI - EXPIRED / RELEASED GUARANTEES">CHI - EXPIRED / RELEASED GUARANTEES</option>
+          <option value="CHI - INVOICES & BILLS">CHI - INVOICES & BILLS</option>
+          <option value="CHI - PAYROLL & SALARIES">CHI - PAYROLL & SALARIES</option>
+          <option value="CHI - TAX & GOVERNMENT FILINGS">CHI - TAX & GOVERNMENT FILINGS</option>
+          <option value="CHI - BANK STATEMENTS">CHI - BANK STATEMENTS</option>
         </optgroup>
-        <optgroup label="Legal & HR (Red / Green)">
+        <optgroup label="🔴 Legal & HR (CAB 07 & 08)">
           <option value="CHI - SIGNED AGREEMENTS">CHI - SIGNED AGREEMENTS</option>
           <option value="CHI - ACTIVE COURT CASES">CHI - ACTIVE COURT CASES</option>
+          <option value="CHI - LEGAL NOTICES & DISPUTES">CHI - LEGAL NOTICES & DISPUTES</option>
+          <option value="CHI - CLOSED COURT CASES">CHI - CLOSED COURT CASES</option>
           <option value="CHI - PERSONNEL FILES">CHI - PERSONNEL FILES</option>
-          <option value="CHI - LEAVE & MEDICAL - 2026">CHI - LEAVE & MEDICAL - 2026</option>
+          <option value="CHI - CONTRACTS & APPRAISALS">CHI - CONTRACTS & APPRAISALS</option>
+          <option value="CHI - LEAVE & MEDICAL">CHI - LEAVE & MEDICAL</option>
+          <option value="CHI - WARNING LETTERS & DISCIPLINE">CHI - WARNING LETTERS & DISCIPLINE</option>
         </optgroup>
-        <optgroup label="Mail & Admin (Grey)">
-          <option value="CHI - INCOMING MAIL - 2026">CHI - INCOMING MAIL - 2026</option>
-          <option value="CHI - OUTGOING MAIL - 2026">CHI - OUTGOING MAIL - 2026</option>
-          <option value="CHI - TRADE LICENSES & ISO">CHI - TRADE LICENSES & ISO</option>
+        <optgroup label="⚪ Mail & Admin (CAB 09 & 10)">
+          <option value="CHI - INCOMING MAIL">CHI - INCOMING MAIL</option>
+          <option value="CHI - OUTGOING MAIL">CHI - OUTGOING MAIL</option>
+          <option value="CHI - TRADE LICENSES & TIN">CHI - TRADE LICENSES & TIN</option>
+          <option value="CHI - ISO & COMPLIANCE CERTS">CHI - ISO & COMPLIANCE CERTS</option>
           <option value="CHI - SUPPLIER CATALOGS">CHI - SUPPLIER CATALOGS</option>
+          <option value="CHI - OFFICE LEASES & UTILITIES">CHI - OFFICE LEASES & UTILITIES</option>
         </optgroup>
       {% elif doc.company.short_name == 'YAH' %}
-        <optgroup label="Tenders & Operations (Blue)">
-          <option value="YAH - ACTIVE TENDERS - 2026">YAH - ACTIVE TENDERS - 2026</option>
-          <option value="YAH - ACTIVE IMPORTS - 2026">YAH - ACTIVE IMPORTS - 2026</option>
-          <option value="YAH - SUBMITTED BIDS - 2026">YAH - SUBMITTED BIDS - 2026</option>
-          <option value="YAH - WON & LOST TENDERS - 2026">YAH - WON & LOST TENDERS - 2026</option>
+        <optgroup label="🔵 Tenders & Operations (CAB 01 & 02)">
+          <option value="YAH - TENDER REGISTRATIONS">YAH - TENDER REGISTRATIONS</option>
+          <option value="YAH - FEASIBILITY & GO-NO-GO">YAH - FEASIBILITY & GO-NO-GO</option>
+          <option value="YAH - NO-GO / CANCELLED">YAH - NO-GO / CANCELLED</option>
+          <option value="YAH - PURCHASED BID DOCUMENTS">YAH - PURCHASED BID DOCUMENTS</option>
+          <option value="YAH - COMPLIANCE & TECH PROPOSALS">YAH - COMPLIANCE & TECH PROPOSALS</option>
+          <option value="YAH - FINANCIAL PROPOSALS">YAH - FINANCIAL PROPOSALS</option>
+          <option value="YAH - SUBMITTED BIDS">YAH - SUBMITTED BIDS</option>
         </optgroup>
-        <optgroup label="Finance & Banking (Black)">
-          <option value="YAH - BANK GUARANTEES & CPOs">YAH - BANK GUARANTEES & CPOs</option>
-          <option value="YAH - LETTERS OF CREDIT (LCs) - 2026">YAH - LETTERS OF CREDIT (LCs) - 2026</option>
-          <option value="YAH - PAYROLL & SALARIES - 2026">YAH - PAYROLL & SALARIES - 2026</option>
-          <option value="YAH - INVOICES & PAYMENTS - 2026">YAH - INVOICES & PAYMENTS - 2026</option>
+        <optgroup label="⚫ Finance & Procurement (CAB 03, 04, 05, 06)">
+          <option value="YAH - PURCHASE ORDERS (POs)">YAH - PURCHASE ORDERS (POs)</option>
+          <option value="YAH - PROFORMA INVOICES">YAH - PROFORMA INVOICES</option>
+          <option value="YAH - SHIPPING & CUSTOMS (ACTIVE)">YAH - SHIPPING & CUSTOMS (ACTIVE)</option>
+          <option value="YAH - SHIPPING & CUSTOMS (CLOSED)">YAH - SHIPPING & CUSTOMS (CLOSED)</option>
+          <option value="YAH - CLEARING AGENTS">YAH - CLEARING AGENTS</option>
+          <option value="YAH - DUTY & TAX PAYMENTS">YAH - DUTY & TAX PAYMENTS</option>
+          <option value="YAH - INSPECTION & WAREHOUSE">YAH - INSPECTION & WAREHOUSE</option>
+          <option value="YAH - CUSTOMER GRN & DELIVERY">YAH - CUSTOMER GRN & DELIVERY</option>
+          <option value="YAH - ACTIVE CPOs">YAH - ACTIVE CPOs</option>
+          <option value="YAH - PERFORMANCE BONDS">YAH - PERFORMANCE BONDS</option>
+          <option value="YAH - LETTERS OF CREDIT (LCs)">YAH - LETTERS OF CREDIT (LCs)</option>
+          <option value="YAH - EXPIRED / RELEASED GUARANTEES">YAH - EXPIRED / RELEASED GUARANTEES</option>
+          <option value="YAH - INVOICES & BILLS">YAH - INVOICES & BILLS</option>
+          <option value="YAH - PAYROLL & SALARIES">YAH - PAYROLL & SALARIES</option>
+          <option value="YAH - TAX & GOVERNMENT FILINGS">YAH - TAX & GOVERNMENT FILINGS</option>
+          <option value="YAH - BANK STATEMENTS">YAH - BANK STATEMENTS</option>
         </optgroup>
-        <optgroup label="Legal & HR (Red / Green)">
+        <optgroup label="🔴 Legal & HR (CAB 07 & 08)">
           <option value="YAH - SIGNED AGREEMENTS">YAH - SIGNED AGREEMENTS</option>
           <option value="YAH - ACTIVE COURT CASES">YAH - ACTIVE COURT CASES</option>
+          <option value="YAH - LEGAL NOTICES & DISPUTES">YAH - LEGAL NOTICES & DISPUTES</option>
+          <option value="YAH - CLOSED COURT CASES">YAH - CLOSED COURT CASES</option>
           <option value="YAH - PERSONNEL FILES">YAH - PERSONNEL FILES</option>
-          <option value="YAH - LEAVE & MEDICAL - 2026">YAH - LEAVE & MEDICAL - 2026</option>
+          <option value="YAH - CONTRACTS & APPRAISALS">YAH - CONTRACTS & APPRAISALS</option>
+          <option value="YAH - LEAVE & MEDICAL">YAH - LEAVE & MEDICAL</option>
+          <option value="YAH - WARNING LETTERS & DISCIPLINE">YAH - WARNING LETTERS & DISCIPLINE</option>
         </optgroup>
-        <optgroup label="Mail & Admin (Grey)">
-          <option value="YAH - INCOMING MAIL - 2026">YAH - INCOMING MAIL - 2026</option>
-          <option value="YAH - OUTGOING MAIL - 2026">YAH - OUTGOING MAIL - 2026</option>
-          <option value="YAH - TRADE LICENSES & ISO">YAH - TRADE LICENSES & ISO</option>
+        <optgroup label="⚪ Mail & Admin (CAB 09 & 10)">
+          <option value="YAH - INCOMING MAIL">YAH - INCOMING MAIL</option>
+          <option value="YAH - OUTGOING MAIL">YAH - OUTGOING MAIL</option>
+          <option value="YAH - TRADE LICENSES & TIN">YAH - TRADE LICENSES & TIN</option>
+          <option value="YAH - ISO & COMPLIANCE CERTS">YAH - ISO & COMPLIANCE CERTS</option>
           <option value="YAH - SUPPLIER CATALOGS">YAH - SUPPLIER CATALOGS</option>
+          <option value="YAH - OFFICE LEASES & UTILITIES">YAH - OFFICE LEASES & UTILITIES</option>
         </optgroup>
       {% endif %}
     </select>
