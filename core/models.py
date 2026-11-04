@@ -200,6 +200,8 @@ class Tender(models.Model):
 
     final_docs_uploaded = models.FileField(upload_to='tenders/final_docs/', blank=True, null=True)
     loss_reason = models.TextField(blank=True, help_text='If lost, why did we lose?')
+    ceo_signature = models.TextField(blank=True, null=True)
+    bidm_signature = models.TextField(blank=True, null=True)
     final_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     supplier_name = models.CharField(max_length=200, blank=True)
     submission_status = models.CharField(max_length=50, blank=True)

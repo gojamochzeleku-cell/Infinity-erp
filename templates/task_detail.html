@@ -1,5 +1,87 @@
 {% extends 'base.html' %}
-{% block title %}{{ task.title }}{% endblock %}
+{% block title %}{{ task.title }}
+<script>
+    // Signature Pad Logic
+    const canvas = document.getElementById('sig-canvas');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        // Fix canvas resolution for high-DPI screens
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        canvas.width = canvas.offsetWidth * ratio;
+        canvas.height = canvas.offsetHeight * ratio;
+        ctx.scale(ratio, ratio);
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#111';
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const pos = getPos(e);
+            lastX = pos.x; lastY = pos.y;
+        });
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const pos = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            lastX = pos.x; lastY = pos.y;
+        });
+        canvas.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('mouseout', () => isDrawing = false);
+
+        // Touch events
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isDrawing = true;
+            const pos = getPos(e);
+            lastX = pos.x; lastY = pos.y;
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!isDrawing) return;
+            const pos = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            lastX = pos.x; lastY = pos.y;
+        });
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            isDrawing = false;
+        });
+
+        // Clear button
+        window.clearCanvas = function() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // On form submit, save the canvas data to the hidden input
+        const form = canvas.closest('form');
+        form.addEventListener('submit', function(e) {
+            const dataURL = canvas.toDataURL('image/png');
+            document.getElementById('signature_data').value = dataURL;
+        });
+    }
+</script>
+
+{% endblock %}
 {% block content %}
 <div style="display:flex; justify-content:space-between; align-items:center;">
   <h2>{{ task.title }}</h2>
@@ -131,7 +213,16 @@
       <div class="meta" style="margin-bottom:8px">FINAL PROFIT MARGIN</div>
       <label class="meta">Final Bid Price (ETB)</label>
       <input type="number" step="0.01" name="final_price" required>
-      <button class="btn btn-green" type="submit" name="action" value="FINAL_PRICE_LOCKED">Lock Final Price</button>
+      
+      <div style="margin-top:15px; margin-bottom:15px; background:#0f1115; border:1px solid #333a4d; border-radius:8px; padding:10px;">
+        <label class="meta" style="color:#e8b64c; margin-bottom:5px;">CEO SIGNATURE REQUIRED</label>
+        <p class="meta" style="font-size:11px; margin-bottom:8px;">Sign with your finger inside the box below.</p>
+        <canvas id="sig-canvas" width="300" height="150" style="background:#fff; border-radius:4px; width:100%; touch-action:none;"></canvas>
+        <button type="button" class="btn btn-grey" style="margin-top:5px; padding:4px 8px; font-size:10px;" onclick="clearCanvas()">Clear Signature</button>
+        <input type="hidden" name="signature_data" id="signature_data">
+      </div>
+
+      <button class="btn btn-green wide" type="submit" name="action" value="FINAL_PRICE_LOCKED">Lock Price & Sign</button>
 
 
     {% elif task.code == 'T17' %}
@@ -215,8 +306,17 @@
 
     {% elif task.code == 'T23' %}
       <div class="meta" style="margin-bottom:8px">SIGN AGREEMENT</div>
+      <label class="meta">Upload Scanned Contract</label>
       <input type="file" name="signed_doc" required style="color:#c8cfdd;margin-bottom:10px">
-      <button class="btn btn-green" type="submit" name="action" value="AGREEMENT_SIGNED">Upload Signed & Send to Office</button>
+      
+      <div style="margin-top:15px; margin-bottom:15px; background:#0f1115; border:1px solid #333a4d; border-radius:8px; padding:10px;">
+        <label class="meta" style="color:#e8b64c; margin-bottom:5px;">BID MANAGER SIGNATURE REQUIRED</label>
+        <canvas id="sig-canvas" width="300" height="150" style="background:#fff; border-radius:4px; width:100%; touch-action:none;"></canvas>
+        <button type="button" class="btn btn-grey" style="margin-top:5px; padding:4px 8px; font-size:10px;" onclick="clearCanvas()">Clear Signature</button>
+        <input type="hidden" name="signature_data" id="signature_data">
+      </div>
+
+      <button class="btn btn-green wide" type="submit" name="action" value="AGREEMENT_SIGNED">Upload & Submit Signature</button>
 
     {% elif task.code == 'T24' %}
       <div class="meta" style="margin-bottom:8px">UPLOAD FINAL SIGNED AGREEMENT</div>
@@ -383,4 +483,86 @@
 </form>
 
 <a class="btn btn-grey wide" href="{% url 'dashboard' %}">Back to Action Center</a>
+
+<script>
+    // Signature Pad Logic
+    const canvas = document.getElementById('sig-canvas');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        // Fix canvas resolution for high-DPI screens
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        canvas.width = canvas.offsetWidth * ratio;
+        canvas.height = canvas.offsetHeight * ratio;
+        ctx.scale(ratio, ratio);
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#111';
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const pos = getPos(e);
+            lastX = pos.x; lastY = pos.y;
+        });
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const pos = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            lastX = pos.x; lastY = pos.y;
+        });
+        canvas.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('mouseout', () => isDrawing = false);
+
+        // Touch events
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isDrawing = true;
+            const pos = getPos(e);
+            lastX = pos.x; lastY = pos.y;
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!isDrawing) return;
+            const pos = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            lastX = pos.x; lastY = pos.y;
+        });
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            isDrawing = false;
+        });
+
+        // Clear button
+        window.clearCanvas = function() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // On form submit, save the canvas data to the hidden input
+        const form = canvas.closest('form');
+        form.addEventListener('submit', function(e) {
+            const dataURL = canvas.toDataURL('image/png');
+            document.getElementById('signature_data').value = dataURL;
+        });
+    }
+</script>
+
 {% endblock %}

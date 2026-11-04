@@ -1,51 +1,11 @@
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
 from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
 from django.urls import reverse
+from decimal import Decimal
+from dateutil import parser as date_parser
 from .models import Employee, LeaveRequest, ExpenseRequest, Task, Company, ROLE_CHOICES
 from .chain import create_task, find_role
-from dateutil import parser as date_parser
-from decimal import Decimal
-
-
-@login_required
-def register_employee(request):
-    emp = getattr(request.user, 'employee', None)
-    company = getattr(request, 'company', None)
-    
-    # Only HR, Admin, CEO, GM can register new employees
-    if not emp or not company or emp.role not in ('ADMIN', 'CEO', 'GM', 'HR'):
-        return redirect('dashboard')
-
-    if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
-        first_name = request.POST.get('first_name', '').strip()
-        last_name = request.POST.get('last_name', '').strip()
-        password = request.POST.get('password', '')
-        role = request.POST.get('role', 'STAFF')
-        phone = request.POST.get('phone', '')
-        telegram = request.POST.get('telegram', '')
-        whatsapp = request.POST.get('whatsapp', '')
-
-        if User.objects.filter(username=username).exists():
-            return render(request, 'register_employee.html', {'error': 'Username already exists!', 'roles': ROLE_CHOICES})
-
-        # Create User
-        user = User.objects.create_user(username=username, password=password, first_name=first_name, last_name=last_name)
-        
-        # Create Employee profile
-        Employee.objects.create(
-            user=user, company=company, role=role, phone=phone,
-            telegram_chat_id=telegram, whatsapp_number=whatsapp,
-            is_group_level=True # Since all employees work for both companies
-        )
-        
-        from .services import log_action
-        log_action(emp, 'REGISTER_EMPLOYEE', f'Created user {username} with role {role}', 'Employee', user.id, company)
-        
-        return render(request, 'register_employee.html', {'success': f'Successfully registered {first_name} {last_name} ({username})!', 'roles': ROLE_CHOICES})
-
-    return render(request, 'register_employee.html', {'roles': ROLE_CHOICES})
 
 @login_required
 def request_leave(request):
@@ -65,14 +25,14 @@ def request_leave(request):
         )
         
         # Create Task for HR
-        task = Task.objects.create(
-            code='HR_LEAVE', title=f'Approve Leave: {emp.full_name}',
-            description=f'{ltype} Leave from {start} to {end}. Reason: {reason}',
-            kind='ROUTINE', company=company, assigned_to=find_role(company, 'HR'),
-            payload={'leave_id': leave.id}
-        )
-        from .services import notify
-        notify(task.assigned_to, 'New Leave Request', task.title, task)
+        hr_manager = find_role(company, 'HR')
+        if hr_manager:
+            Task.objects.create(
+                code='HR_LEAVE', title=f'Approve Leave: {emp.full_name}',
+                description=f'{ltype} Leave from {start} to {end}. Reason: {reason}',
+                kind='ROUTINE', company=company, assigned_to=hr_manager,
+                payload={'leave_id': leave.id}
+            )
         return redirect('dashboard')
 
     return render(request, 'request_leave.html')
@@ -91,24 +51,60 @@ def request_expense(request):
             employee=emp, company=company, amount=amount, reason=reason
         )
         
-        # Create Task for Finance
-        task = Task.objects.create(
-            code='FIN_EXPENSE', title=f'Approve Expense: {emp.full_name}',
-            description=f'Amount: {amount} ETB. Reason: {reason}',
-            kind='ROUTINE', company=company, assigned_to=find_role(company, 'FIN'),
-            payload={'expense_id': exp.id}
-        )
-        from .services import notify
-        notify(task.assigned_to, 'New Expense Request', task.title, task)
+        fin_manager = find_role(company, 'FIN')
+        if fin_manager:
+            Task.objects.create(
+                code='FIN_EXPENSE', title=f'Approve Expense: {emp.full_name}',
+                description=f'Amount: {amount} ETB. Reason: {reason}',
+                kind='ROUTINE', company=company, assigned_to=fin_manager,
+                payload={'expense_id': exp.id}
+            )
         return redirect('dashboard')
 
     return render(request, 'request_expense.html')
 
 @login_required
+def register_employee(request):
+    emp = getattr(request.user, 'employee', None)
+    company = getattr(request, 'company', None)
+    
+    if not emp or not company or emp.role not in ('ADMIN', 'CEO', 'GM', 'HR'):
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        from django.contrib.auth.models import User
+        username = request.POST.get('username', '').strip()
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        password = request.POST.get('password', '')
+        role = request.POST.get('role', 'STAFF')
+        phone = request.POST.get('phone', '')
+        telegram = request.POST.get('telegram', '')
+        whatsapp = request.POST.get('whatsapp', '')
+
+        if User.objects.filter(username=username).exists():
+            return render(request, 'register_employee.html', {'error': 'Username already exists!', 'roles': ROLE_CHOICES})
+
+        user = User.objects.create_user(username=username, password=password, first_name=first_name, last_name=last_name)
+        
+        Employee.objects.create(
+            user=user, company=company, role=role, phone=phone,
+            telegram_chat_id=telegram, whatsapp_number=whatsapp,
+            is_group_level=True
+        )
+        
+        from .services import log_action
+        log_action(emp, 'REGISTER_EMPLOYEE', f'Created user {username} with role {role}', 'Employee', user.id, company)
+        
+        return render(request, 'register_employee.html', {'success': f'Successfully registered {first_name} {last_name} ({username})!', 'roles': ROLE_CHOICES})
+
+    return render(request, 'register_employee.html', {'roles': ROLE_CHOICES})
+
+@login_required
 def staff_directory(request):
     company = getattr(request, 'company', None)
     query = request.GET.get('q', '')
-    employees = Employee.objects.all() # All employees work for both companies
+    employees = Employee.objects.all()
     
     if query:
         from django.db.models import Q
@@ -116,16 +112,13 @@ def staff_directory(request):
         
     return render(request, 'staff_directory.html', {'employees': employees, 'query': query})
 
-from django.shortcuts import render, redirect, get_object_or_404
-
 @login_required
 def employee_profile(request, pk):
-    from .models import EmployeeDocument, PerformanceReview
+    from .models import EmployeeDocument, PerformanceReview, Document
     company = getattr(request, 'company', None)
     emp = get_object_or_404(Employee, pk=pk)
     reviewer = getattr(request.user, 'employee', None)
     
-    # Allow HR/Admin/CEO/GM OR the user viewing their own profile
     if not reviewer or (reviewer.role not in ('ADMIN', 'CEO', 'GM', 'HR') and reviewer.pk != emp.pk):
         return redirect('dashboard')
 
@@ -140,7 +133,6 @@ def employee_profile(request, pk):
             title = request.POST.get('title')
             file_obj = request.FILES.get('file')
             if file_obj:
-                from .models import Document
                 reg_doc = Document.objects.create(
                     company=company, title=f"HR: {emp.full_name} - {title}", 
                     file=file_obj, uploaded_by=reviewer, category='HR'
@@ -156,20 +148,6 @@ def employee_profile(request, pk):
         return redirect('employee_profile', pk=emp.pk)
 
     return render(request, 'employee_profile.html', {'target_emp': emp, 'company': company})
-    
-    except Exception as e:
-        # THIS WILL SHOW US THE EXACT ERROR ON SCREEN
-        error_msg = traceback.format_exc()
-        html = f'''
-        <div style="padding:20px; font-family:monospace; background:#111; color:#fff; min-height:100vh;">
-            <h1 style="color:#ff5555;">Django Error Revealed (DEBUG=False Workaround)</h1>
-            <h2 style="color:#ffb86c;">{e}</h2>
-            <pre style="background:#222; padding:15px; border-radius:8px; overflow-x:auto; color:#f8f8f2;">{error_msg}</pre>
-            <br>
-            <a href="/dashboard/" style="color:#4cc7e8; text-decoration:none;">← Go Back to Dashboard</a>
-        </div>
-        '''
-        return HttpResponse(html)
 
 @login_required
 def generate_payroll(request):
@@ -184,14 +162,13 @@ def generate_payroll(request):
         month = request.POST.get('month')
         year = request.POST.get('year')
         
-        # Calculate total
+        from django.db.models import Sum
         total = Employee.objects.filter(is_active=True).aggregate(Sum('base_salary'))['base_salary__sum'] or 0
         
         if total > 0:
             payroll = PayrollRecord.objects.create(
                 company=company, month=month, year=year, total_amount=total
             )
-            # Create task for Finance
             create_task(company, 'FIN_PAYROLL', 'FIN', 
                         f'Execute Payroll: {month} {year}', 
                         f'Total Payroll Amount: {total} ETB. Please process salaries.', 
