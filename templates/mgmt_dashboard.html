@@ -1,5 +1,95 @@
 {% extends 'base.html' %}
-{% block title %}Management Dashboard{% endblock %}
+{% block title %}Management Dashboard
+<!-- Load Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="card" style="background:#151922; margin-top:20px;">
+  <div class="meta" style="margin-bottom:15px; color:#e8b64c;">📊 FINANCIAL FLOW (LAST 6 MONTHS)</div>
+  <canvas id="cashFlowChart" height="200"></canvas>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
+  <div class="card" style="background:#151922;">
+    <div class="meta" style="margin-bottom:15px; color:#4cc7e8; text-align:center;">TENDER PERFORMANCE</div>
+    <canvas id="tenderChart" height="200"></canvas>
+  </div>
+  <div class="card" style="background:#151922;">
+    <div class="meta" style="margin-bottom:15px; color:#e2504a; text-align:center;">EXPENSE BREAKDOWN</div>
+    <canvas id="expenseChart" height="200"></canvas>
+  </div>
+</div>
+
+<script>
+    // 1. Cash Flow Chart (Bar)
+    const ctxFlow = document.getElementById('cashFlowChart').getContext('2d');
+    new Chart(ctxFlow, {
+        type: 'bar',
+        data: {
+            labels: {{ flow_labels|safe }},
+            datasets: [
+                {
+                    label: 'Inflows (ETB)',
+                    data: {{ flow_in|safe }},
+                    backgroundColor: '#5fd68a',
+                    borderRadius: 4
+                },
+                {
+                    label: 'Outflows (ETB)',
+                    data: {{ flow_out|safe }},
+                    backgroundColor: '#e2504a',
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { labels: { color: '#e6e8ee' } } },
+            scales: {
+                x: { ticks: { color: '#8f99b0' }, grid: { color: '#232838' } },
+                y: { ticks: { color: '#8f99b0' }, grid: { color: '#232838' } }
+            }
+        }
+    });
+
+    // 2. Tender Status Chart (Doughnut)
+    const ctxTender = document.getElementById('tenderChart').getContext('2d');
+    new Chart(ctxTender, {
+        type: 'doughnut',
+        data: {
+            labels: ['Won', 'Lost', 'Active'],
+            datasets: [{
+                data: {{ tender_data|safe }},
+                backgroundColor: ['#5fd68a', '#e2504a', '#4cc7e8'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom', labels: { color: '#e6e8ee' } } },
+            cutout: '70%'
+        }
+    });
+
+    // 3. Expense Breakdown Chart (Pie)
+    const ctxExpense = document.getElementById('expenseChart').getContext('2d');
+    new Chart(ctxExpense, {
+        type: 'pie',
+        data: {
+            labels: {{ expense_labels|safe }},
+            datasets: [{
+                data: {{ expense_values|safe }},
+                backgroundColor: ['#e8b64c', '#4cc7e8', '#b366ff', '#ff9b96', '#5fd68a'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom', labels: { color: '#e6e8ee', font: {size: 10} } } }
+        }
+    });
+</script>
+
+{% endblock %}
 {% block content %}
 <div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="color:#e8b64c;">Management Overview</h2>
   <div>
@@ -77,4 +167,94 @@
 </div>
 
 <a class="btn btn-grey wide" href="{% url 'dashboard' %}">Back to My Action Center</a>
+
+<!-- Load Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="card" style="background:#151922; margin-top:20px;">
+  <div class="meta" style="margin-bottom:15px; color:#e8b64c;">📊 FINANCIAL FLOW (LAST 6 MONTHS)</div>
+  <canvas id="cashFlowChart" height="200"></canvas>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
+  <div class="card" style="background:#151922;">
+    <div class="meta" style="margin-bottom:15px; color:#4cc7e8; text-align:center;">TENDER PERFORMANCE</div>
+    <canvas id="tenderChart" height="200"></canvas>
+  </div>
+  <div class="card" style="background:#151922;">
+    <div class="meta" style="margin-bottom:15px; color:#e2504a; text-align:center;">EXPENSE BREAKDOWN</div>
+    <canvas id="expenseChart" height="200"></canvas>
+  </div>
+</div>
+
+<script>
+    // 1. Cash Flow Chart (Bar)
+    const ctxFlow = document.getElementById('cashFlowChart').getContext('2d');
+    new Chart(ctxFlow, {
+        type: 'bar',
+        data: {
+            labels: {{ flow_labels|safe }},
+            datasets: [
+                {
+                    label: 'Inflows (ETB)',
+                    data: {{ flow_in|safe }},
+                    backgroundColor: '#5fd68a',
+                    borderRadius: 4
+                },
+                {
+                    label: 'Outflows (ETB)',
+                    data: {{ flow_out|safe }},
+                    backgroundColor: '#e2504a',
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { labels: { color: '#e6e8ee' } } },
+            scales: {
+                x: { ticks: { color: '#8f99b0' }, grid: { color: '#232838' } },
+                y: { ticks: { color: '#8f99b0' }, grid: { color: '#232838' } }
+            }
+        }
+    });
+
+    // 2. Tender Status Chart (Doughnut)
+    const ctxTender = document.getElementById('tenderChart').getContext('2d');
+    new Chart(ctxTender, {
+        type: 'doughnut',
+        data: {
+            labels: ['Won', 'Lost', 'Active'],
+            datasets: [{
+                data: {{ tender_data|safe }},
+                backgroundColor: ['#5fd68a', '#e2504a', '#4cc7e8'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom', labels: { color: '#e6e8ee' } } },
+            cutout: '70%'
+        }
+    });
+
+    // 3. Expense Breakdown Chart (Pie)
+    const ctxExpense = document.getElementById('expenseChart').getContext('2d');
+    new Chart(ctxExpense, {
+        type: 'pie',
+        data: {
+            labels: {{ expense_labels|safe }},
+            datasets: [{
+                data: {{ expense_values|safe }},
+                backgroundColor: ['#e8b64c', '#4cc7e8', '#b366ff', '#ff9b96', '#5fd68a'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom', labels: { color: '#e6e8ee', font: {size: 10} } } }
+        }
+    });
+</script>
+
 {% endblock %}
