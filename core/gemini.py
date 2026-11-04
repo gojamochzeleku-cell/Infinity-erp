@@ -99,3 +99,44 @@ def extract_tender_from_pdf(pdf_path):
 def analyze_bid_document(pdf_path):
     # This is for T09A
     return _send_to_gemini(pdf_path, ANALYSIS_PROMPT)
+
+
+# --- INFINITY BRAIN (AI DATA ANALYST) ---
+def ask_infinity_brain(question, context_data):
+    key = _api_key()
+    if not key:
+        return "GEMINI_API_KEY is missing. Please contact IT."
+
+    prompt = f"""You are the 'Infinity Brain', an elite AI data analyst for the CEO of Infinity Investment Institute.
+Use ONLY the provided company data to answer the CEO's question. 
+If the answer is not in the data, say "I do not have that information in the current database context."
+Keep your answer concise, professional, and direct. Format numbers with commas.
+
+--- COMPANY DATA ---
+{context_data}
+--------------------
+
+CEO's Question: {question}
+Answer:"""
+
+    body = {
+        'contents': [{'parts': [{'text': prompt}]}],
+        'generationConfig': {'temperature': 0.2, 'maxOutputTokens': 500}
+    }
+
+    session = requests.Session()
+    headers = {'User-Agent': 'Mozilla/5.0 (Linux; Android 10)'}
+
+    for model in MODELS_TO_TRY:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        try:
+            r = session.post(url, params={'key': key}, json=body, headers=headers, timeout=60)
+            if r.status_code == 200:
+                return r.json()['candidates'][0]['content']['parts'][0]['text']
+            elif r.status_code in (404, 429, 503):
+                continue
+            else:
+                return f"AI Error: {r.status_code}"
+        except Exception as e:
+            continue
+    return "The AI is currently experiencing high demand. Please try again in a minute."

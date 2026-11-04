@@ -93,3 +93,73 @@ def management_dashboard(request):
         'expense_values': expense_values,
     }
     return render(request, 'mgmt_dashboard.html', context)
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+from .gemini import ask_infinity_brain
+
+@csrf_exempt
+@login_required
+def ai_assistant_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+        
+    company = getattr(request, 'company', None)
+    if not company:
+        return JsonResponse({'error': 'No company selected'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        question = data.get('question', '').strip()
+        if not question:
+            return JsonResponse({'error': 'Empty question'}, status=400)
+
+        # 1. Gather Context Data
+        from .models import Tender, CashFlowEntry, Task, Shipment
+        from django.db.models import Sum
+        from datetime import date
+
+        # Financials
+        inflows = CashFlowEntry.objects.filter(company=company, flow_type='IN').aggregate(Sum('amount'))['amount__sum'] or 0
+        outflows = CashFlowEntry.objects.filter(company=company, flow_type='OUT').aggregate(Sum('amount'))['amount__sum'] or 0
+        balance = inflows - outflows
+
+        # Tenders
+        active_tenders = Tender.objects.filter(company=company).exclude(status__in=['WON', 'LOST', 'COMPLETED', 'DRAFT'])
+        active_tender_list = [f"- {t.serial_number}: {t.bid_title} (Status: {t.get_status_display()})" for t in active_tenders[:10]]
+        won_tenders = Tender.objects.filter(company=company, status='WON').count()
+        lost_tenders = Tender.objects.filter(company=company, status='LOST').count()
+
+        # Tasks
+        pending_tasks = Task.objects.filter(company=company, status='PENDING').count()
+        
+        # Logistics
+        active_shipments = Shipment.objects.filter(company=company).exclude(current_status='WAREHOUSE').count()
+
+        context_str = f"""
+Company: {company.name}
+Total Inflows: {inflows} ETB
+Total Outflows: {outflows} ETB
+Current Cash Balance: {balance} ETB
+
+Tender Summary:
+- Total Won Tenders: {won_tenders}
+- Total Lost Tenders: {lost_tenders}
+- Currently Active Tenders: {active_tenders.count()}
+
+Active Tender Details (Max 10):
+{chr(10).join(active_tender_list) if active_tender_list else "None"}
+
+Operations:
+- Pending Tasks: {pending_tasks}
+- Active Shipments in Transit: {active_shipments}
+"""
+
+        # 2. Ask the AI
+        answer = ask_infinity_brain(question, context_str)
+        return JsonResponse({'answer': answer})
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

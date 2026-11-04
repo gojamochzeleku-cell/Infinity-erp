@@ -4,6 +4,7 @@ from django.urls import path
 from . import views, tender_views, supplier_views, filing_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
 
 urlpatterns = [
+    path('api/ask-ai/', mgmt_views.ai_assistant_api, name='ai_assistant_api'),
     path('tenders/<int:pk>/supplier-link/', supplier_views.generate_supplier_link, name='generate_supplier_link'),
     path('supplier/upload/<str:token>/', supplier_views.supplier_upload, name='supplier_upload'),
     path('filing-portal/', filing_views.filing_portal, name='filing_portal'),

@@ -89,6 +89,105 @@
     });
 </script>
 
+
+<!-- INFINITY BRAIN AI CHAT -->
+<div class="card" style="background:#0f1115; border:1px solid #4cc7e8; margin-top:20px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <div class="meta" style="color:#4cc7e8; font-weight:bold;">🧠 INFINITY BRAIN (AI ANALYST)</div>
+  </div>
+  
+  <div id="chat-window" style="height:250px; overflow-y:auto; background:#151922; border-radius:8px; padding:10px; margin-bottom:10px; font-size:13px;">
+    <div style="color:#8f99b0; text-align:center; margin-top:100px;" id="chat-placeholder">Ask me anything about the company's data...</div>
+  </div>
+
+  <div style="display:flex; gap:8px;">
+    <input type="text" id="ai-input" placeholder="e.g., How much cash do we have?" style="flex:1; margin:0; border-radius:20px;" onkeypress="handleEnter(event)">
+    <button onclick="askAI()" id="ai-btn" class="btn btn-blue" style="margin:0; border-radius:50%; width:45px; height:45px; padding:0; display:flex; align-items:center; justify-content:center;">➤</button>
+  </div>
+</div>
+
+<script>
+    function handleEnter(e) {
+        if (e.key === 'Enter') askAI();
+    }
+
+    function appendMessage(sender, text) {
+        const chat = document.getElementById('chat-window');
+        const ph = document.getElementById('chat-placeholder');
+        if (ph) ph.style.display = 'none';
+
+        const msgDiv = document.createElement('div');
+        msgDiv.style.marginBottom = '10px';
+        msgDiv.style.display = 'flex';
+        msgDiv.style.flexDirection = 'column';
+        msgDiv.style.alignItems = sender === 'user' ? 'flex-end' : 'flex-start';
+
+        const bubble = document.createElement('div');
+        bubble.style.padding = '8px 12px';
+        bubble.style.borderRadius = '12px';
+        bubble.style.maxWidth = '85%';
+        bubble.style.lineHeight = '1.4';
+        
+        if (sender === 'user') {
+            bubble.style.background = '#1f6f8a';
+            bubble.style.color = '#fff';
+        } else {
+            bubble.style.background = '#232838';
+            bubble.style.color = '#e6e8ee';
+            bubble.style.border = '1px solid #333a4d';
+        }
+        
+        bubble.innerHTML = text.replace(/\n/g, '<br>');
+        msgDiv.appendChild(bubble);
+        chat.appendChild(msgDiv);
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    function askAI() {
+        const input = document.getElementById('ai-input');
+        const btn = document.getElementById('ai-btn');
+        const question = input.value.trim();
+        if (!question) return;
+
+        appendMessage('user', question);
+        input.value = '';
+        input.disabled = true;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;"></span>';
+        
+        appendMessage('ai', '<em>Analyzing database...</em>');
+
+        fetch('/api/ask-ai/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question: question })
+        })
+        .then(res => res.json())
+        .then(data => {
+            // Remove the "Analyzing..." message
+            const chat = document.getElementById('chat-window');
+            chat.removeChild(chat.lastChild);
+
+            if (data.answer) {
+                appendMessage('ai', data.answer);
+            } else {
+                appendMessage('ai', 'Error: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            const chat = document.getElementById('chat-window');
+            chat.removeChild(chat.lastChild);
+            appendMessage('ai', 'Network Error. Could not reach server.');
+        })
+        .finally(() => {
+            input.disabled = false;
+            btn.disabled = false;
+            btn.innerHTML = '➤';
+            input.focus();
+        });
+    }
+</script>
+
 {% endblock %}
 {% block content %}
 <div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="color:#e8b64c;">Management Overview</h2>
@@ -255,6 +354,105 @@
             plugins: { legend: { position: 'bottom', labels: { color: '#e6e8ee', font: {size: 10} } } }
         }
     });
+</script>
+
+
+<!-- INFINITY BRAIN AI CHAT -->
+<div class="card" style="background:#0f1115; border:1px solid #4cc7e8; margin-top:20px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <div class="meta" style="color:#4cc7e8; font-weight:bold;">🧠 INFINITY BRAIN (AI ANALYST)</div>
+  </div>
+  
+  <div id="chat-window" style="height:250px; overflow-y:auto; background:#151922; border-radius:8px; padding:10px; margin-bottom:10px; font-size:13px;">
+    <div style="color:#8f99b0; text-align:center; margin-top:100px;" id="chat-placeholder">Ask me anything about the company's data...</div>
+  </div>
+
+  <div style="display:flex; gap:8px;">
+    <input type="text" id="ai-input" placeholder="e.g., How much cash do we have?" style="flex:1; margin:0; border-radius:20px;" onkeypress="handleEnter(event)">
+    <button onclick="askAI()" id="ai-btn" class="btn btn-blue" style="margin:0; border-radius:50%; width:45px; height:45px; padding:0; display:flex; align-items:center; justify-content:center;">➤</button>
+  </div>
+</div>
+
+<script>
+    function handleEnter(e) {
+        if (e.key === 'Enter') askAI();
+    }
+
+    function appendMessage(sender, text) {
+        const chat = document.getElementById('chat-window');
+        const ph = document.getElementById('chat-placeholder');
+        if (ph) ph.style.display = 'none';
+
+        const msgDiv = document.createElement('div');
+        msgDiv.style.marginBottom = '10px';
+        msgDiv.style.display = 'flex';
+        msgDiv.style.flexDirection = 'column';
+        msgDiv.style.alignItems = sender === 'user' ? 'flex-end' : 'flex-start';
+
+        const bubble = document.createElement('div');
+        bubble.style.padding = '8px 12px';
+        bubble.style.borderRadius = '12px';
+        bubble.style.maxWidth = '85%';
+        bubble.style.lineHeight = '1.4';
+        
+        if (sender === 'user') {
+            bubble.style.background = '#1f6f8a';
+            bubble.style.color = '#fff';
+        } else {
+            bubble.style.background = '#232838';
+            bubble.style.color = '#e6e8ee';
+            bubble.style.border = '1px solid #333a4d';
+        }
+        
+        bubble.innerHTML = text.replace(/\n/g, '<br>');
+        msgDiv.appendChild(bubble);
+        chat.appendChild(msgDiv);
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    function askAI() {
+        const input = document.getElementById('ai-input');
+        const btn = document.getElementById('ai-btn');
+        const question = input.value.trim();
+        if (!question) return;
+
+        appendMessage('user', question);
+        input.value = '';
+        input.disabled = true;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;"></span>';
+        
+        appendMessage('ai', '<em>Analyzing database...</em>');
+
+        fetch('/api/ask-ai/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question: question })
+        })
+        .then(res => res.json())
+        .then(data => {
+            // Remove the "Analyzing..." message
+            const chat = document.getElementById('chat-window');
+            chat.removeChild(chat.lastChild);
+
+            if (data.answer) {
+                appendMessage('ai', data.answer);
+            } else {
+                appendMessage('ai', 'Error: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            const chat = document.getElementById('chat-window');
+            chat.removeChild(chat.lastChild);
+            appendMessage('ai', 'Network Error. Could not reach server.');
+        })
+        .finally(() => {
+            input.disabled = false;
+            btn.disabled = false;
+            btn.innerHTML = '➤';
+            input.focus();
+        });
+    }
 </script>
 
 {% endblock %}
