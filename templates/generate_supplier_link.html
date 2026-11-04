@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Supplier Link{% endblock %}
+{% block content %}
+<h2>Supplier Upload Link</h2>
+<div class="card">
+  <p class="meta" style="margin-bottom:15px;">Send this secure link to the supplier via WhatsApp or Email. They do not need a password to upload their Proforma Invoice.</p>
+  
+  <label class="meta">Secure Portal URL</label>
+  <input type="text" value="{{ portal_url }}" readonly style="font-size:12px; text-align:center; color:#4cc7e8; font-weight:bold;" onclick="this.select(); document.execCommand('copy'); alert('Link Copied!');">
+  
+  <div style="display:flex; gap:10px; margin-top:15px;">
+    <a href="https://wa.me/?text=Please%20upload%20your%20Proforma%20Invoice%20and%20documents%20using%20this%20secure%20link:%20{{ portal_url|urlencode }}" target="_blank" class="btn btn-green wide" style="margin:0; background:#25D366;">Send via WhatsApp</a>
+  </div>
+  <a class="btn btn-grey wide" href="{% url 'tender_detail' tender.id %}" style="margin-top:10px;">Back to Tender</a>
+</div>
+{% endblock %}

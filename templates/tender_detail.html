@@ -27,6 +27,12 @@
   <div class="kv"><span class="k">Info Sheet</span><span class="v"><a href="{{ tender.bid_information_sheet.url }}" target="_blank" style="color:#e8b64c">download PDF</a></span></div>
   {% endif %}
 </div>
+<div class="card" style="border-color:#4cc7e8;">
+  <div class="meta" style="margin-bottom:8px; color:#4cc7e8;">SUPPLIER COLLABORATION</div>
+  <p class="meta" style="font-size:12px; margin-bottom:10px;">Generate a secure link to send to your supplier via WhatsApp so they can upload their Proforma Invoice directly.</p>
+  <a href="{% url 'generate_supplier_link' tender.id %}" class="btn btn-blue wide" style="margin:0;">🔗 Get Supplier Upload Link</a>
+</div>
+
 {% if tender.status == 'DRAFT' %}
 <div class="card">
   <div class="meta" style="margin-bottom:8px">Ready to send?</div>
