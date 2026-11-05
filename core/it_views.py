@@ -31,11 +31,53 @@ def it_dashboard(request):
 @login_required
 def it_user_management(request):
     emp = getattr(request.user, 'employee', None)
+    company = getattr(request, 'company', None)
     if not emp or emp.role not in ('IT', 'ADMIN'):
         return redirect('dashboard')
         
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        password = request.POST.get('password', '')
+        role = request.POST.get('role', 'STAFF')
+        phone = request.POST.get('phone', '')
+        telegram_id = request.POST.get('telegram_id', '')
+        
+        if User.objects.filter(username=username).exists():
+            messages.error(request, f'Username {username} already exists!')
+        else:
+            user = User.objects.create_user(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
+            Employee.objects.create(
+                user=user, company=company, role=role, phone=phone,
+                telegram_id=telegram_id, is_group_level=True, is_active=True
+            )
+            messages.success(request, f'User {username} created successfully!')
+            return redirect('it_user_management')
+
     users = Employee.objects.all().order_by('user__username')
-    return render(request, 'it_users.html', {'users': users})
+    from core.models import ROLE_CHOICES
+    return render(request, 'it_users.html', {'users': users, 'roles': ROLE_CHOICES})
+
+@login_required
+def it_delete_user(request, pk):
+    emp = getattr(request.user, 'employee', None)
+    if not emp or emp.role not in ('IT', 'ADMIN'):
+        return redirect('dashboard')
+        
+    target_emp = get_object_or_404(Employee, pk=pk)
+    username = target_emp.user.username
+    
+    # Prevent deleting yourself
+    if target_emp.user == request.user:
+        messages.error(request, "You cannot delete your own account!")
+        return redirect('it_user_management')
+        
+    # Delete the User (cascades to Employee)
+    target_emp.user.delete()
+    messages.success(request, f'User {username} has been permanently deleted.')
+    return redirect('it_user_management')
 
 @login_required
 def it_reset_password(request, pk):

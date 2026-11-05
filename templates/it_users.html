@@ -1,31 +1,87 @@
 {% extends 'base.html' %}
 {% block title %}Manage Users{% endblock %}
 {% block content %}
+
+<style>
+  .admin-card { background: #151922; border: 1px solid #232838; border-radius: 12px; padding: 15px; margin-bottom: 10px; }
+  .btn-danger { background: #e2504a; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; }
+  .btn-danger:hover { background: #c0392b; }
+</style>
+
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
   <h2>Manage Users</h2>
   <a href="{% url 'it_dashboard' %}" class="btn btn-grey" style="padding:6px 12px; font-size:12px;">Back to IT</a>
 </div>
 
+<!-- Create User Form -->
+<details style="margin-bottom: 20px;">
+  <summary style="background:#1a1f2b; padding:15px; border-radius:12px; font-weight:bold; cursor:pointer; border:1px solid #4cc7e8; list-style:none; display:flex; justify-content:space-between; align-items:center; color:#4cc7e8;">
+    <span>+ Create New User</span>
+    <span>▼</span>
+  </summary>
+  <div class="card" style="border-top-left-radius:0; border-top-right-radius:0; margin-top:-5px; border-color:#4cc7e8;">
+    <form method="post">
+      {% csrf_token %}
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+        <input type="text" name="first_name" placeholder="First Name" required style="margin:0;">
+        <input type="text" name="last_name" placeholder="Last Name" required style="margin:0;">
+      </div>
+      <input type="text" name="username" placeholder="Username (for login)" required>
+      <input type="password" name="password" placeholder="Temporary Password" required>
+      <input type="email" name="email" placeholder="Email Address" style="margin-bottom:10px;">
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+        <input type="text" name="phone" placeholder="Phone Number" style="margin:0;">
+        <input type="text" name="telegram_id" placeholder="Telegram ID" style="margin:0;">
+      </div>
+
+      <label class="meta">Role / Position</label>
+      <select name="role" required style="margin-bottom:15px;">
+        {% for code, name in roles %}
+          <option value="{{ code }}">{{ name }}</option>
+        {% endfor %}
+      </select>
+
+      <button class="btn btn-green wide" type="submit">Create User Account</button>
+    </form>
+  </div>
+</details>
+
+<h3 style="font-size:14px; color:#8f99b0; margin-bottom:10px;">All Users ({{ users.count }})</h3>
+
 {% for e in users %}
-  <div class="card" style="padding:15px; margin-bottom:10px; {% if not e.is_active %}opacity:0.5;{% endif %}">
-    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+  <div class="admin-card" {% if not e.is_active %}style="opacity:0.5;"{% endif %}>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
       <div>
-        <div style="font-size:15px; font-weight:bold;">{{ e.full_name }}</div>
-        <div class="meta" style="font-size:11px;">@{{ e.user.username }} | {{ e.get_role_display }}</div>
+        <div style="font-size:16px; font-weight:bold; color:#fff;">{{ e.full_name }}</div>
+        <div class="meta" style="font-size:12px;">@{{ e.user.username }} &middot; {{ e.get_role_display }}</div>
+        <div class="meta" style="font-size:11px; margin-top:4px;">
+          📧 {{ e.user.email|default:"No email" }}<br>
+          📱 {{ e.phone|default:"No phone" }} &middot; ✈️ {{ e.telegram_id|default:"No Telegram" }}
+        </div>
       </div>
       <div>
-        <span class="pill {% if e.is_active %}completed{% else %}rejected{% endif %}">
-          {% if e.is_active %}Active{% else %}Disabled{% endif %}
-        </span>
+        {% if e.is_active %}
+          <span class="pill completed">Active</span>
+        {% else %}
+          <span class="pill rejected">Disabled</span>
+        {% endif %}
       </div>
     </div>
-    <div style="margin-top:10px; display:flex; gap:10px;">
-      <a href="{% url 'it_reset_password' e.id %}" class="btn btn-blue" style="padding:6px 12px; font-size:11px;">Reset Password</a>
+    
+    <div style="display:flex; gap:8px; border-top:1px solid #232838; padding-top:10px;">
+      <a href="{% url 'it_reset_password' e.id %}" class="btn btn-blue" style="margin:0; padding:6px 12px; font-size:11px;">Reset Password</a>
+      
       <form method="post" action="{% url 'it_toggle_user' e.id %}" style="margin:0;">
         {% csrf_token %}
-        <button class="btn {% if e.is_active %}btn-red{% else %}btn-green{% endif %}" type="submit" style="padding:6px 12px; font-size:11px;">
+        <button class="btn {% if e.is_active %}btn-grey{% else %}btn-green{% endif %}" type="submit" style="margin:0; padding:6px 12px; font-size:11px;">
           {% if e.is_active %}Deactivate{% else %}Activate{% endif %}
         </button>
+      </form>
+
+      <form method="post" action="{% url 'it_delete_user' e.id %}" style="margin:0; margin-left:auto;" onsubmit="return confirm('WARNING: Are you sure you want to PERMANENTLY delete {{ e.full_name }}? All their task assignments will be lost.');">
+        {% csrf_token %}
+        <button class="btn-danger" type="submit">🗑️ Delete</button>
       </form>
     </div>
   </div>
