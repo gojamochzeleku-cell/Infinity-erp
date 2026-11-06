@@ -4,6 +4,7 @@ from django.urls import path
 from . import views, tender_views, cover_sheet_views, pwa_views, supplier_views, filing_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
 
 urlpatterns = [
+    path('it/users/<int:pk>/edit/', it_views.it_edit_user, name='it_edit_user'),
     path('it/users/<int:pk>/delete/', it_views.it_delete_user, name='it_delete_user'),
     path('tenders/<int:pk>/cover-sheet/', cover_sheet_views.generate_cover_sheet, name='generate_cover_sheet'),
     path('manifest.json', pwa_views.manifest_view, name='manifest'),

@@ -70,6 +70,7 @@
     </div>
     
     <div style="display:flex; gap:8px; border-top:1px solid #232838; padding-top:10px;">
+      <a href="{% url 'it_edit_user' e.id %}" class="btn btn-gold" style="margin:0; padding:6px 12px; font-size:11px; background:#e8b64c; color:#000; font-weight:bold;">✏️ Edit Profile</a>
       <a href="{% url 'it_reset_password' e.id %}" class="btn btn-blue" style="margin:0; padding:6px 12px; font-size:11px;">Reset Password</a>
       
       <form method="post" action="{% url 'it_toggle_user' e.id %}" style="margin:0;">

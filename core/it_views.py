@@ -142,3 +142,35 @@ def it_resolve_ticket(request, pk):
     ticket.status = 'RESOLVED'
     ticket.save()
     return redirect('it_dashboard')
+
+
+@login_required
+def it_edit_user(request, pk):
+    emp = getattr(request.user, 'employee', None)
+    if not emp or emp.role not in ('IT', 'ADMIN'):
+        return redirect('dashboard')
+        
+    target_emp = get_object_or_404(Employee, pk=pk)
+    
+    if request.method == 'POST':
+        # Update User model fields
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip()
+        
+        target_emp.user.first_name = first_name
+        target_emp.user.last_name = last_name
+        target_emp.user.email = email
+        target_emp.user.save()
+        
+        # Update Employee model fields
+        target_emp.role = request.POST.get('role', 'STAFF')
+        target_emp.phone = request.POST.get('phone', '')
+        target_emp.telegram_id = request.POST.get('telegram_id', '')
+        target_emp.save()
+        
+        messages.success(request, f'User {target_emp.user.username} updated successfully!')
+        return redirect('it_user_management')
+
+    from core.models import ROLE_CHOICES
+    return render(request, 'it_edit_user.html', {'target_emp': target_emp, 'roles': ROLE_CHOICES})
