@@ -1,458 +1,186 @@
 {% extends 'base.html' %}
-{% block title %}Management Dashboard
-<!-- Load Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<div class="card" style="background:#151922; margin-top:20px;">
-  <div class="meta" style="margin-bottom:15px; color:#e8b64c;">📊 FINANCIAL FLOW (LAST 6 MONTHS)</div>
-  <canvas id="cashFlowChart" height="200"></canvas>
-</div>
-
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
-  <div class="card" style="background:#151922;">
-    <div class="meta" style="margin-bottom:15px; color:#4cc7e8; text-align:center;">TENDER PERFORMANCE</div>
-    <canvas id="tenderChart" height="200"></canvas>
-  </div>
-  <div class="card" style="background:#151922;">
-    <div class="meta" style="margin-bottom:15px; color:#e2504a; text-align:center;">EXPENSE BREAKDOWN</div>
-    <canvas id="expenseChart" height="200"></canvas>
-  </div>
-</div>
-
-<script>
-    // 1. Cash Flow Chart (Bar)
-    const ctxFlow = document.getElementById('cashFlowChart').getContext('2d');
-    new Chart(ctxFlow, {
-        type: 'bar',
-        data: {
-            labels: {{ flow_labels|safe }},
-            datasets: [
-                {
-                    label: 'Inflows (ETB)',
-                    data: {{ flow_in|safe }},
-                    backgroundColor: '#5fd68a',
-                    borderRadius: 4
-                },
-                {
-                    label: 'Outflows (ETB)',
-                    data: {{ flow_out|safe }},
-                    backgroundColor: '#e2504a',
-                    borderRadius: 4
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { labels: { color: '#e6e8ee' } } },
-            scales: {
-                x: { ticks: { color: '#8f99b0' }, grid: { color: '#232838' } },
-                y: { ticks: { color: '#8f99b0' }, grid: { color: '#232838' } }
-            }
-        }
-    });
-
-    // 2. Tender Status Chart (Doughnut)
-    const ctxTender = document.getElementById('tenderChart').getContext('2d');
-    new Chart(ctxTender, {
-        type: 'doughnut',
-        data: {
-            labels: ['Won', 'Lost', 'Active'],
-            datasets: [{
-                data: {{ tender_data|safe }},
-                backgroundColor: ['#5fd68a', '#e2504a', '#4cc7e8'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { position: 'bottom', labels: { color: '#e6e8ee' } } },
-            cutout: '70%'
-        }
-    });
-
-    // 3. Expense Breakdown Chart (Pie)
-    const ctxExpense = document.getElementById('expenseChart').getContext('2d');
-    new Chart(ctxExpense, {
-        type: 'pie',
-        data: {
-            labels: {{ expense_labels|safe }},
-            datasets: [{
-                data: {{ expense_values|safe }},
-                backgroundColor: ['#e8b64c', '#4cc7e8', '#b366ff', '#ff9b96', '#5fd68a'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { position: 'bottom', labels: { color: '#e6e8ee', font: {size: 10} } } }
-        }
-    });
-</script>
-
-
-<!-- INFINITY BRAIN AI CHAT -->
-<div class="card" style="background:#0f1115; border:1px solid #4cc7e8; margin-top:20px;">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-    <div class="meta" style="color:#4cc7e8; font-weight:bold;">🧠 INFINITY BRAIN (AI ANALYST)</div>
-  </div>
-  
-  <div id="chat-window" style="height:250px; overflow-y:auto; background:#151922; border-radius:8px; padding:10px; margin-bottom:10px; font-size:13px;">
-    <div style="color:#8f99b0; text-align:center; margin-top:100px;" id="chat-placeholder">Ask me anything about the company's data...</div>
-  </div>
-
-  <div style="display:flex; gap:8px;">
-    <input type="text" id="ai-input" placeholder="e.g., How much cash do we have?" style="flex:1; margin:0; border-radius:20px;" onkeypress="handleEnter(event)">
-    <button onclick="askAI()" id="ai-btn" class="btn btn-blue" style="margin:0; border-radius:50%; width:45px; height:45px; padding:0; display:flex; align-items:center; justify-content:center;">➤</button>
-  </div>
-</div>
-
-<script>
-    function handleEnter(e) {
-        if (e.key === 'Enter') askAI();
-    }
-
-    function appendMessage(sender, text) {
-        const chat = document.getElementById('chat-window');
-        const ph = document.getElementById('chat-placeholder');
-        if (ph) ph.style.display = 'none';
-
-        const msgDiv = document.createElement('div');
-        msgDiv.style.marginBottom = '10px';
-        msgDiv.style.display = 'flex';
-        msgDiv.style.flexDirection = 'column';
-        msgDiv.style.alignItems = sender === 'user' ? 'flex-end' : 'flex-start';
-
-        const bubble = document.createElement('div');
-        bubble.style.padding = '8px 12px';
-        bubble.style.borderRadius = '12px';
-        bubble.style.maxWidth = '85%';
-        bubble.style.lineHeight = '1.4';
-        
-        if (sender === 'user') {
-            bubble.style.background = '#1f6f8a';
-            bubble.style.color = '#fff';
-        } else {
-            bubble.style.background = '#232838';
-            bubble.style.color = '#e6e8ee';
-            bubble.style.border = '1px solid #333a4d';
-        }
-        
-        bubble.innerHTML = text.replace(/\n/g, '<br>');
-        msgDiv.appendChild(bubble);
-        chat.appendChild(msgDiv);
-        chat.scrollTop = chat.scrollHeight;
-    }
-
-    function askAI() {
-        const input = document.getElementById('ai-input');
-        const btn = document.getElementById('ai-btn');
-        const question = input.value.trim();
-        if (!question) return;
-
-        appendMessage('user', question);
-        input.value = '';
-        input.disabled = true;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;"></span>';
-        
-        appendMessage('ai', '<em>Analyzing database...</em>');
-
-        fetch('/api/ask-ai/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question: question })
-        })
-        .then(res => res.json())
-        .then(data => {
-            // Remove the "Analyzing..." message
-            const chat = document.getElementById('chat-window');
-            chat.removeChild(chat.lastChild);
-
-            if (data.answer) {
-                appendMessage('ai', data.answer);
-            } else {
-                appendMessage('ai', 'Error: ' + (data.error || 'Unknown error'));
-            }
-        })
-        .catch(err => {
-            const chat = document.getElementById('chat-window');
-            chat.removeChild(chat.lastChild);
-            appendMessage('ai', 'Network Error. Could not reach server.');
-        })
-        .finally(() => {
-            input.disabled = false;
-            btn.disabled = false;
-            btn.innerHTML = '➤';
-            input.focus();
-        });
-    }
-</script>
-
-{% endblock %}
+{% block title %}Executive Overview{% endblock %}
 {% block content %}
-<div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="color:#e8b64c;">Management Overview</h2>
-  <div>
-    <a href="{% url 'reports_center' %}" class="btn btn-blue" style="padding:6px 12px; font-size:12px; margin:0; margin-right:5px;">📊 Reports</a><a href="{% url 'audit_trail' %}" class="btn btn-grey" style="padding:6px 12px; font-size:12px; margin:0; margin-right:5px;">🕵️ Audit Trail</a>
-    <a href="{% url 'tv_settings' %}" class="btn btn-grey" style="padding:6px 12px; font-size:12px; margin:0; margin-right:5px;">⚙️ TV Settings</a>
-    <a href="{% url 'tv_broadcast' %}" class="btn btn-red" target="_blank" style="padding:6px 12px; font-size:12px; margin:0;">📺 Open Live TV</a></div>
 
-<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
-  <div class="card" style="text-align:center; padding:15px 10px;">
-    <div style="font-size:24px; font-weight:bold; color:#5fd68a;">{{ stats.won }}</div>
-    <div class="meta" style="font-size:10px;">TENDERS WON</div>
-  </div>
-  <div class="card" style="text-align:center; padding:15px 10px;">
-    <div style="font-size:24px; font-weight:bold; color:#e2504a;">{{ stats.lost }}</div>
-    <div class="meta" style="font-size:10px;">TENDERS LOST</div>
-  </div>
-  <div class="card" style="text-align:center; padding:15px 10px;">
-    <div style="font-size:24px; font-weight:bold; color:#4cc7e8;">{{ stats.active }}</div>
-    <div class="meta" style="font-size:10px;">ACTIVE IN PIPELINE</div>
-  </div>
-  <div class="card" style="text-align:center; padding:15px 10px;">
-    <div style="font-size:24px; font-weight:bold; color:#fff;">{{ stats.completed }}</div>
-    <div class="meta" style="font-size:10px;">IMPORTS COMPLETED</div>
-  </div>
+<style>
+    /* Executive Dashboard Mobile-First Styles */
+    .exec-header { background: linear-gradient(145deg, #1a1f2b, #151922); padding: 20px; border-radius: 16px; margin-bottom: 20px; border: 1px solid #333a4d; text-align: center; }
+    .exec-title { font-size: 22px; font-weight: 900; color: #e8b64c; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+    .exec-sub { font-size: 12px; color: #8f99b0; }
+    
+    .quick-actions { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 20px; }
+    .quick-btn { flex: 0 0 auto; background: #151922; border: 1px solid #333a4d; border-radius: 12px; padding: 12px 15px; text-align: center; color: #fff; font-size: 12px; font-weight: bold; text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 5px; transition: 0.2s; }
+    .quick-btn:hover { border-color: #e8b64c; transform: translateY(-2px); }
+    .quick-btn .icon { font-size: 20px; }
+
+    .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .kpi-card { background: #151922; border: 1px solid #232838; border-radius: 12px; padding: 15px; text-align: center; }
+    .kpi-val { font-size: 26px; font-weight: 900; font-family: 'Orbitron', sans-serif; margin-bottom: 5px; }
+    .kpi-lbl { font-size: 10px; color: #8f99b0; text-transform: uppercase; letter-spacing: 1px; }
+
+    .chart-card { background: #151922; border: 1px solid #232838; border-radius: 12px; padding: 15px; margin-bottom: 20px; }
+    .chart-title { font-size: 13px; font-weight: bold; color: #4cc7e8; text-transform: uppercase; margin-bottom: 15px; text-align: center; border-bottom: 1px solid #333a4d; padding-bottom: 10px; }
+    .chart-container { position: relative; height: 220px; width: 100%; }
+
+    .list-card { background: #151922; border: 1px solid #232838; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+    .list-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #232838; font-size: 13px; }
+    .list-item:last-child { border-bottom: none; }
+</style>
+
+<!-- HEADER -->
+<div class="exec-header">
+    <div class="exec-title">Executive Overview</div>
+    <div class="exec-sub">{{ current_company.name }}</div>
 </div>
 
-<div class="card">
-  <div class="meta" style="margin-bottom:10px; color:#e8b64c;">FINANCIAL SUMMARY (ETB)</div>
-  <div class="kv"><span class="k">Total Tender Costs</span><span class="v" style="font-weight:bold;">{{ financials.total_cost|default:"0.00" }}</span></div>
-  <div class="kv"><span class="k">Duty & Tax Paid</span><span class="v" style="font-weight:bold;">{{ financials.total_duty|default:"0.00" }}</span></div>
-  <div class="kv"><span class="k">Supplier Payments</span><span class="v" style="font-weight:bold; color:#e2504a;">{{ financials.total_payments|default:"0.00" }}</span></div>
-  <div style="margin-top:10px; display:flex; gap:10px;">
-    <a href="{% url 'export_tenders' %}" class="btn btn-grey" style="padding:6px 10px; font-size:11px; margin:0;">⬇️ Export Tenders</a>
-    <a href="{% url 'export_cashflow' %}" class="btn btn-grey" style="padding:6px 10px; font-size:11px; margin:0;">⬇️ Export Cashflow</a>
-  </div>
+<!-- QUICK ACTIONS -->
+<div class="quick-actions">
+    <a href="{% url 'reports_center' %}" class="quick-btn"><span class="icon">📊</span> Reports</a>
+    <a href="{% url 'audit_trail' %}" class="quick-btn"><span class="icon">🕵️</span> Audit Trail</a>
+    <a href="{% url 'tv_broadcast' %}" target="_blank" class="quick-btn" style="border-color:#e2504a;"><span class="icon">📺</span> Live TV</a>
+    <a href="{% url 'dashboard' %}" class="quick-btn"><span class="icon">⬅️</span> Action Center</a>
 </div>
 
-<div class="card">
-  <div class="meta" style="margin-bottom:10px; color:#e8b64c;">WHERE ARE TASKS STUCK? (BOTTLENECKS)</div>
-  {% for b in bottlenecks %}
-    <a href="{% url 'assign_task' %}?role={{ b.assigned_to__role }}" style="display:block; text-decoration:none; margin-bottom:8px;">
-      <div class="kv" style="background:#1a1f2b; padding:10px; border-radius:8px; border:1px solid #333a4d;">
-        <span class="k">{{ b.assigned_to__role }} <br><span style="font-size:10px; color:#4cc7e8;">Click to assign fix</span></span>
-        <span class="v" style="color:#e2504a; font-weight:bold;">{{ b.count }} tasks</span>
-      </div>
-    </a>
-  {% empty %}
-    <div class="meta">No pending tasks! The company is clear.</div>
-  {% endfor %}
-</div>
-
-
-<div class="card">
-  <div class="meta" style="margin-bottom:10px; color:#e2504a;">LOSS ANALYSIS (WHY WE LOSE)</div>
-  {% for lt in lost_tenders %}
-    <div style="border-bottom:1px solid #232838; padding:10px 0;">
-      <div style="font-size:12px; font-weight:bold; color:#fff; margin-bottom:4px;">{{ lt.serial_number }} - {{ lt.bid_title|truncatechars:30 }}</div>
-      <div style="font-size:12px; color:#e2504a; font-style:italic;">"{{ lt.loss_reason }}"</div>
+<!-- KPIs -->
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-val" style="color:#5fd68a;">{{ stats.won }}</div>
+        <div class="kpi-lbl">Tenders Won</div>
     </div>
-  {% empty %}
-    <div class="meta">No loss analysis recorded yet.</div>
-  {% endfor %}
-</div>
-<div class="card">
-  <div class="meta" style="margin-bottom:10px; color:#e8b64c;">LIVE AUDIT TRAIL</div>
-  {% for log in recent_activity %}
-    <div style="border-bottom:1px solid #232838; padding:8px 0; font-size:12px;">
-      <div style="color:#e8b64c; font-size:10px;">{{ log.created_at|date:"d M Y H:i" }}</div>
-      <strong>{% if log.actor %}{{ log.actor.full_name }}{% else %}System{% endif %}:</strong> {{ log.action }}<br>
-      <span class="meta">{{ log.detail|truncatechars:60 }}</span>
+    <div class="kpi-card">
+        <div class="kpi-val" style="color:#e2504a;">{{ stats.lost }}</div>
+        <div class="kpi-lbl">Tenders Lost</div>
     </div>
-  {% empty %}
-    <div class="meta">No activity recorded yet.</div>
-  {% endfor %}
+    <div class="kpi-card">
+        <div class="kpi-val" style="color:#4cc7e8;">{{ stats.active }}</div>
+        <div class="kpi-lbl">Active Pipeline</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-val" style="color:#fff;">{{ stats.completed }}</div>
+        <div class="kpi-lbl">Imports Completed</div>
+    </div>
 </div>
 
-<a class="btn btn-grey wide" href="{% url 'dashboard' %}">Back to My Action Center</a>
+<!-- FINANCIAL SUMMARY -->
+<div class="chart-card" style="border-left: 4px solid #e8b64c;">
+    <div class="chart-title" style="color:#e8b64c; text-align:left;">💰 Financial Summary (ETB)</div>
+    <div class="list-item"><span class="meta">Total Tender Costs</span> <strong>{{ financials.total_cost|default:"0.00" }}</strong></div>
+    <div class="list-item"><span class="meta">Duty & Tax Paid</span> <strong>{{ financials.total_duty|default:"0.00" }}</strong></div>
+    <div class="list-item"><span class="meta">Supplier Payments</span> <strong style="color:#e2504a;">{{ financials.total_payments|default:"0.00" }}</strong></div>
+    <div style="margin-top:15px; display:flex; gap:10px;">
+        <a href="{% url 'export_tenders' %}" class="btn btn-grey" style="flex:1; padding:10px; font-size:11px; margin:0;">⬇️ Export Tenders</a>
+        <a href="{% url 'export_cashflow' %}" class="btn btn-grey" style="flex:1; padding:10px; font-size:11px; margin:0;">⬇️ Export Cashflow</a>
+    </div>
+</div>
 
-<!-- Load Chart.js -->
+<!-- CHARTS -->
+<div class="chart-card">
+    <div class="chart-title">📈 Financial Flow (Last 6 Months)</div>
+    <div class="chart-container">
+        <canvas id="cashFlowChart"></canvas>
+    </div>
+</div>
+
+<div class="chart-card">
+    <div class="chart-title">🏆 Tender Performance</div>
+    <div class="chart-container" style="height: 200px;">
+        <canvas id="tenderChart"></canvas>
+    </div>
+</div>
+
+<div class="chart-card">
+    <div class="chart-title">📉 Expense Breakdown</div>
+    <div class="chart-container" style="height: 200px;">
+        <canvas id="expenseChart"></canvas>
+    </div>
+</div>
+
+<!-- BOTTLENECKS & ACTIVITY -->
+<div class="list-card">
+    <div class="chart-title" style="color:#e2504a; text-align:left;">⚠️ Where are Tasks Stuck?</div>
+    {% for b in bottlenecks %}
+        <a href="{% url 'assign_task' %}?role={{ b.assigned_to__role }}" style="text-decoration:none; color:inherit;">
+            <div class="list-item">
+                <span style="color:#fff;">{{ b.assigned_to__role }} (Pending)</span>
+                <span style="color:#e2504a; font-weight:bold;">{{ b.count }} tasks</span>
+            </div>
+        </a>
+    {% empty %}
+        <div class="meta" style="padding:10px 0;">✓ No pending tasks! The company is clear.</div>
+    {% endfor %}
+</div>
+
+<div class="list-card">
+    <div class="chart-title" style="color:#8f99b0; text-align:left;">🕵️ Live Audit Trail</div>
+    {% for log in recent_activity %}
+        <div style="border-bottom:1px solid #232838; padding:10px 0; font-size:12px;">
+            <div style="color:#e8b64c; font-size:10px; margin-bottom:3px;">{{ log.created_at|date:"d M Y H:i" }}</div>
+            <strong>{% if log.actor %}{{ log.actor.full_name }}{% else %}System{% endif %}:</strong> {{ log.action }}<br>
+            <span class="meta">{{ log.detail|truncatechars:60 }}</span>
+        </div>
+    {% empty %}
+        <div class="meta" style="padding:10px 0;">No activity recorded yet.</div>
+    {% endfor %}
+</div>
+
+<!-- CHART.JS CONFIGURATION -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<div class="card" style="background:#151922; margin-top:20px;">
-  <div class="meta" style="margin-bottom:15px; color:#e8b64c;">📊 FINANCIAL FLOW (LAST 6 MONTHS)</div>
-  <canvas id="cashFlowChart" height="200"></canvas>
-</div>
-
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
-  <div class="card" style="background:#151922;">
-    <div class="meta" style="margin-bottom:15px; color:#4cc7e8; text-align:center;">TENDER PERFORMANCE</div>
-    <canvas id="tenderChart" height="200"></canvas>
-  </div>
-  <div class="card" style="background:#151922;">
-    <div class="meta" style="margin-bottom:15px; color:#e2504a; text-align:center;">EXPENSE BREAKDOWN</div>
-    <canvas id="expenseChart" height="200"></canvas>
-  </div>
-</div>
-
 <script>
-    // 1. Cash Flow Chart (Bar)
+    Chart.defaults.color = '#8f99b0';
+    Chart.defaults.font.family = "'Rajdhani', sans-serif";
+
+    // 1. Cash Flow Chart
     const ctxFlow = document.getElementById('cashFlowChart').getContext('2d');
     new Chart(ctxFlow, {
         type: 'bar',
         data: {
             labels: {{ flow_labels|safe }},
             datasets: [
-                {
-                    label: 'Inflows (ETB)',
-                    data: {{ flow_in|safe }},
-                    backgroundColor: '#5fd68a',
-                    borderRadius: 4
-                },
-                {
-                    label: 'Outflows (ETB)',
-                    data: {{ flow_out|safe }},
-                    backgroundColor: '#e2504a',
-                    borderRadius: 4
-                }
+                { label: 'Inflows', data: {{ flow_in|safe }}, backgroundColor: '#5fd68a', borderRadius: 4 },
+                { label: 'Outflows', data: {{ flow_out|safe }}, backgroundColor: '#e2504a', borderRadius: 4 }
             ]
         },
         options: {
             responsive: true,
-            plugins: { legend: { labels: { color: '#e6e8ee' } } },
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: {size: 10} } } },
             scales: {
-                x: { ticks: { color: '#8f99b0' }, grid: { color: '#232838' } },
-                y: { ticks: { color: '#8f99b0' }, grid: { color: '#232838' } }
+                x: { grid: { color: '#232838' } },
+                y: { grid: { color: '#232838' }, beginAtZero: true }
             }
         }
     });
 
-    // 2. Tender Status Chart (Doughnut)
+    // 2. Tender Performance Chart
     const ctxTender = document.getElementById('tenderChart').getContext('2d');
     new Chart(ctxTender, {
         type: 'doughnut',
         data: {
             labels: ['Won', 'Lost', 'Active'],
-            datasets: [{
-                data: {{ tender_data|safe }},
-                backgroundColor: ['#5fd68a', '#e2504a', '#4cc7e8'],
-                borderWidth: 0
-            }]
+            datasets: [{ data: {{ tender_data|safe }}, backgroundColor: ['#5fd68a', '#e2504a', '#4cc7e8'], borderWidth: 0 }]
         },
         options: {
             responsive: true,
-            plugins: { legend: { position: 'bottom', labels: { color: '#e6e8ee' } } },
-            cutout: '70%'
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: {size: 10} } } },
+            cutout: '65%'
         }
     });
 
-    // 3. Expense Breakdown Chart (Pie)
+    // 3. Expense Breakdown Chart
     const ctxExpense = document.getElementById('expenseChart').getContext('2d');
     new Chart(ctxExpense, {
         type: 'pie',
         data: {
             labels: {{ expense_labels|safe }},
-            datasets: [{
-                data: {{ expense_values|safe }},
-                backgroundColor: ['#e8b64c', '#4cc7e8', '#b366ff', '#ff9b96', '#5fd68a'],
-                borderWidth: 0
-            }]
+            datasets: [{ data: {{ expense_values|safe }}, backgroundColor: ['#e8b64c', '#4cc7e8', '#b366ff', '#ff9b96', '#5fd68a'], borderWidth: 0 }]
         },
         options: {
             responsive: true,
-            plugins: { legend: { position: 'bottom', labels: { color: '#e6e8ee', font: {size: 10} } } }
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: {size: 10} } } }
         }
     });
-</script>
-
-
-<!-- INFINITY BRAIN AI CHAT -->
-<div class="card" style="background:#0f1115; border:1px solid #4cc7e8; margin-top:20px;">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-    <div class="meta" style="color:#4cc7e8; font-weight:bold;">🧠 INFINITY BRAIN (AI ANALYST)</div>
-  </div>
-  
-  <div id="chat-window" style="height:250px; overflow-y:auto; background:#151922; border-radius:8px; padding:10px; margin-bottom:10px; font-size:13px;">
-    <div style="color:#8f99b0; text-align:center; margin-top:100px;" id="chat-placeholder">Ask me anything about the company's data...</div>
-  </div>
-
-  <div style="display:flex; gap:8px;">
-    <input type="text" id="ai-input" placeholder="e.g., How much cash do we have?" style="flex:1; margin:0; border-radius:20px;" onkeypress="handleEnter(event)">
-    <button onclick="askAI()" id="ai-btn" class="btn btn-blue" style="margin:0; border-radius:50%; width:45px; height:45px; padding:0; display:flex; align-items:center; justify-content:center;">➤</button>
-  </div>
-</div>
-
-<script>
-    function handleEnter(e) {
-        if (e.key === 'Enter') askAI();
-    }
-
-    function appendMessage(sender, text) {
-        const chat = document.getElementById('chat-window');
-        const ph = document.getElementById('chat-placeholder');
-        if (ph) ph.style.display = 'none';
-
-        const msgDiv = document.createElement('div');
-        msgDiv.style.marginBottom = '10px';
-        msgDiv.style.display = 'flex';
-        msgDiv.style.flexDirection = 'column';
-        msgDiv.style.alignItems = sender === 'user' ? 'flex-end' : 'flex-start';
-
-        const bubble = document.createElement('div');
-        bubble.style.padding = '8px 12px';
-        bubble.style.borderRadius = '12px';
-        bubble.style.maxWidth = '85%';
-        bubble.style.lineHeight = '1.4';
-        
-        if (sender === 'user') {
-            bubble.style.background = '#1f6f8a';
-            bubble.style.color = '#fff';
-        } else {
-            bubble.style.background = '#232838';
-            bubble.style.color = '#e6e8ee';
-            bubble.style.border = '1px solid #333a4d';
-        }
-        
-        bubble.innerHTML = text.replace(/\n/g, '<br>');
-        msgDiv.appendChild(bubble);
-        chat.appendChild(msgDiv);
-        chat.scrollTop = chat.scrollHeight;
-    }
-
-    function askAI() {
-        const input = document.getElementById('ai-input');
-        const btn = document.getElementById('ai-btn');
-        const question = input.value.trim();
-        if (!question) return;
-
-        appendMessage('user', question);
-        input.value = '';
-        input.disabled = true;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;"></span>';
-        
-        appendMessage('ai', '<em>Analyzing database...</em>');
-
-        fetch('/api/ask-ai/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question: question })
-        })
-        .then(res => res.json())
-        .then(data => {
-            // Remove the "Analyzing..." message
-            const chat = document.getElementById('chat-window');
-            chat.removeChild(chat.lastChild);
-
-            if (data.answer) {
-                appendMessage('ai', data.answer);
-            } else {
-                appendMessage('ai', 'Error: ' + (data.error || 'Unknown error'));
-            }
-        })
-        .catch(err => {
-            const chat = document.getElementById('chat-window');
-            chat.removeChild(chat.lastChild);
-            appendMessage('ai', 'Network Error. Could not reach server.');
-        })
-        .finally(() => {
-            input.disabled = false;
-            btn.disabled = false;
-            btn.innerHTML = '➤';
-            input.focus();
-        });
-    }
 </script>
 
 {% endblock %}
