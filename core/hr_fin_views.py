@@ -185,3 +185,4 @@ def payroll_history(request):
     company = getattr(request, 'company', None)
     payrolls = PayrollRecord.objects.filter(company=company).order_by('-created_at') if company else []
     return render(request, 'payroll_history.html', {'payrolls': payrolls})
+# Force rebuild
