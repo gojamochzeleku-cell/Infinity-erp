@@ -244,10 +244,10 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 EMAIL_IMAP_HOST = os.environ.get('EMAIL_IMAP_HOST', 'imap.gmail.com')
 
 # Dual-Company Email Settings
-CHI_EMAIL_HOST_USER = os.environ.get('CHI_EMAIL_HOST_USER', EMAIL_HOST_USER)
+CHI_EMAIL_HOST_USER = os.environ.get('CHI_EMAIL_HOST_USER', 'capitalimport.erp@gmail.com')
 CHI_EMAIL_HOST_PASSWORD = os.environ.get('CHI_EMAIL_HOST_PASSWORD', EMAIL_HOST_PASSWORD)
 
-YAH_EMAIL_HOST_USER = os.environ.get('YAH_EMAIL_HOST_USER', EMAIL_HOST_USER)
+YAH_EMAIL_HOST_USER = os.environ.get('YAH_EMAIL_HOST_USER', 'yirgaimport.erp@gmail.com')
 YAH_EMAIL_HOST_PASSWORD = os.environ.get('YAH_EMAIL_HOST_PASSWORD', EMAIL_HOST_PASSWORD)
 
 def get_company_email(company):
