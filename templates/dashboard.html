@@ -32,6 +32,7 @@
     <a href="{% url 'document_list' %}" class="btn btn-grey" style="margin:0; text-align:center; font-size:12px;">🗂️ View Registry</a>
     <a href="{% url 'mail_create' 'INCOMING' %}" class="btn btn-blue" style="margin:0; text-align:center; font-size:12px;">📥 Incoming Mail</a>
     <a href="{% url 'mail_create' 'OUTGOING' %}" class="btn btn-blue" style="margin:0; text-align:center; font-size:12px;">📤 Outgoing Mail</a>
+    <a href="{% url 'compose_email' %}" class="btn btn-grey" style="margin:0; text-align:center; font-size:12px; grid-column: span 2;">✉️ Compose & Send Email</a>
   </div>
 </div>
 {% endif %}

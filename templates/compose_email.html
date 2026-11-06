@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Compose Email{% endblock %}
+{% block content %}
+<h2>Compose Official Email</h2>
+
+{% if messages %}
+  {% for m in messages %}
+    <div class="card" style="background:{% if m.tags == 'error' %}#2a1515{% else %}#152a1c{% endif %}; color:{% if m.tags == 'error' %}#ff9b96{% else %}#5fd68a{% endif %}; padding:10px; margin-bottom:15px; font-size:13px;">
+      {{ m }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="card">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <label class="meta">To (Email Address)</label>
+    <input type="email" name="to_email" required placeholder="e.g., ministry@example.com">
+    
+    <label class="meta">Subject</label>
+    <input type="text" name="subject" required placeholder="e.g., Bid Submission Query">
+    
+    <label class="meta">Message Body</label>
+    <textarea name="body" required style="min-height:150px;" placeholder="Write your official email here..."></textarea>
+    
+    <label class="meta">Attachment (Optional)</label>
+    <input type="file" name="attachment" style="color:#c8cfdd; margin-bottom:20px;">
+    
+    <button class="btn btn-green wide" type="submit">📤 Send Email & Log in Registry</button>
+    <a class="btn btn-grey wide" href="{% url 'mail_list' %}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

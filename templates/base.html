@@ -109,9 +109,13 @@ input[type=text],input[type=password],input[type=number],input[type=date],select
   <a href="{% url 'chat_dashboard' %}" class="{% if '/chat/' in request.path %}active{% endif %}">
     <span class="icon">💬</span> Chat
   </a>
+  
+  {% if user.employee.role in "ADMIN,CEO,GM,OFFICE" %}
   <a href="{% url 'mail_list' %}" class="{% if '/mail/' in request.path %}active{% endif %}">
-    <span class="icon">&#9993;</span> Mail
+    <span class="icon">✉</span> Mail
   </a>
+  {% endif %}
+
   {% if user.employee.role in "ADMIN,CEO,GM,VGM" %}
   <a href="{% url 'mgmt_dashboard' %}" class="{% if '/management/' in request.path %}active{% endif %}">
     <span class="icon">&#128200;</span> Dashboard
