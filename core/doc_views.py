@@ -78,10 +78,12 @@ def document_upload(request):
             tender = Tender.objects.filter(company=company, serial_number__iexact=tender_serial).first()
             
         if file_obj:
+            binder_name = request.POST.get('binder_name', '')
             doc = Document.objects.create(
                 company=company,
                 title=title,
                 category=category,
+                binder_name=binder_name,
                 file=file_obj,
                 tender=tender,
                 uploaded_by=emp

@@ -9,8 +9,8 @@
     <label class="meta">Document Title</label>
     <input type="text" name="title" required placeholder="e.g. 2026 Trade License, Supplier Catalog...">
     
-    <label class="meta">Select Filing Cabinet (Category)</label>
-    <select name="category" required style="margin-bottom:15px; font-size:14px;">
+    <label class="meta">Step 1: Select Filing Cabinet</label>
+    <select name="category" id="cabinet-select" required style="margin-bottom:15px; font-size:14px;">
       <option value="" disabled selected>-- Select the physical cabinet --</option>
       <option value="TENDER_SRC">CAB 01: Tender Sourcing & Feasibility</option>
       <option value="TENDER_PREP">CAB 02: Tender Prep & Submission</option>
@@ -25,6 +25,11 @@
       <option value="GENERAL">General / Unfiled</option>
     </select>
 
+    <label class="meta">Step 2: Select File Holder (Binder)</label>
+    <select name="binder_name" id="binder-select" required style="margin-bottom:15px; font-size:14px;">
+      <option value="" disabled selected>-- Select a cabinet first --</option>
+    </select>
+
     <label class="meta">Link to Tender (Optional - Enter Serial Number)</label>
     <input type="text" name="tender_serial" placeholder="e.g. CHI-TND-2026-0001">
     
@@ -35,4 +40,37 @@
     <a class="btn btn-grey wide" href="{% url 'dashboard' %}" style="margin-top:5px;">Cancel</a>
   </form>
 </div>
+
+<script>
+    const binders = {
+        'TENDER_SRC': ["Tender Registrations & Feasibility", "No-Go / Cancelled"],
+        'TENDER_PREP': ["Purchased Docs & Proposals", "Submitted & Active Tenders"],
+        'PROCUREMENT': ["Purchase Orders & Proformas", "Shipping & Customs Docs"],
+        'LOGISTICS': ["Clearing, Duty & Warehouse", "Inspection & Delivery"],
+        'FINANCE': ["Active CPOs & Perf. Bonds", "Letters of Credit & Swift"],
+        'ACCOUNTING': ["Invoices & Payment Requests", "Payroll, Tax & Bank Statements"],
+        'LEGAL': ["Signed Agreements & Contracts", "Court Cases & Legal Notices"],
+        'HR': ["Personnel Files & Contracts", "Leave, Medical & Discipline"],
+        'MAIL': ["Incoming Mail", "Outgoing Mail"],
+        'ADMIN': ["Trade Licenses, TIN & ISO", "Supplier Catalogs & Profiles"],
+        'GENERAL': ["General Documents"]
+    };
+
+    const cabinetSelect = document.getElementById('cabinet-select');
+    const binderSelect = document.getElementById('binder-select');
+
+    cabinetSelect.addEventListener('change', function() {
+        const selectedCabinet = this.value;
+        binderSelect.innerHTML = '<option value="" disabled selected>-- Select the specific binder --</option>';
+        
+        if (binders[selectedCabinet]) {
+            binders[selectedCabinet].forEach(function(binder) {
+                const option = document.createElement('option');
+                option.value = binder;
+                option.text = binder;
+                binderSelect.appendChild(option);
+            });
+        }
+    });
+</script>
 {% endblock %}
