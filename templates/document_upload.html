@@ -7,23 +7,29 @@
     {% csrf_token %}
     
     <label class="meta">Document Title</label>
-    <input type="text" name="title" required placeholder="e.g. Supplier Catalog, HR File, Bank Letter">
+    <input type="text" name="title" required placeholder="e.g. 2026 Trade License, Supplier Catalog...">
     
-    <label class="meta">Document Category</label>
-    <select name="category" required style="margin-bottom:10px;">
-      <option value="GENERAL">General / Other</option>
-      <option value="TENDER">Tender & Bidding</option>
-      <option value="FINANCE">Finance & Banking</option>
-      <option value="LEGAL">Legal & Agreements</option>
-      <option value="HR">Human Resources</option>
-      <option value="MAIL">Correspondence</option>
+    <label class="meta">Select Filing Cabinet (Category)</label>
+    <select name="category" required style="margin-bottom:15px; font-size:14px;">
+      <option value="" disabled selected>-- Select the physical cabinet --</option>
+      <option value="TENDER_SRC">CAB 01: Tender Sourcing & Feasibility</option>
+      <option value="TENDER_PREP">CAB 02: Tender Prep & Submission</option>
+      <option value="PROCUREMENT">CAB 03: Procurement & Import</option>
+      <option value="LOGISTICS">CAB 04: Logistics & Delivery</option>
+      <option value="FINANCE">CAB 05: Bank Guarantees & LCs</option>
+      <option value="ACCOUNTING">CAB 06: Accounting & Payroll</option>
+      <option value="LEGAL">CAB 07: Legal & Contracts</option>
+      <option value="HR">CAB 08: Human Resources</option>
+      <option value="MAIL">CAB 09: Mail & Correspondence</option>
+      <option value="ADMIN">CAB 10: Corporate Admin</option>
+      <option value="GENERAL">General / Unfiled</option>
     </select>
 
     <label class="meta">Link to Tender (Optional - Enter Serial Number)</label>
     <input type="text" name="tender_serial" placeholder="e.g. CHI-TND-2026-0001">
     
     <label class="meta">Upload File (PDF / Image)</label>
-    <input type="file" name="file" required style="color:#c8cfdd; margin-bottom:15px;">
+    <input type="file" name="file" required style="color:#c8cfdd; margin-bottom:20px;">
     
     <button class="btn btn-green wide" type="submit">Upload & Generate Doc ID</button>
     <a class="btn btn-grey wide" href="{% url 'dashboard' %}" style="margin-top:5px;">Cancel</a>

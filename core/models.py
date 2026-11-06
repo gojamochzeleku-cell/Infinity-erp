@@ -289,12 +289,17 @@ class Memo(models.Model):
 
 class Document(models.Model):
     CATEGORY_CHOICES = [
-        ('TENDER', 'Tender & Bidding'),
-        ('FINANCE', 'Finance & Banking'),
-        ('LEGAL', 'Legal & Agreements'),
-        ('HR', 'Human Resources'),
-        ('MAIL', 'Correspondence'),
-        ('GENERAL', 'General / Other')
+        ('TENDER_SRC', 'CAB 01: Tender Sourcing'),
+        ('TENDER_PREP', 'CAB 02: Tender Prep & Sub'),
+        ('PROCUREMENT', 'CAB 03: Procurement & Import'),
+        ('LOGISTICS', 'CAB 04: Logistics & Delivery'),
+        ('FINANCE', 'CAB 05: Bank Guarantees & LCs'),
+        ('ACCOUNTING', 'CAB 06: Accounting & Payroll'),
+        ('LEGAL', 'CAB 07: Legal & Contracts'),
+        ('HR', 'CAB 08: Human Resources'),
+        ('MAIL', 'CAB 09: Mail & Correspondence'),
+        ('ADMIN', 'CAB 10: Corporate Admin'),
+        ('GENERAL', 'General / Unfiled')
     ]
     
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='documents')
