@@ -3,10 +3,11 @@
 {% block content %}
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
   <h2>Mail Registry</h2>
-  <div>
-    <a class="btn btn-blue" href="{% url 'mail_create' 'INCOMING' %}" style="padding:8px 12px; font-size:12px;">+ Incoming</a>
-    <a class="btn btn-green" href="{% url 'mail_create' 'OUTGOING' %}" style="padding:8px 12px; font-size:12px;">+ Outgoing</a>
-    <a class="btn btn-blue" href="{% url 'compose_email' %}" style="padding:8px 12px; font-size:12px; background:#4cc7e8; color:#000;">✉️ Compose Email</a>
+  <div style="display:flex; flex-wrap:wrap; gap:5px; justify-content:flex-end;">
+    <a class="btn btn-blue" href="{% url 'mail_create' 'INCOMING' %}" style="padding:6px 10px; font-size:11px; margin:0;">+ Incoming</a>
+    <a class="btn btn-green" href="{% url 'mail_create' 'OUTGOING' %}" style="padding:6px 10px; font-size:11px; margin:0;">+ Outgoing</a>
+    <a class="btn btn-blue" href="{% url 'compose_email' %}" style="padding:6px 10px; font-size:11px; margin:0; background:#4cc7e8; color:#000;">✉️ Compose</a>
+    <a class="btn btn-grey" href="{% url 'fetch_emails_action' %}" style="padding:6px 10px; font-size:11px; margin:0; border:1px solid #e8b64c; color:#e8b64c;">⬇️ Fetch Inbox</a>
   </div>
 </div>
 

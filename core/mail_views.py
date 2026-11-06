@@ -116,3 +116,27 @@ def compose_email(request):
             messages.error(request, f'Failed to send email: {str(e)}')
 
     return render(request, 'compose_email.html')
+
+
+from .email_fetcher import fetch_new_emails
+
+@login_required
+def fetch_emails_action(request):
+    emp = getattr(request.user, 'employee', None)
+    company = getattr(request, 'company', None)
+    
+    if not emp or not company or emp.role not in ('OFFICE', 'ADMIN'):
+        return redirect('dashboard')
+
+    result = fetch_new_emails(company, emp)
+    
+    from django.contrib import messages
+    if 'error' in result:
+        messages.error(request, result['error'])
+    else:
+        if result['count'] == 0:
+            messages.info(request, result['message'])
+        else:
+            messages.success(request, f"Successfully fetched {result['count']} new emails and registered their attachments!")
+            
+    return redirect('mail_list')
