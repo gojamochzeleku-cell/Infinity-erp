@@ -85,8 +85,15 @@ def compose_email(request):
         file_obj = request.FILES.get('attachment')
         
         try:
-            # 1. Send the Email
-            email = EmailMessage(subject, body, settings.DEFAULT_FROM_EMAIL, [to_email])
+            # 1. Get the correct company email credentials
+            from django.conf import settings
+            email_user, email_pass = settings.get_company_email(company)
+            
+            from django.core.mail import get_connection
+            connection = get_connection(username=email_user, password=email_pass, fail_silently=False)
+
+            # 2. Send the Email using the specific company connection
+            email = EmailMessage(subject, body, email_user, [to_email], connection=connection)
             if file_obj:
                 email.attach(file_obj.name, file_obj.read(), file_obj.content_type)
             email.send()

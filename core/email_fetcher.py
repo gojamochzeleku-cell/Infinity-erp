@@ -2,28 +2,27 @@ import imaplib
 import email
 from email.header import decode_header
 import os
-import io
 from django.core.files.base import ContentFile
+from django.conf import settings
 from .models import Correspondence, Document, Employee
 from .services import log_action
 
 def fetch_new_emails(company, employee):
-    # 1. Connect to IMAP
-    host = os.environ.get('EMAIL_IMAP_HOST', 'imap.gmail.com')
-    user = os.environ.get('EMAIL_HOST_USER', '')
-    password = os.environ.get('EMAIL_HOST_PASSWORD', '')
+    # 1. Get the correct credentials for this company
+    email_user, email_pass = settings.get_company_email(company)
+    
+    if not email_user or not email_pass:
+        return {'error': f'Email credentials not configured for {company.short_name}.'}
 
-    if not user or not password:
-        return {'error': 'Email credentials not configured in Render environment variables.'}
+    host = os.environ.get('EMAIL_IMAP_HOST', 'imap.gmail.com')
 
     try:
         mail = imaplib.IMAP4_SSL(host)
-        mail.login(user, password)
+        mail.login(email_user, email_pass)
         mail.select('inbox')
     except Exception as e:
-        return {'error': f'Failed to connect to email server: {str(e)}'}
+        return {'error': f'Failed to connect to email server for {email_user}: {str(e)}'}
 
-    # 2. Search for Unread Emails
     status, messages = mail.search(None, 'UNSEEN')
     if status != 'OK':
         return {'error': 'Failed to search emails.'}
@@ -35,19 +34,16 @@ def fetch_new_emails(company, employee):
 
     processed_count = 0
 
-    # 3. Process each email
     for e_id in email_ids:
         status, msg_data = mail.fetch(e_id, '(RFC822)')
         for response_part in msg_data:
             if isinstance(response_part, tuple):
                 msg = email.message_from_bytes(response_part[1])
                 
-                # Extract Subject
                 subject, encoding = decode_header(msg["Subject"])[0]
                 if isinstance(subject, bytes):
                     subject = subject.decode(encoding if encoding else "utf-8")
                 
-                # Extract Sender
                 sender, encoding = decode_header(msg.get("From"))[0]
                 if isinstance(sender, bytes):
                     sender = sender.decode(encoding if encoding else "utf-8")
@@ -55,7 +51,6 @@ def fetch_new_emails(company, employee):
                 attachment_file = None
                 attachment_name = None
 
-                # Extract Attachments (PDFs / Images)
                 if msg.is_multipart():
                     for part in msg.walk():
                         content_type = part.get_content_type()
@@ -64,7 +59,6 @@ def fetch_new_emails(company, employee):
                         if "attachment" in content_disposition:
                             filename = part.get_filename()
                             if filename:
-                                # Decode filename if needed
                                 fname, encoding = decode_header(filename)[0]
                                 if isinstance(fname, bytes):
                                     fname = fname.decode(encoding if encoding else "utf-8")
@@ -73,9 +67,8 @@ def fetch_new_emails(company, employee):
                                 if payload:
                                     attachment_file = ContentFile(payload, name=fname)
                                     attachment_name = fname
-                                    break # Just take the first attachment for simplicity
+                                    break
 
-                # 4. Create the Correspondence Record
                 letter = Correspondence.objects.create(
                     company=company,
                     direction='INCOMING',
@@ -85,7 +78,6 @@ def fetch_new_emails(company, employee):
                     uploaded_by=employee
                 )
 
-                # 5. Create the Document Record if there's an attachment
                 if attachment_file:
                     Document.objects.create(
                         company=company,
@@ -95,11 +87,9 @@ def fetch_new_emails(company, employee):
                         category='MAIL'
                     )
 
-                # Mark as Read
                 mail.store(e_id, '+FLAGS', '\\Seen')
                 processed_count += 1
 
     mail.logout()
-    log_action(employee, 'FETCH_EMAILS', f'Fetched {processed_count} new emails.', 'Correspondence', '', company)
+    log_action(employee, 'FETCH_EMAILS', f'Fetched {processed_count} new emails from {email_user}.', 'Correspondence', '', company)
     return {'success': True, 'count': processed_count}
-

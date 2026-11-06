@@ -242,3 +242,17 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # IMAP Settings for Receiving Emails
 EMAIL_IMAP_HOST = os.environ.get('EMAIL_IMAP_HOST', 'imap.gmail.com')
+
+# Dual-Company Email Settings
+CHI_EMAIL_HOST_USER = os.environ.get('CHI_EMAIL_HOST_USER', EMAIL_HOST_USER)
+CHI_EMAIL_HOST_PASSWORD = os.environ.get('CHI_EMAIL_HOST_PASSWORD', EMAIL_HOST_PASSWORD)
+
+YAH_EMAIL_HOST_USER = os.environ.get('YAH_EMAIL_HOST_USER', EMAIL_HOST_USER)
+YAH_EMAIL_HOST_PASSWORD = os.environ.get('YAH_EMAIL_HOST_PASSWORD', EMAIL_HOST_PASSWORD)
+
+def get_company_email(company):
+    if company and company.short_name == 'CHI':
+        return CHI_EMAIL_HOST_USER, CHI_EMAIL_HOST_PASSWORD
+    elif company and company.short_name == 'YAH':
+        return YAH_EMAIL_HOST_USER, YAH_EMAIL_HOST_PASSWORD
+    return EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
