@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Archive Map</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap');
+        body { font-family: 'Montserrat', Arial, sans-serif; background: #fff; margin: 0; padding: 20px; color: #333; }
+        @media print { .no-print { display: none !important; } .page-break { page-break-before: always; } }
+        .btn-print { display: block; margin: 0 auto 30px auto; background: #0f204b; color: #fff; padding: 12px 24px; border: none; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { font-size: 28px; margin: 0; color: #0f204b; text-transform: uppercase; }
+        .zone-title { background: #0f204b; color: #fff; padding: 10px 20px; font-size: 18px; border-radius: 8px; margin: 40px 0 20px 0; text-transform: uppercase; }
+        .cabinets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .cabinet-card { background: #fff; border-radius: 8px; border: 1px solid #ddd; overflow: hidden; }
+        .cabinet-header { background: #333; color: #fff; padding: 10px 15px; font-weight: bold; font-size: 14px; }
+        .shelf { padding: 10px 15px; border-bottom: 1px dashed #ccc; }
+        .shelf:last-child { border-bottom: none; }
+        .shelf-label { font-size: 10px; font-weight: bold; color: #888; text-transform: uppercase; margin-bottom: 5px; }
+        .binder { padding: 8px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; background: #f8f9fa; border-left: 5px solid #000; }
+        .c-blue { border-left-color: #0056b3; } .c-black { border-left-color: #111; }
+        .c-red { border-left-color: #d32f2f; } .c-green { border-left-color: #2e7d32; }
+        .c-grey { border-left-color: #757575; }
+    </style>
+</head>
+<body>
+    <div class="no-print"><button class="btn-print" onclick="window.print()">🖨️ Print Archive Map</button></div>
+    <div class="header"><h1>Infinity Investment Institute</h1><p>Physical Archive Room - Master Visual Map</p></div>
+
+    <div class="zone-title">ZONE A: CAPITAL HAILU IMPORT (CHI) - Left Side</div>
+    <div class="cabinets-grid">
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 01: TENDER SOURCING</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-blue">CHI - TENDER REGISTRATIONS & FEASIBILITY</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-blue">CHI - WON & LOST TENDERS</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 02: TENDER PREP</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-blue">CHI - PURCHASED DOCS & PROPOSALS</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-blue">CHI - SUBMITTED & ACTIVE TENDERS</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 03: PROCUREMENT</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-black">CHI - PURCHASE ORDERS & PROFORMAS</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-black">CHI - SHIPPING & CUSTOMS DOCS</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 04: LOGISTICS</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-black">CHI - CLEARING, DUTY & WAREHOUSE</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-grey">CHI - OFFICE LEASES, UTILITIES</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 05: FINANCE - GUARANTEES</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-black">CHI - ACTIVE CPOs & PERF. BONDS</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-black">CHI - LETTERS OF CREDIT (LCs)</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 06: ACCOUNTING</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-black">CHI - INVOICES & PAYMENT REQUESTS</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-black">CHI - PAYROLL, TAX & BANK STATEMENTS</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 07: LEGAL</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-red">CHI - SIGNED AGREEMENTS</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-red">CHI - COURT CASES & LEGAL NOTICES</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 08: HUMAN RESOURCES</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-green">CHI - PERSONNEL FILES & CONTRACTS</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-green">CHI - LEAVE, MEDICAL & DISCIPLINE</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 09: MAIL</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-grey">CHI - INCOMING MAIL</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-grey">CHI - OUTGOING MAIL</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 10: CORPORATE ADMIN</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-grey">CHI - TRADE LICENSES, TIN & ISO</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-grey">CHI - SUPPLIER CATALOGS</div></div></div>
+    </div>
+
+    <div class="page-break"></div>
+    <div class="zone-title">ZONE B: YIRGA AGEDOM (YAH) - Right Side</div>
+    <div class="cabinets-grid">
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 01: TENDER SOURCING</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-blue">YAH - TENDER REGISTRATIONS & FEASIBILITY</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-blue">YAH - WON & LOST TENDERS</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 02: TENDER PREP</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-blue">YAH - PURCHASED DOCS & PROPOSALS</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-blue">YAH - SUBMITTED & ACTIVE TENDERS</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 03: PROCUREMENT</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-black">YAH - PURCHASE ORDERS & PROFORMAS</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-black">YAH - SHIPPING & CUSTOMS DOCS</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 04: LOGISTICS</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-black">YAH - CLEARING, DUTY & WAREHOUSE</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-grey">YAH - OFFICE LEASES, UTILITIES</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 05: FINANCE - GUARANTEES</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-black">YAH - ACTIVE CPOs & PERF. BONDS</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-black">YAH - LETTERS OF CREDIT (LCs)</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 06: ACCOUNTING</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-black">YAH - INVOICES & PAYMENT REQUESTS</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-black">YAH - PAYROLL, TAX & BANK STATEMENTS</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 07: LEGAL</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-red">YAH - SIGNED AGREEMENTS</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-red">YAH - COURT CASES & LEGAL NOTICES</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 08: HUMAN RESOURCES</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-green">YAH - PERSONNEL FILES & CONTRACTS</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-green">YAH - LEAVE, MEDICAL & DISCIPLINE</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 09: MAIL</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-grey">YAH - INCOMING MAIL</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-grey">YAH - OUTGOING MAIL</div></div></div>
+        <div class="cabinet-card"><div class="cabinet-header">CABINET 10: CORPORATE ADMIN</div><div class="shelf"><div class="shelf-label">⬆️ Top (Active)</div><div class="binder c-grey">YAH - TRADE LICENSES, TIN & ISO</div></div><div class="shelf"><div class="shelf-label">⬇️ Bottom (Archive)</div><div class="binder c-grey">YAH - SUPPLIER CATALOGS</div></div></div>
+    </div>
+</body>
+</html>

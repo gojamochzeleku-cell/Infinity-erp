@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Premium Cabinet Labels - Infinity Investment Institute</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap');
+        body { font-family: 'Montserrat', 'Helvetica Neue', Arial, sans-serif; background: #eef0f3; margin: 0; padding: 20px; color: #333; }
+        @media print {
+            body { background: #fff; padding: 0; margin: 0; }
+            .no-print { display: none !important; }
+            .page-break { page-break-before: always; }
+            .label-container { break-inside: avoid; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            @page { margin: 10mm; }
+        }
+        .header-ui { text-align: center; margin-bottom: 30px; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 900px; margin-left: auto; margin-right: auto; }
+        .btn-print { background: #111; color: #d4af37; padding: 12px 24px; border: 2px solid #d4af37; font-size: 18px; cursor: pointer; border-radius: 6px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+        .btn-print:hover { background: #d4af37; color: #111; }
+        .grid-container { display: grid; grid-template-columns: repeat(2, 13cm); gap: 20px; max-width: 900px; margin: 0 auto; justify-content: center; }
+        
+        .label-container {
+            width: 13cm; height: 8cm; box-sizing: border-box; background: #fff;
+            display: flex; flex-direction: column; overflow: hidden; position: relative;
+            background-image: 
+                linear-gradient(to right, #aaa 2px, transparent 2px), linear-gradient(to bottom, #aaa 2px, transparent 2px),
+                linear-gradient(to left, #aaa 2px, transparent 2px), linear-gradient(to bottom, #aaa 2px, transparent 2px);
+            background-size: 10px 2px, 2px 10px, 10px 2px, 2px 10px;
+            background-position: top left, top left, top right, bottom right;
+            background-repeat: no-repeat;
+        }
+        .label-header {
+            height: 2.5cm; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; color: #fff; text-transform: uppercase; font-weight: 900; position: relative;
+        }
+        .label-header::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: #d4af37; }
+        .label-header .company-name { font-size: 18px; letter-spacing: 2px; }
+        .label-header .cab-number { font-size: 32px; letter-spacing: 1px; }
+        .label-body { flex: 1; padding: 15px 20px; display: flex; align-items: center; justify-content: center; text-align: center; }
+        .label-title { font-size: 24px; font-weight: 900; color: #111; line-height: 1.1; text-transform: uppercase; letter-spacing: 0.5px; }
+        .label-footer {
+            height: 1.5cm; background: #f8f9fa; display: flex; justify-content: space-around; align-items: center;
+            border-top: 1px solid #eee; font-size: 12px; font-weight: 800; color: #555; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .bg-navy { background: #0f204b; }
+        .bg-charcoal { background: #2c2c2c; }
+        .bg-burgundy { background: #6b1d2c; }
+        .bg-emerald { background: #1b4d3e; }
+        .bg-slate { background: #4a5568; }
+        h2.section-title { max-width: 900px; margin: 40px auto 20px auto; border-bottom: 2px solid #111; color: #111; padding: 10px 0; text-transform: uppercase; font-size: 16px; letter-spacing: 2px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="no-print header-ui">
+        <h1 style="letter-spacing: 2px;">Premium Cabinet Door Labels (13x8cm)</h1>
+        <p style="color: #666; font-size: 14px;">Print at 100% scale. Cut along corner crop marks.</p>
+        <button class="btn-print" onclick="window.print()">🖨️ Print Labels Now</button>
+    </div>
+
+    <h2 class="section-title">Capital Hailu Import (CHI) - Zone A</h2>
+    <div class="grid-container">
+        <div class="label-container"><div class="label-header bg-navy"><div class="company-name">Capital Hailu (CHI)</div><div class="cab-number">CAB 01</div></div><div class="label-body"><div class="label-title">Tender Sourcing & Ops</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-navy"><div class="company-name">Capital Hailu (CHI)</div><div class="cab-number">CAB 02</div></div><div class="label-body"><div class="label-title">Tender Prep & Submission</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-charcoal"><div class="company-name">Capital Hailu (CHI)</div><div class="cab-number">CAB 03</div></div><div class="label-body"><div class="label-title">Procurement & Import</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-charcoal"><div class="company-name">Capital Hailu (CHI)</div><div class="cab-number">CAB 04</div></div><div class="label-body"><div class="label-title">Logistics & Delivery</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-charcoal"><div class="company-name">Capital Hailu (CHI)</div><div class="cab-number">CAB 05</div></div><div class="label-body"><div class="label-title">Bank Guarantees & LCs</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-charcoal"><div class="company-name">Capital Hailu (CHI)</div><div class="cab-number">CAB 06</div></div><div class="label-body"><div class="label-title">Accounting & Payroll</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-burgundy"><div class="company-name">Capital Hailu (CHI)</div><div class="cab-number">CAB 07</div></div><div class="label-body"><div class="label-title">Legal & Contracts</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-emerald"><div class="company-name">Capital Hailu (CHI)</div><div class="cab-number">CAB 08</div></div><div class="label-body"><div class="label-title">Human Resources</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-slate"><div class="company-name">Capital Hailu (CHI)</div><div class="cab-number">CAB 09</div></div><div class="label-body"><div class="label-title">Mail & Correspondence</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-slate"><div class="company-name">Capital Hailu (CHI)</div><div class="cab-number">CAB 10</div></div><div class="label-body"><div class="label-title">Corporate Admin</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2 class="section-title">Yirga Agedom (YAH) - Zone B</h2>
+    <div class="grid-container">
+        <div class="label-container"><div class="label-header bg-navy"><div class="company-name">Yirga Agedom (YAH)</div><div class="cab-number">CAB 01</div></div><div class="label-body"><div class="label-title">Tender Sourcing & Ops</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-navy"><div class="company-name">Yirga Agedom (YAH)</div><div class="cab-number">CAB 02</div></div><div class="label-body"><div class="label-title">Tender Prep & Submission</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-charcoal"><div class="company-name">Yirga Agedom (YAH)</div><div class="cab-number">CAB 03</div></div><div class="label-body"><div class="label-title">Procurement & Import</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-charcoal"><div class="company-name">Yirga Agedom (YAH)</div><div class="cab-number">CAB 04</div></div><div class="label-body"><div class="label-title">Logistics & Delivery</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-charcoal"><div class="company-name">Yirga Agedom (YAH)</div><div class="cab-number">CAB 05</div></div><div class="label-body"><div class="label-title">Bank Guarantees & LCs</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-charcoal"><div class="company-name">Yirga Agedom (YAH)</div><div class="cab-number">CAB 06</div></div><div class="label-body"><div class="label-title">Accounting & Payroll</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-burgundy"><div class="company-name">Yirga Agedom (YAH)</div><div class="cab-number">CAB 07</div></div><div class="label-body"><div class="label-title">Legal & Contracts</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-emerald"><div class="company-name">Yirga Agedom (YAH)</div><div class="cab-number">CAB 08</div></div><div class="label-body"><div class="label-title">Human Resources</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-slate"><div class="company-name">Yirga Agedom (YAH)</div><div class="cab-number">CAB 09</div></div><div class="label-body"><div class="label-title">Mail & Correspondence</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+        <div class="label-container"><div class="label-header bg-slate"><div class="company-name">Yirga Agedom (YAH)</div><div class="cab-number">CAB 10</div></div><div class="label-body"><div class="label-title">Corporate Admin</div></div><div class="label-footer"><span>⬆️ Top: Active</span><span>⬇️ Bottom: Archive</span></div></div>
+    </div>
+</body>
+</html>
