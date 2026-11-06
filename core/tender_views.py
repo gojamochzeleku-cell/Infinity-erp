@@ -68,23 +68,28 @@ def tender_register(request):
             if pdf_file is None:
                 errors.append('Choose the bid information sheet PDF first.')
             else:
-                temp = Tender(company=company, registered_by=emp, status='DRAFT',
-                              **{k: v for k, v in form_data.items() if v not in (None, '')})
-                temp.bid_information_sheet = pdf_file
-                try:
+                # 1. Pass the file directly to the AI (Bypasses R2 path issue)
+                result = extract_tender_from_pdf(pdf_file)
+                
+                if 'error' in result:
+                    messages.error(request, 'AI failed: %s. Fill the form manually.' % result['error'])
+                    # Create a blank draft so they can fill it manually
+                    temp = Tender(company=company, registered_by=emp, status='DRAFT',
+                                  **{k: v for k, v in form_data.items() if v not in (None, '')})
+                    temp.bid_information_sheet = pdf_file
                     temp.save()
-                except Exception as e:
-                    errors.append('Could not save draft: %s' % e)
-                    temp = None
-                if temp is not None:
-                    result = extract_tender_from_pdf(temp.bid_information_sheet.path)
-                    if 'error' in result:
-                        messages.error(request, 'AI failed: %s. Fill the form manually.' % result['error'])
-                    else:
-                        _apply(temp, result['data'])
-                        temp.ai_extracted = True
-                        temp.save()
-                        messages.success(request, 'AI extracted the fields. Review and submit.')
+                    return redirect('tender_edit', pk=temp.id)
+                else:
+                    # 2. AI succeeded. Create the draft and apply the data.
+                    temp = Tender(company=company, registered_by=emp, status='DRAFT',
+                                  **{k: v for k, v in form_data.items() if v not in (None, '')})
+                    temp.bid_information_sheet = pdf_file
+                    temp.save()
+                    
+                    _apply(temp, result['data'])
+                    temp.ai_extracted = True
+                    temp.save()
+                    messages.success(request, 'AI extracted the fields. Review and submit.')
                     return redirect('tender_edit', pk=temp.id)
 
         elif action in ('save_draft', 'submit'):
