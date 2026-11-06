@@ -52,20 +52,28 @@ def request_expense(request):
     if request.method == 'POST':
         amount = Decimal(request.POST.get('amount', '0'))
         reason = request.POST.get('reason')
+        req_type = request.POST.get('request_type', 'EXPENSE')
+        months = request.POST.get('repayment_months', 1)
         
         exp = ExpenseRequest.objects.create(
-            employee=emp, company=company, amount=amount, reason=reason
+            employee=emp, company=company, request_type=req_type,
+            amount=amount, reason=reason, repayment_months=months
         )
         
         fin_manager = find_role(company, 'FIN')
         if fin_manager:
+            type_label = "Loan" if req_type == 'LOAN' else "Expense"
+            desc = f'Amount: {amount} ETB. Reason: {reason}'
+            if req_type == 'LOAN':
+                desc += f' (Repayment: {months} months)'
+                
             task = Task.objects.create(
-                code='FIN_EXPENSE', title=f'Approve Expense: {emp.full_name}',
-                description=f'Amount: {amount} ETB. Reason: {reason}',
+                code='FIN_EXPENSE', title=f'Approve {type_label}: {emp.full_name}',
+                description=desc,
                 kind='ROUTINE', company=company, assigned_to=fin_manager,
                 payload={'expense_id': exp.id}
             )
-            notify(fin_manager, 'New Expense Request', task.title, task)
+            notify(fin_manager, f'New {type_label} Request', task.title, task)
         return redirect('dashboard')
 
     return render(request, 'request_expense.html')

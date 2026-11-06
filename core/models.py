@@ -361,9 +361,13 @@ class LeaveRequest(models.Model):
         return f"{self.employee.full_name} - {self.leave_type}"
 
 class ExpenseRequest(models.Model):
+    TYPE_CHOICES = [('EXPENSE', 'Expense Reimbursement'), ('LOAN', 'Salary Advance / Loan')]
+    
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    request_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='EXPENSE')
     amount = models.DecimalField(max_digits=14, decimal_places=2)
+    repayment_months = models.PositiveIntegerField(default=1, help_text="For loans only")
     reason = models.TextField()
     status = models.CharField(max_length=50, default='PENDING_FIN')
     created_at = models.DateTimeField(auto_now_add=True)
