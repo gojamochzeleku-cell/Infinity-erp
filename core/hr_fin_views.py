@@ -6,7 +6,6 @@ from django.db.models import Q, Sum
 from django.contrib.auth.models import User
 from decimal import Decimal
 from dateutil import parser as date_parser
-
 from .models import (
     Employee, LeaveRequest, ExpenseRequest, Task, Company, 
     ROLE_CHOICES, EmployeeDocument, PerformanceReview, Document, PayrollRecord
