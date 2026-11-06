@@ -307,6 +307,7 @@ class Document(models.Model):
     title = models.CharField(max_length=250)
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='GENERAL')
     binder_name = models.CharField(max_length=200, blank=True, help_text='Specific File Holder / Binder')
+    binder_volume = models.PositiveIntegerField(default=1, help_text='Binder Volume (e.g., 1, 2, 3)')
     file = models.FileField(upload_to='documents/')
     tender = models.ForeignKey(Tender, null=True, blank=True, on_delete=models.SET_NULL)
     uploaded_by = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL)

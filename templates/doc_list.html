@@ -28,7 +28,7 @@
     
     {% if d.is_physically_filed %}
       <div style="background:#152a1c; padding:8px; border-radius:8px; border:1px solid #1f8a4c; font-size:11px; margin-bottom:10px;">
-        <strong>Location:</strong> {{ d.room }} → {{ d.cabinet }} {% if d.shelf %}→ {{ d.shelf }}{% endif %} {% if d.box %}→ {{ d.box }}{% endif %} {% if d.folder %}→ {{ d.folder }}{% endif %}
+        <strong>Location:</strong> {{ d.room }} → {{ d.cabinet }} {% if d.shelf %}→ {{ d.shelf }}{% endif %} {% if d.box %}→ {{ d.box }} (Vol. {{ d.binder_volume }}){% endif %} {% if d.folder %}→ {{ d.folder }}{% endif %}
       </div>
       
       {% if d.checked_out_to %}

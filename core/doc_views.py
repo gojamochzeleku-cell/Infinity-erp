@@ -35,6 +35,7 @@ def document_file(request, pk):
         doc.cabinet = request.POST.get('cabinet', '')
         doc.shelf = request.POST.get('shelf', '')
         doc.box = request.POST.get('box', '')
+        doc.binder_volume = int(request.POST.get('binder_volume', 1))
         doc.folder = request.POST.get('folder', '')
         expiry = request.POST.get('expiry_date')
         if expiry:
@@ -79,11 +80,13 @@ def document_upload(request):
             
         if file_obj:
             binder_name = request.POST.get('binder_name', '')
+            binder_volume = int(request.POST.get('binder_volume', 1))
             doc = Document.objects.create(
                 company=company,
                 title=title,
                 category=category,
                 binder_name=binder_name,
+                binder_volume=binder_volume,
                 file=file_obj,
                 tender=tender,
                 uploaded_by=emp
