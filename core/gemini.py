@@ -87,6 +87,42 @@ def _get_file_bytes(file_obj):
     except Exception as e:
         raise Exception(f"Could not read file: {str(e)}")
 
+
+import io
+try:
+    import fitz  # PyMuPDF
+except ImportError:
+    fitz = None
+
+def compress_pdf_if_needed(file_obj, max_size_mb=3.5):
+    if fitz is None:
+        return _get_file_bytes(file_obj) # Fallback if PyMuPDF isn't installed
+
+    try:
+        if hasattr(file_obj, 'storage'):
+            file_obj.open()
+            raw = file_obj.read()
+            file_obj.close()
+        elif hasattr(file_obj, 'read'):
+            file_obj.seek(0)
+            raw = file_obj.read()
+        else:
+            with open(file_obj, 'rb') as f:
+                raw = f.read()
+
+        if len(raw) <= max_size_mb * 1024 * 1024:
+            return raw
+
+        doc = fitz.open(stream=raw, filetype="pdf")
+        out_buffer = io.BytesIO()
+        doc.save(out_buffer, garbage=4, deflate=True)
+        doc.close()
+        return out_buffer.getvalue()
+    except Exception as e:
+        print(f"Compression failed: {e}")
+        return _get_file_bytes(file_obj)
+
+
 def _send_to_gemini(file_obj, prompt):
     key = _api_key()
     if not key:
