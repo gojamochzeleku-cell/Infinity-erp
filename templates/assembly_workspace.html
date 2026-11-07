@@ -12,20 +12,48 @@
   <div class="meta" style="font-size:12px;">Ref: {{ tender.bid_reference_number }} | Purchaser: {{ tender.purchaser_name }}</div>
 </div>
 
-<details>
-  <summary style="background:#232838; padding:15px; border-radius:8px; font-weight:bold; color:#e8b64c; cursor:pointer; list-style:none;">📄 Bid Manager Strategy & Suppliers</summary>
-  <div class="card" style="border-top-left-radius:0; border-top-right-radius:0; border-color:#e8b64c;">
-    <div class="meta" style="margin-bottom:5px; color:#4cc7e8;">Brands & Models:</div>
-    <div style="background:#0f1115; padding:10px; border-radius:4px; font-size:12px; white-space:pre-wrap; margin-bottom:15px;">{{ tender.war_room_brands|default:"No data" }}</div>
+<details open>
+  <summary style="background:#232838; padding:15px; border-radius:8px; font-weight:bold; color:#e8b64c; cursor:pointer; list-style:none; margin-bottom:10px;">
+    📦 Bid Manager Handover Package
+  </summary>
+  
+  <div class="card" style="border-top-left-radius:0; border-top-right-radius:0; border-color:#e8b64c; padding:15px;">
     
-    <div class="meta" style="margin-bottom:5px; color:#4cc7e8;">Suppliers:</div>
-    <div style="background:#0f1115; padding:10px; border-radius:4px; font-size:12px; white-space:pre-wrap;">{{ tender.war_room_suppliers|default:"No data" }}</div>
+    <!-- Original Bid Document -->
+    {% if tender.purchased_bid_document %}
+    <div style="background:#152a1c; border:1px solid #1f8a4c; border-radius:8px; padding:10px; margin-bottom:15px;">
+      <div class="meta" style="color:#5fd68a; font-size:11px; margin-bottom:5px;">ORIGINAL BID DOCUMENT</div>
+      <a href="{{ tender.purchased_bid_document.url }}" target="_blank" class="btn btn-grey" style="padding:6px 10px; font-size:11px; margin:0;">📄 Download Bid Document</a>
+    </div>
+    {% endif %}
+
+    <!-- Strategy Summary -->
+    <div class="meta" style="color:#4cc7e8; font-size:11px; margin-bottom:5px;">STRATEGY SUMMARY</div>
+    <div style="background:#0f1115; padding:10px; border-radius:4px; font-size:12px; white-space:pre-wrap; margin-bottom:15px; max-height:200px; overflow-y:auto;">{{ tender.war_room_summary|default:"No summary provided." }}</div>
+    {% if tender.bm_manual_summary %}
+      <a href="{{ tender.bm_manual_summary.url }}" target="_blank" class="btn btn-blue" style="padding:4px 8px; font-size:10px; margin-bottom:15px;">📎 Download Manual Summary PDF</a>
+    {% endif %}
+
+    <!-- Brand Sourcing -->
+    <div class="meta" style="color:#5fd68a; font-size:11px; margin-bottom:5px;">BRAND SOURCING (HIGH/LOW COST)</div>
+    <div style="background:#0f1115; padding:10px; border-radius:4px; font-size:12px; white-space:pre-wrap; margin-bottom:15px; max-height:200px; overflow-y:auto;">{{ tender.war_room_brands|default:"No brands provided." }}</div>
+    {% if tender.bm_manual_brands %}
+      <a href="{{ tender.bm_manual_brands.url }}" target="_blank" class="btn btn-blue" style="padding:4px 8px; font-size:10px; margin-bottom:15px;">📎 Download Manual Brands PDF</a>
+    {% endif %}
+
+    <!-- Suppliers -->
+    <div class="meta" style="color:#e8b64c; font-size:11px; margin-bottom:5px;">SUPPLIER INTELLIGENCE</div>
+    <div style="background:#0f1115; padding:10px; border-radius:4px; font-size:12px; white-space:pre-wrap; margin-bottom:15px; max-height:200px; overflow-y:auto;">{{ tender.war_room_suppliers|default:"No suppliers provided." }}</div>
+    {% if tender.bm_manual_suppliers %}
+      <a href="{{ tender.bm_manual_suppliers.url }}" target="_blank" class="btn btn-blue" style="padding:4px 8px; font-size:10px; margin-bottom:15px;">📎 Download Manual Suppliers PDF</a>
+    {% endif %}
+
   </div>
 </details>
 
 <div class="card" style="margin-top:20px;">
   <div class="meta" style="color:#5fd68a; margin-bottom:10px;">ASSEMBLE FINAL TECHNICAL PROPOSAL</div>
-  <p class="meta" style="font-size:12px; margin-bottom:15px;">Merge the Technical Proposal, the HR forms, the Financial Standing, and the Manufacturer Authorization into one PDF. Upload the final compiled PDF here.</p>
+  <p class="meta" style="font-size:12px; margin-bottom:15px;">Use the Bid Manager's handover package above to fill out the required forms. Merge everything into one PDF and upload it here.</p>
   
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
@@ -40,7 +68,7 @@
 </div>
 
 {% if tender.final_technical_proposal %}
-<div class="card" style="border-color:#5fd68a;">
+<div class="card" style="border-color:#5fd68a; margin-top:20px;">
   <div class="meta" style="color:#5fd68a;">CURRENT UPLOADED PROPOSAL</div>
   <a href="{{ tender.final_technical_proposal.url }}" target="_blank" class="btn btn-grey wide" style="margin-top:10px;">Download Proposal PDF</a>
 </div>
