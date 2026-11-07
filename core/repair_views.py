@@ -16,16 +16,19 @@ def repair_chain(request):
         tenders = Tender.objects.filter(purchased_bid_document__isnull=False).exclude(status__in=['WON', 'LOST', 'COMPLETED', 'DRAFT'])
         
         for t in tenders:
-            # Check if T09A is missing
-            has_t09 = Task.objects.filter(payload__tender_id=t.id, code='T09A').exists()
+            # Check if the NEW T09 task is missing
+            has_t09 = Task.objects.filter(payload__tender_id=t.id, code='T09').exists()
             if not has_t09:
+                # Clean up old legacy tasks just in case
+                Task.objects.filter(payload__tender_id=t.id, code__in=['T09A', 'T09B', 'T09C', 'T09D']).delete()
+                
                 # Mark T08 as complete if it's stuck
                 t08 = Task.objects.filter(payload__tender_id=t.id, code='T08').first()
                 if t08 and t08.status != 'COMPLETED':
                     t08.status = 'COMPLETED'
                     t08.save()
                 
-                # Trigger AI tasks
+                # Trigger the new T09 Master Task
                 trigger_ai_tasks(t)
                 fixed_count += 1
         
