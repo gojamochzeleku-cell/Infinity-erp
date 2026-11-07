@@ -18,6 +18,7 @@ class Company(models.Model):
 
 
 ROLE_CHOICES = [
+    ('SUPERADMIN', 'SaaS Super Admin'),
     ('ADMIN', 'System Admin'),
     ('IT', 'IT Coordinator'),
     ('CEO', 'Chief Executive Officer'),

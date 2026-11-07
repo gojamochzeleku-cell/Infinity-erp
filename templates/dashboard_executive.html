@@ -60,6 +60,11 @@
   <a href="{% url 'role_manual' %}" class="exec-btn">
     <span class="icon">📖</span> My<br>Manual
   </a>
+  {% if user.employee.role == 'SUPERADMIN' %}
+  <a href="{% url 'saas_dashboard' %}" class="exec-btn" style="border-color:#b366ff; grid-column:span 2;">
+    <span class="icon">🌐</span> SaaS Super Admin Portal
+  </a>
+  {% endif %}
 </div>
 
 <h3 style="font-size: 15px; color: #e2504a; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
