@@ -6,7 +6,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from django.conf import settings
 
-MODELS_TO_TRY = ['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash']
+MODELS_TO_TRY = ['gemini-1.5-flash-latest', 'gemini-1.5-flash-8b-latest']
 
 TENDER_PROMPT = """You are reading a tender / bid announcement PDF from Ethiopia.
 Extract the following and reply with ONLY a valid JSON object using these exact keys.
@@ -94,9 +94,12 @@ def _send_to_gemini(file_obj, prompt):
     for model in MODELS_TO_TRY:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         try:
-            r = session.post(url, params={'key': key}, json=body, headers=headers, timeout=120)
+            r = session.post(url, params={'key': key}, json=body, headers=headers, timeout=15)
             if r.status_code == 200:
-                return r.json()['candidates'][0]['content']['parts'][0]['text']
+                try:
+                    return r.json()['candidates'][0]['content']['parts'][0]['text']
+                except (KeyError, IndexError):
+                    return "AI returned an unexpected format. Please try again." 
             elif r.status_code in (404, 429, 503):
                 last_err = f"HTTP {r.status_code}"
                 continue
@@ -150,7 +153,10 @@ Answer:"""
         try:
             r = session.post(url, params={'key': key}, json=body, headers=headers, timeout=60)
             if r.status_code == 200:
-                return r.json()['candidates'][0]['content']['parts'][0]['text']
+                try:
+                    return r.json()['candidates'][0]['content']['parts'][0]['text']
+                except (KeyError, IndexError):
+                    return "AI returned an unexpected format. Please try again." 
             elif r.status_code in (404, 429, 503):
                 continue
             else:
