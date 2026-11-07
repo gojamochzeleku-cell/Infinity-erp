@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Profit Analytics{% endblock %}
+{% block content %}
+<h2 style="color:#5fd68a;">💰 Company Profitability</h2>
+<p class="meta" style="margin-bottom:20px;">Analysis of all Completed Projects.</p>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
+  <div class="card" style="text-align:center; padding:15px; border-top:3px solid #4cc7e8;">
+    <div class="meta" style="font-size:10px;">TOTAL REVENUE</div>
+    <div style="font-size:22px; font-weight:bold; color:#4cc7e8;">{{ total_revenue|floatformat:2 }} ETB</div>
+  </div>
+  <div class="card" style="text-align:center; padding:15px; border-top:3px solid #e2504a;">
+    <div class="meta" style="font-size:10px;">TOTAL COST</div>
+    <div style="font-size:22px; font-weight:bold; color:#e2504a;">{{ total_cost|floatformat:2 }} ETB</div>
+  </div>
+  <div class="card" style="text-align:center; padding:15px; border-top:3px solid #5fd68a; grid-column: span 2;">
+    <div class="meta" style="font-size:10px;">GROSS PROFIT ({{ overall_margin }}% Margin)</div>
+    <div style="font-size:28px; font-weight:bold; color:#5fd68a;">{{ total_profit|floatformat:2 }} ETB</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:20px;">
+  <div class="meta" style="color:#e8b64c; margin-bottom:10px;">TOP PURCHASERS (By Revenue)</div>
+  {% for p in purchaser_stats %}
+    <div class="kv"><span class="k">{{ p.purchaser_name }}</span><span class="v">{{ p.total_revenue|default:0|floatformat:2 }} ETB</span></div>
+  {% empty %}
+    <div class="meta">No completed projects yet.</div>
+  {% endfor %}
+</div>
+
+<h3 style="font-size:14px; color:#fff; margin-bottom:10px;">Completed Projects Breakdown</h3>
+
+{% for proj in project_data %}
+  <div class="card" style="padding:15px; margin-bottom:10px; border-left:4px solid {% if proj.profit > 0 %}#5fd68a{% else %}#e2504a{% endif %};">
+    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+      <strong style="color:#fff; font-size:14px;">{{ proj.tender.serial_number }}</strong>
+      <span style="color:{% if proj.profit > 0 %}#5fd68a{% else %}#e2504a{% endif %}; font-weight:bold;">{{ proj.profit|floatformat:2 }} ETB ({{ proj.margin }}%)</span>
+    </div>
+    <div class="meta" style="font-size:12px; margin-bottom:4px;">{{ proj.tender.bid_title|truncatechars:50 }}</div>
+    <div class="meta" style="font-size:11px;">Revenue: {{ proj.revenue|floatformat:2 }} | Cost: {{ proj.cost|floatformat:2 }}</div>
+  </div>
+{% empty %}
+  <p class="empty">No completed projects yet. Close a project (I16) to see profitability.</p>
+{% endfor %}
+
+<a class="btn btn-grey wide" href="{% url 'mgmt_dashboard' %}" style="margin-top:20px;">Back to Dashboard</a>
+{% endblock %}
