@@ -41,13 +41,13 @@ Numbers must be plain numbers (no commas, no currency symbols).
 """
 
 ANALYSIS_PROMPT = """You are an elite Procurement AI for an Ethiopian import company.
-Read the attached bid document carefully. You must output text using these EXACT 4 headers, separated by '---'.
+Read the attached bid document carefully. You must output text using these EXACT 5 headers, separated by '---'.
 
 --- SUMMARY ---
 Provide a detailed summary of the technical requirements and the scope of work.
 
 --- CHECKLIST ---
-List the required bid submission forms (e.g., Bid Security, Technical Proposal, Compliance Matrix, Manufacturer Authorization).
+List the required bid submission forms.
 
 --- BRANDS ---
 Identify the required items. For each item, suggest specific brands/models:
@@ -55,12 +55,12 @@ Identify the required items. For each item, suggest specific brands/models:
 - Low Cost (Budget): [Brand - Model] (Why it complies)
 
 --- SUPPLIERS ---
-Suggest 5 manufacturers or suppliers that can provide these items. 
-Include a mix of Foreign (Outside Ethiopia) and Local (Ethiopia) suppliers.
-Format each as: 
-- Type: [Foreign/Local]
-- Name: [Supplier Name]
-- Contact: [Website/Email/Phone if known]
+Suggest 5 manufacturers or suppliers (Foreign and Local) with contact info.
+
+--- COMPLIANCE_MATRIX ---
+Create a CSV formatted table (comma-separated) with the following columns:
+Item Description, Required Spec, Proposed Brand/Model, Compliance Status (Compliant/Partially Compliant/Non-Compliant), Remarks.
+Do not use markdown formatting for this section, just raw CSV text.
 """
 
 def _api_key():
@@ -248,51 +248,29 @@ Answer:"""
 
 
 
+
 def parse_war_room_output(text):
-    result = {'summary': '', 'checklist': '', 'brands': '', 'suppliers': ''}
-    
-    # Clean the text
+    result = {'summary': '', 'checklist': '', 'brands': '', 'suppliers': '', 'compliance': ''}
     text = text.replace('```json', '').replace('```', '').strip()
     
-    # Simple, robust extraction
-    import re
+    headers = ['SUMMARY', 'CHECKLIST', 'BRANDS', 'SUPPLIERS', 'COMPLIANCE_MATRIX']
     
-    # Try to find SUMMARY
-    if '--- SUMMARY ---' in text:
-        parts = text.split('--- SUMMARY ---')
-        if len(parts) > 1:
-            content = parts[1]
-            if '--- CHECKLIST ---' in content:
-                content = content.split('--- CHECKLIST ---')[0]
-            result['summary'] = content.strip()
-            
-    # Try to find CHECKLIST
-    if '--- CHECKLIST ---' in text:
-        parts = text.split('--- CHECKLIST ---')
-        if len(parts) > 1:
-            content = parts[1]
-            if '--- BRANDS ---' in content:
-                content = content.split('--- BRANDS ---')[0]
-            result['checklist'] = content.strip()
+    for i, header in enumerate(headers):
+        key = header.lower()
+        if key == 'compliance_matrix': key = 'compliance'
+        
+        if f'--- {header} ---' in text:
+            parts = text.split(f'--- {header} ---')
+            if len(parts) > 1:
+                content = parts[1]
+                # Cut off at the next header if it exists
+                for next_header in headers[i+1:]:
+                    if f'--- {next_header} ---' in content:
+                        content = content.split(f'--- {next_header} ---')[0]
+                result[key] = content.strip()
 
-    # Try to find BRANDS
-    if '--- BRANDS ---' in text:
-        parts = text.split('--- BRANDS ---')
-        if len(parts) > 1:
-            content = parts[1]
-            if '--- SUPPLIERS ---' in content:
-                content = content.split('--- SUPPLIERS ---')[0]
-            result['brands'] = content.strip()
-
-    # Try to find SUPPLIERS
-    if '--- SUPPLIERS ---' in text:
-        parts = text.split('--- SUPPLIERS ---')
-        if len(parts) > 1:
-            result['suppliers'] = parts[1].strip()
-
-    # Fallback: If no headers were found, just dump everything into the summary
     if not any(result.values()):
         result['summary'] = text
-
     return result
+
 

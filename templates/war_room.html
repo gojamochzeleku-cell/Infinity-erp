@@ -89,10 +89,17 @@
 
 <div class="card" style="border-color:#4cc7e8; margin-top:20px;">
   <div class="meta" style="color:#4cc7e8; margin-bottom:10px;">FINAL ACTION</div>
-  <p class="meta" style="font-size:12px; margin-bottom:15px;">Forward the completed strategy and files to the Bid Operator.</p>
+  <p class="meta" style="font-size:12px; margin-bottom:15px;">Forward individual sections to the Bid Operator or send everything.</p>
   <form method="post">
     {% csrf_token %}
-    <button class="btn btn-green wide" name="action" value="forward" style="margin:0;">🚀 Forward to Bid Operator (T10)</button>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+      <button class="btn btn-grey" name="action" value="forward_task" onclick="this.form.section.value='summary'" style="margin:0;">📄 Summary</button>
+      <button class="btn btn-grey" name="action" value="forward_task" onclick="this.form.section.value='checklist'" style="margin:0;">📋 Checklist</button>
+      <button class="btn btn-grey" name="action" value="forward_task" onclick="this.form.section.value='brands'" style="margin:0;">🏷️ Brands</button>
+      <button class="btn btn-grey" name="action" value="forward_task" onclick="this.form.section.value='suppliers'" style="margin:0;">🏢 Suppliers</button>
+    </div>
+    <input type="hidden" name="section" value="all">
+    <button class="btn btn-green wide" name="action" value="forward_task" style="margin-top:15px;">🚀 Forward ALL to Bid Operator</button>
   </form>
 </div>
 {% endblock %}
