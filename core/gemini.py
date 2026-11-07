@@ -201,15 +201,52 @@ Answer:"""
     return "The AI is currently experiencing high demand. Please try again in a minute."
 
 
+
 def parse_war_room_output(text):
-    parts = text.split('---')
     result = {'summary': '', 'checklist': '', 'brands': '', 'suppliers': ''}
     
-    for part in parts:
-        part = part.strip()
-        if part.startswith('SUMMARY'): result['summary'] = part.replace('SUMMARY', '').strip()
-        elif part.startswith('CHECKLIST'): result['checklist'] = part.replace('CHECKLIST', '').strip()
-        elif part.startswith('BRANDS'): result['brands'] = part.replace('BRANDS', '').strip()
-        elif part.startswith('SUPPLIERS'): result['suppliers'] = part.replace('SUPPLIERS', '').strip()
-        
+    # Clean the text
+    text = text.replace('```json', '').replace('```', '').strip()
+    
+    # Simple, robust extraction
+    import re
+    
+    # Try to find SUMMARY
+    if '--- SUMMARY ---' in text:
+        parts = text.split('--- SUMMARY ---')
+        if len(parts) > 1:
+            content = parts[1]
+            if '--- CHECKLIST ---' in content:
+                content = content.split('--- CHECKLIST ---')[0]
+            result['summary'] = content.strip()
+            
+    # Try to find CHECKLIST
+    if '--- CHECKLIST ---' in text:
+        parts = text.split('--- CHECKLIST ---')
+        if len(parts) > 1:
+            content = parts[1]
+            if '--- BRANDS ---' in content:
+                content = content.split('--- BRANDS ---')[0]
+            result['checklist'] = content.strip()
+
+    # Try to find BRANDS
+    if '--- BRANDS ---' in text:
+        parts = text.split('--- BRANDS ---')
+        if len(parts) > 1:
+            content = parts[1]
+            if '--- SUPPLIERS ---' in content:
+                content = content.split('--- SUPPLIERS ---')[0]
+            result['brands'] = content.strip()
+
+    # Try to find SUPPLIERS
+    if '--- SUPPLIERS ---' in text:
+        parts = text.split('--- SUPPLIERS ---')
+        if len(parts) > 1:
+            result['suppliers'] = parts[1].strip()
+
+    # Fallback: If no headers were found, just dump everything into the summary
+    if not any(result.values()):
+        result['summary'] = text
+
     return result
+

@@ -51,8 +51,14 @@ def war_room(request, pk):
             tender.war_room_brands = request.POST.get('brands', '')
             tender.war_room_suppliers = request.POST.get('suppliers', '')
             
-            if 'manual_file' in request.FILES:
-                tender.bm_manual_upload = request.FILES['manual_file']
+            if 'manual_summary' in request.FILES:
+                tender.bm_manual_summary = request.FILES['manual_summary']
+            if 'manual_checklist' in request.FILES:
+                tender.bm_manual_checklist = request.FILES['manual_checklist']
+            if 'manual_brands' in request.FILES:
+                tender.bm_manual_brands = request.FILES['manual_brands']
+            if 'manual_suppliers' in request.FILES:
+                tender.bm_manual_suppliers = request.FILES['manual_suppliers']
                 
             tender.save()
             return redirect('war_room', pk=tender.id)

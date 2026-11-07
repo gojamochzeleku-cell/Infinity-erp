@@ -46,6 +46,9 @@
     <summary style="background:#232838; padding:15px; border-radius:8px; font-weight:bold; color:#4cc7e8; cursor:pointer; list-style:none;">1. Bid Summary & Requirements</summary>
     <div class="card" style="border-top-left-radius:0; border-top-right-radius:0; border-color:#4cc7e8;">
       <textarea name="summary" style="min-height:150px;">{{ tender.war_room_summary }}</textarea>
+      <label class="meta" style="margin-top:10px;">Upload Manual Summary PDF (Optional)</label>
+      <input type="file" name="manual_summary" style="color:#c8cfdd;">
+      {% if tender.bm_manual_summary %}<div class="meta" style="margin-top:5px;"><a href="{{ tender.bm_manual_summary.url }}" target="_blank" style="color:#5fd68a;">View Uploaded Summary</a></div>{% endif %}
     </div>
   </details>
 
@@ -53,6 +56,9 @@
     <summary style="background:#232838; padding:15px; border-radius:8px; font-weight:bold; color:#e2504a; cursor:pointer; list-style:none; margin-top:10px;">2. Submission Checklist</summary>
     <div class="card" style="border-top-left-radius:0; border-top-right-radius:0; border-color:#e2504a;">
       <textarea name="checklist" style="min-height:150px;">{{ tender.war_room_checklist }}</textarea>
+      <label class="meta" style="margin-top:10px;">Upload Manual Checklist PDF (Optional)</label>
+      <input type="file" name="manual_checklist" style="color:#c8cfdd;">
+      {% if tender.bm_manual_checklist %}<div class="meta" style="margin-top:5px;"><a href="{{ tender.bm_manual_checklist.url }}" target="_blank" style="color:#5fd68a;">View Uploaded Checklist</a></div>{% endif %}
     </div>
   </details>
 
@@ -60,6 +66,9 @@
     <summary style="background:#232838; padding:15px; border-radius:8px; font-weight:bold; color:#5fd68a; cursor:pointer; list-style:none; margin-top:10px;">3. Brand Sourcing (High/Low Cost)</summary>
     <div class="card" style="border-top-left-radius:0; border-top-right-radius:0; border-color:#5fd68a;">
       <textarea name="brands" style="min-height:200px;">{{ tender.war_room_brands }}</textarea>
+      <label class="meta" style="margin-top:10px;">Upload Manual Brand Sourcing PDF (Optional)</label>
+      <input type="file" name="manual_brands" style="color:#c8cfdd;">
+      {% if tender.bm_manual_brands %}<div class="meta" style="margin-top:5px;"><a href="{{ tender.bm_manual_brands.url }}" target="_blank" style="color:#5fd68a;">View Uploaded Brands</a></div>{% endif %}
     </div>
   </details>
 
@@ -67,17 +76,13 @@
     <summary style="background:#232838; padding:15px; border-radius:8px; font-weight:bold; color:#e8b64c; cursor:pointer; list-style:none; margin-top:10px;">4. Supplier Intelligence</summary>
     <div class="card" style="border-top-left-radius:0; border-top-right-radius:0; border-color:#e8b64c;">
       <textarea name="suppliers" style="min-height:200px;">{{ tender.war_room_suppliers }}</textarea>
+      <label class="meta" style="margin-top:10px;">Upload Manual Supplier Intelligence PDF (Optional)</label>
+      <input type="file" name="manual_suppliers" style="color:#c8cfdd;">
+      {% if tender.bm_manual_suppliers %}<div class="meta" style="margin-top:5px;"><a href="{{ tender.bm_manual_suppliers.url }}" target="_blank" style="color:#5fd68a;">View Uploaded Suppliers</a></div>{% endif %}
     </div>
   </details>
 
-  <div class="card" style="border-color:#8f99b0; margin-top:20px;">
-    <div class="meta" style="margin-bottom:10px;">MANUAL UPLOAD (If AI fails)</div>
-    <p class="meta" style="font-size:11px; margin-bottom:10px;">Upload your compiled strategy, brand list, or supplier list as a PDF.</p>
-    {% if tender.bm_manual_upload %}
-      <div class="meta" style="color:#5fd68a; margin-bottom:10px;">File Uploaded: <a href="{{ tender.bm_manual_upload.url }}" target="_blank" style="color:#4cc7e8;">Download</a></div>
-    {% endif %}
-    <input type="file" name="manual_file" style="color:#c8cfdd; margin-bottom:15px;">
-  </div>
+
 
   <button class="btn btn-grey wide" name="action" value="manual_save" style="margin-top:20px;">💾 Save Manual Edits & Uploads</button>
 </form>
