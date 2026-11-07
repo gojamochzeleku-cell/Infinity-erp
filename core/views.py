@@ -25,7 +25,10 @@ class InfinityLoginView(LoginView):
         return response
         
     def get_success_url(self):
-        # Force the app to ALWAYS go to the company selector after login
+        # If SuperAdmin, go straight to SaaS Portal. Otherwise, select company.
+        emp = getattr(self.request.user, 'employee', None)
+        if emp and emp.role == 'SUPERADMIN':
+            return str(reverse('saas_dashboard'))
         return str(reverse('select_company'))
 
 def home(request):
@@ -35,6 +38,10 @@ def home(request):
 
 @login_required
 def select_company(request):
+    emp = getattr(request.user, 'employee', None)
+    if emp and emp.role == 'SUPERADMIN':
+        return redirect('saas_dashboard')
+        
     companies = Company.objects.filter(is_active=True)
     if request.method == 'POST':
         cid = request.POST.get('company_id')
@@ -73,7 +80,7 @@ def dashboard(request):
     }
 
     # EXECUTIVE ROUTING
-    if emp.role in ('CEO', 'GM', 'ADMIN'):
+    if emp.role in ('CEO', 'GM', 'ADMIN', 'SUPERADMIN'):
         # Filter for tasks that strictly require Executive approval/action
         approval_codes = ['T03', 'T06', 'T12', 'T16', 'I03', 'I08', 'I16', 'CEO_EXPENSE', 'GM_AGENT_APPROVED', 'GM_LEAVE']
         

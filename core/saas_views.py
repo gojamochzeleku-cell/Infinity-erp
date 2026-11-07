@@ -11,6 +11,10 @@ def saas_dashboard(request):
     emp = getattr(request.user, 'employee', None)
     if not emp or emp.role != 'SUPERADMIN':
         return redirect('dashboard')
+    
+    # Clear company session so they see the global SaaS view, not a specific company
+    if 'company_id' in request.session:
+        del request.session['company_id']
 
     # Gather Global SaaS Metrics
     companies = Company.objects.all()
