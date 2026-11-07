@@ -176,6 +176,8 @@ def task_action(request, pk):
             if tender and act == 'complete':
                 if 'purchased_bid_document' in request.FILES:
                     tender.purchased_bid_document = request.FILES['purchased_bid_document']
+                    tender.bid_document_uploaded_at = timezone.now()
+                    tender.bid_document_purged = False
                     tender.save()
                     register_document(tender, tender.purchased_bid_document, 'Purchased Bid Document', emp, 'TENDER')
                 task.status = 'COMPLETED'
@@ -315,6 +317,8 @@ def task_action(request, pk):
             if tender and act == 'complete':
                 if 'purchased_bid_document' in request.FILES:
                     tender.purchased_bid_document = request.FILES['purchased_bid_document']
+                    tender.bid_document_uploaded_at = timezone.now()
+                    tender.bid_document_purged = False
                     tender.save()
                     register_document(tender, tender.purchased_bid_document, 'Purchased Bid Document', emp, 'TENDER')
                 task.status = 'COMPLETED'

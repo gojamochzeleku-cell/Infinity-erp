@@ -311,3 +311,24 @@ def _initial(t):
         'bid_submission_date': t.bid_submission_date.isoformat() if t.bid_submission_date else '',
         'bid_opening_date': t.bid_opening_date.isoformat() if t.bid_opening_date else '',
     }
+
+@login_required
+def reupload_bid_document(request, pk):
+    company = getattr(request, 'company', None)
+    tender = get_object_or_404(Tender, pk=pk, company=company)
+    emp = getattr(request.user, 'employee', None)
+
+    if not emp or emp.role not in ('OFFICE', 'ADMIN'):
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        if 'purchased_bid_document' in request.FILES:
+            tender.purchased_bid_document = request.FILES['purchased_bid_document']
+            tender.bid_document_uploaded_at = timezone.now()
+            tender.bid_document_purged = False
+            tender.save()
+            log_action(emp, 'RE_UPLOAD_DOC', f'Re-uploaded bid doc for {tender.serial_number}', 'Tender', tender.id, company)
+            messages.success(request, 'Bid Document re-uploaded successfully! The Bid Manager can now run the AI analysis.')
+            return redirect('tender_detail', pk=tender.id)
+
+    return render(request, 'reupload_doc.html', {'tender': tender})

@@ -220,6 +220,8 @@ class Tender(models.Model):
     total_cost = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     receipt = models.FileField(upload_to='tenders/receipts/', blank=True, null=True)
     purchased_bid_document = models.FileField(upload_to='tenders/bid_docs/', blank=True, null=True)
+    bid_document_purged = models.BooleanField(default=False)
+    bid_document_uploaded_at = models.DateTimeField(null=True, blank=True)
 
 
     final_docs_uploaded = models.FileField(upload_to='tenders/final_docs/', blank=True, null=True)

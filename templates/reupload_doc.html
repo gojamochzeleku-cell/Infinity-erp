@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Re-Upload Bid Document</h2>
+<div class="card" style="border-color:#e2504a;">
+  <p class="meta" style="margin-bottom:15px;">The bid document for <strong>{{ tender.serial_number }}</strong> was purged from the cloud to save storage. Upload it again from your local backup so the Bid Manager can run the AI analysis.</p>
+  
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <label class="meta">Upload Bid Document (PDF)</label>
+    <input type="file" name="purchased_bid_document" required style="color:#c8cfdd; margin-bottom:15px;">
+    <button class="btn btn-green wide" type="submit">Re-Upload Document</button>
+    <a class="btn btn-grey wide" href="{% url 'tender_detail' tender.id %}" style="margin-top:5px;">Cancel</a>
+  </form>
+</div>
+{% endblock %}
