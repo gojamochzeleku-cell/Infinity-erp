@@ -57,7 +57,7 @@ def legal_list(request):
         
     employees = Employee.objects.all()
     tenders = Tender.objects.filter(company=company)
-    return render(request, 'legal_list.html', {'cases': cases, 'employees': employees, 'tenders': tenders})
+    return render(request, 'legal_list.html', {'cases': cases, 'employees': employees, 'tenders': tenders, 'today': timezone.now().date()})
 
 @login_required
 def assign_bid_tracker(request, pk):

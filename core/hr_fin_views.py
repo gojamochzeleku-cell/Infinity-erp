@@ -159,7 +159,12 @@ def employee_profile(request, pk):
             
         return redirect('employee_profile', pk=emp.pk)
 
-    return render(request, 'employee_profile.html', {'target_emp': emp, 'company': company})
+    from django.db.models import Avg
+    reviews = emp.reviews.all()
+    avg_rating = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
+    avg_rating = round(avg_rating, 1)
+    
+    return render(request, 'employee_profile.html', {'target_emp': emp, 'company': company, 'avg_rating': avg_rating})
 
 @login_required
 def generate_payroll(request):

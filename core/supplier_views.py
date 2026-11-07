@@ -59,11 +59,13 @@ def supplier_upload(request, token):
         if bid_manager:
             task = Task.objects.create(
                 code='T10_REVIEW', title=f'Review Supplier Docs: {tender.bid_title}',
-                description=f'Supplier {company_name} uploaded new documents via the portal.',
+                description=f'Supplier {company_name} uploaded new documents via the portal. Proforma is ready.',
                 kind='CHAIN', company=tender.company, assigned_to=bid_manager,
                 payload={'tender_id': tender.id}
             )
-            notify(bid_manager, 'Supplier Uploaded Docs', f'{company_name} uploaded files for {tender.serial_number}', task)
+            notify(bid_manager, f'Supplier Proforma Received: {company_name}', 
+                   f'Supplier {company_name} uploaded documents for {tender.serial_number}.',
+                   task)
             
         log_action(None, 'SUPPLIER_UPLOAD', f'{company_name} uploaded files for {tender.serial_number}', 'Tender', tender.id, tender.company)
 
