@@ -1,9 +1,11 @@
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
-from . import views, tender_views, history_views, pricing_views, assembly_views, war_room_views, repair_views, cover_sheet_views, pwa_views, supplier_views, filing_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
+from . import views, tender_views, storage_views, history_views, pricing_views, assembly_views, war_room_views, repair_views, cover_sheet_views, pwa_views, supplier_views, filing_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
 
 urlpatterns = [
+    path('storage/', storage_views.storage_dashboard, name='storage_dashboard'),
+    path('tenders/<int:pk>/archive/', storage_views.archive_tender_files, name='archive_tender'),
     path('task-history/', history_views.task_history, name='task_history'),
     path('tenders/<int:pk>/pricing/', pricing_views.ceo_pricing, name='ceo_pricing'),
     path('tenders/<int:pk>/assembly/', assembly_views.bid_operator_workspace, name='bid_operator_workspace'),

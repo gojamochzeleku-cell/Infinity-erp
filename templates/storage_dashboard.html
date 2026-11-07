@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Storage Manager{% endblock %}
+{% block content %}
+<h2>💾 Storage Manager</h2>
+<p class="meta" style="margin-bottom:20px;">Monitor your Cloudflare R2 free tier usage (10GB limit).</p>
+
+<div class="card" style="text-align:center; border-color:#4cc7e8; margin-bottom:20px;">
+  <div class="meta" style="font-size:11px;">TOTAL STORAGE USED</div>
+  <div style="font-size:36px; font-weight:bold; color:#4cc7e8;">{{ total_mb }} MB</div>
+  <div class="meta" style="font-size:12px;">Across {{ total_files }} files</div>
+</div>
+
+<h3 style="font-size:14px; color:#e8b64c; margin-bottom:10px;">Top 10 Largest Files</h3>
+{% for doc, size in largest_files %}
+  <div class="card" style="padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <div style="font-size:13px; font-weight:bold; color:#fff;">{{ doc.title }}</div>
+      <div class="meta" style="font-size:11px;">{{ doc.doc_id }}</div>
+    </div>
+    <div style="font-size:13px; font-weight:bold; color:#e2504a;">
+      {{ size|filesizeformat }}
+    </div>
+  </div>
+{% empty %}
+  <p class="empty">No files uploaded yet.</p>
+{% endfor %}
+
+<div class="card" style="border-color:#5fd68a; margin-top:20px;">
+  <div class="meta" style="color:#5fd68a; margin-bottom:5px;">HOW TO FREE UP SPACE</div>
+  <p class="meta" style="font-size:12px; line-height:1.5;">
+    1. Go to a **Completed** Tender.<br>
+    2. Click **Archive Files**.<br>
+    3. The system will download a `.zip` file to your phone.<br>
+    4. Once safe, you can safely delete the heavy PDFs from the cloud.
+  </p>
+</div>
+{% endblock %}

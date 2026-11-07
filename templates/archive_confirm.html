@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Archive Tender Files</h2>
+<div class="card" style="border-color:#e8b64c;">
+  <div style="font-size:16px; font-weight:bold; color:#fff;">{{ tender.serial_number }}</div>
+  <div class="meta" style="margin-bottom:15px;">{{ tender.bid_title }}</div>
+
+  <p class="meta" style="font-size:13px; margin-bottom:20px;">
+    Clicking the button below will bundle all PDFs related to this tender (Bid Docs, Receipts, CPOs, Agreements) into a single `.zip` file and download it to your phone. 
+    <br><br>
+    <strong style="color:#e2504a;">Important:</strong> After downloading, you can safely delete the physical PDFs from the cloud to save space. The ERP will keep the digital record (Doc ID and QR Code) so you know where the paper is filed.
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn btn-green wide" type="submit">📦 Download ZIP Archive</button>
+    <a class="btn btn-grey wide" href="{% url 'tender_detail' tender.id %}" style="margin-top:5px;">Cancel</a>
+  </form>
+</div>
+{% endblock %}

@@ -335,6 +335,7 @@ class Document(models.Model):
     file = models.FileField(upload_to='documents/')
     tender = models.ForeignKey(Tender, null=True, blank=True, on_delete=models.SET_NULL)
     uploaded_by = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL)
+    file_hash = models.CharField(max_length=64, blank=True, help_text='SHA-256 hash to prevent duplicate storage')
     
     # Standard Filing System Hierarchy
     room = models.CharField(max_length=100, blank=True, help_text="e.g., Main Archive Room")
