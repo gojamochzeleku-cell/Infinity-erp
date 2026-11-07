@@ -4,6 +4,7 @@ from django.urls import path
 from . import views, tender_views, qr_views, storage_views, storage_views, history_views, pricing_views, assembly_views, war_room_views, repair_views, cover_sheet_views, pwa_views, supplier_views, filing_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
 
 urlpatterns = [
+    path('tenders/<int:pk>/lots/<int:lot_id>/pricing/', pricing_views.ceo_lot_pricing, name='ceo_lot_pricing'),
     path('tenders/<int:pk>/lots/<int:lot_id>/assemble/', assembly_views.lot_assembly, name='lot_assembly'),
     path('documents/<int:pk>/qr/', qr_views.generate_qr_code, name='generate_qr_code'),
     path('library/<int:pk>/delete/', resource_views.resource_delete, name='resource_delete'),
@@ -11,7 +12,6 @@ urlpatterns = [
     path('storage/', storage_views.storage_dashboard, name='storage_dashboard'),
     path('tenders/<int:pk>/archive/', storage_views.archive_tender_files, name='archive_tender'),
     path('task-history/', history_views.task_history, name='task_history'),
-    path('tenders/<int:pk>/pricing/', pricing_views.ceo_pricing, name='ceo_pricing'),
     path('tenders/<int:pk>/war-room/', war_room_views.war_room, name='war_room'),
     path('tenders/<int:pk>/war-room/pdf/', war_room_views.download_war_room_pdf, name='war_room_pdf'),
     path('it/repair-chain/', repair_views.repair_chain, name='repair_chain'),
