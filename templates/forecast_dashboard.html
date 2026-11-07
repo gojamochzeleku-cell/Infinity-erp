@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Cash Flow Forecast{% endblock %}
+{% block content %}
+<h2 style="color:#4cc7e8;">📈 Cash Flow Forecast</h2>
+<p class="meta" style="margin-bottom:20px;">Predictive Financial Health for the coming month.</p>
+
+<div class="card" style="text-align:center; border-color:{% if health_score > 70 %}#5fd68a{% elif health_score > 40 %}#e8b64c{% else %}#e2504a{% endif %}; margin-bottom:20px;">
+  <div class="meta" style="font-size:11px;">COMPANY HEALTH SCORE</div>
+  <div style="font-size:48px; font-weight:900; color:{% if health_score > 70 %}#5fd68a{% elif health_score > 40 %}#e8b64c{% else %}#e2504a{% endif %};">{{ health_score }}/100</div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
+  <div class="card" style="text-align:center; padding:15px; border-top:3px solid #fff;">
+    <div class="meta" style="font-size:10px;">CURRENT CASH</div>
+    <div style="font-size:18px; font-weight:bold; color:#fff;">{{ current_cash|floatformat:2 }}</div>
+  </div>
+  <div class="card" style="text-align:center; padding:15px; border-top:3px solid {% if projected_cash > current_cash %}#5fd68a{% else %}#e2504a{% endif %};">
+    <div class="meta" style="font-size:10px;">PROJECTED CASH</div>
+    <div style="font-size:18px; font-weight:bold; color:{% if projected_cash > current_cash %}#5fd68a{% else %}#e2504a{% endif %};">{{ projected_cash|floatformat:2 }}</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:20px;">
+  <div class="meta" style="color:#e8b64c; margin-bottom:10px;">PIPELINE IMPACT ({{ active_tenders_count }} Active Tenders)</div>
+  <div class="kv"><span class="k">Expected Inflows (Revenue)</span><span class="v" style="color:#5fd68a;">+ {{ pending_inflow|floatformat:2 }} ETB</span></div>
+  <div class="kv"><span class="k">Expected Outflows (Landed Cost)</span><span class="v" style="color:#e2504a;">- {{ pending_outflow|floatformat:2 }} ETB</span></div>
+</div>
+
+{% if overdue_receivables %}
+<div class="card" style="border-color:#e2504a; margin-bottom:20px;">
+  <div class="meta" style="color:#e2504a; margin-bottom:10px;">⚠️ OVERDUE RECEIVABLES (30+ Days)</div>
+  {% for r in overdue_receivables %}
+    <div class="kv">
+      <span class="k">{{ r.tender.serial_number }}</span>
+      <span class="v" style="color:#e2504a; font-weight:bold;">{{ r.amount|floatformat:2 }} ETB</span>
+    </div>
+  {% endfor %}
+  <p class="meta" style="font-size:11px; margin-top:10px;">Contact these customers immediately to collect payment.</p>
+</div>
+{% endif %}
+
+<a class="btn btn-grey wide" href="{% url 'mgmt_dashboard' %}">Back to Dashboard</a>
+{% endblock %}
