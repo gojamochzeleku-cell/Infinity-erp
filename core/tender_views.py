@@ -1,3 +1,5 @@
+import threading
+from django.db import connection
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
@@ -48,6 +50,28 @@ def tender_list(request):
         'org_choices': Tender.ORG_TYPE_CHOICES
     })
 
+
+def run_ai_extraction(tender_id):
+    try:
+        tender = Tender.objects.get(id=tender_id)
+        result = extract_tender_from_pdf(tender.bid_information_sheet)
+        
+        if 'error' in result:
+            tender.ai_status = 'FAILED'
+            tender.ai_error = result['error']
+        else:
+            _apply(tender, result['data'])
+            tender.ai_extracted = True
+            tender.ai_status = 'DONE'
+        tender.save()
+    except Exception as e:
+        tender = Tender.objects.get(id=tender_id)
+        tender.ai_status = 'FAILED'
+        tender.ai_error = str(e)
+        tender.save()
+    finally:
+        connection.close() # Crucial for background threads in Django
+
 @login_required
 def tender_register(request):
     emp, company = _emp(request), _co(request)
@@ -64,30 +88,20 @@ def tender_register(request):
             if pdf_file is None:
                 errors.append('Choose the bid information sheet PDF first.')
             else:
-                try:
-                    # Pass the file object directly, NOT the path
-                    result = extract_tender_from_pdf(pdf_file)
-                    
-                    if 'error' in result:
-                        messages.error(request, 'AI failed: %s. Fill the form manually.' % result['error'])
-                        temp = Tender(company=company, registered_by=emp, status='DRAFT', **{k: v for k, v in form_data.items() if v not in (None, '')})
-                        temp.bid_information_sheet = pdf_file
-                        temp.save()
-                        return redirect('tender_edit', pk=temp.id)
-                    else:
-                        temp = Tender(company=company, registered_by=emp, status='DRAFT', **{k: v for k, v in form_data.items() if v not in (None, '')})
-                        temp.bid_information_sheet = pdf_file
-                        temp.save()
-                        _apply(temp, result['data'])
-                        temp.ai_extracted = True
-                        temp.save()
-                        messages.success(request, 'AI extracted the fields. Review and submit.')
-                        return redirect('tender_edit', pk=temp.id)
-                except Exception as e:
-                    errors.append(f'System Error during AI extraction: {str(e)}')
+                temp = Tender(company=company, registered_by=emp, status='DRAFT', **{k: v for k, v in form_data.items() if v not in (None, '')})
+                temp.bid_information_sheet = pdf_file
+                temp.ai_status = 'PROCESSING'
+                temp.save()
+                
+                # Start background thread
+                threading.Thread(target=run_ai_extraction, args=(temp.id,)).start()
+                
+                messages.info(request, 'AI is analyzing the document. This page will refresh automatically.')
+                return redirect('tender_edit', pk=temp.id)
 
         elif action in ('save_draft', 'submit'):
             form_data['status'] = 'REGISTERED' if action == 'submit' else 'DRAFT'
+            form_data['ai_status'] = 'PENDING'
             try:
                 tender = Tender(company=company, registered_by=emp, **form_data)
                 if pdf_file:
@@ -121,24 +135,18 @@ def tender_edit(request, pk):
         if action == 'extract':
             if pdf_file:
                 tender.bid_information_sheet = pdf_file
-                tender.save()
             if not tender.bid_information_sheet:
                 messages.error(request, 'Upload a PDF first.')
                 return redirect('tender_edit', pk=tender.id)
             
-            try:
-                # CRITICAL FIX: Pass the file object directly (tender.bid_information_sheet), NOT .path
-                result = extract_tender_from_pdf(tender.bid_information_sheet)
-                if 'error' in result:
-                    messages.error(request, 'AI failed: %s' % result['error'])
-                else:
-                    _apply(tender, result['data'])
-                    tender.ai_extracted = True
-                    tender.save()
-                    messages.success(request, 'AI extracted fields. Review and submit.')
-            except Exception as e:
-                messages.error(request, 'System Error during AI extraction: %s' % str(e))
-                
+            tender.ai_status = 'PROCESSING'
+            tender.ai_error = ''
+            tender.save()
+            
+            # Start background thread
+            threading.Thread(target=run_ai_extraction, args=(tender.id,)).start()
+            
+            messages.info(request, 'AI is analyzing the document. Please wait...')
             return redirect('tender_edit', pk=tender.id)
 
         form_data = _collect(request)

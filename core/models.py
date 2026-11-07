@@ -176,6 +176,8 @@ class Tender(models.Model):
     bid_opening_date = models.DateField(null=True, blank=True)
     bid_information_sheet = models.FileField(upload_to='tenders/info_sheets/', blank=True, null=True)
     ai_extracted = models.BooleanField(default=False)
+    ai_status = models.CharField(max_length=20, default='PENDING')
+    ai_error = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
     registered_by = models.ForeignKey(Employee, null=True, blank=True,
                                       on_delete=models.SET_NULL, related_name='registered_tenders')

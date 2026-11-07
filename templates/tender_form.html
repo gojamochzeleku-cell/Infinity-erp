@@ -1,6 +1,29 @@
 {% extends 'base.html' %}
 {% block title %}{% if is_new %}Register Tender{% else %}Edit Tender{% endif %}{% endblock %}
 {% block content %}
+
+{% if tender.ai_status == 'PROCESSING' %}
+<div id="ai-overlay" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(15,17,21,0.95); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; text-align:center; padding:20px;">
+  <div class="spinner" style="width:50px; height:50px; border-width:4px; margin-bottom:20px;"></div>
+  <h2 style="color:#4cc7e8; margin-bottom:10px;">AI is Reading the Document...</h2>
+  <p class="meta" style="font-size:14px;">Google Gemini is analyzing the PDF. This usually takes 15-30 seconds.</p>
+  <p class="meta" style="font-size:12px; margin-top:20px;">Do not close this page. It will refresh automatically.</p>
+</div>
+<script>
+    setTimeout(function() {
+        window.location.reload();
+    }, 5000); // Refresh every 5 seconds
+</script>
+{% endif %}
+
+{% if tender.ai_status == 'FAILED' %}
+<div class="card" style="border-color:#e2504a; background:#2a1515; margin-bottom:20px;">
+  <div style="color:#ff9b96; font-size:13px; font-weight:bold; margin-bottom:5px;">AI Extraction Failed</div>
+  <div style="color:#8f99b0; font-size:12px;">{{ tender.ai_error }}</div>
+  <p class="meta" style="font-size:11px; margin-top:10px;">Please fill the form manually below.</p>
+</div>
+{% endif %}
+
 <h2>{% if is_new %}Register Tender (T01){% else %}Edit {{ tender.serial_number }}{% endif %}</h2>
 {% if errors %}<div class="card" style="border-color:#7a2a2a;background:#2a1515">
   {% for e in errors %}<div style="color:#ff9b96;font-size:13px">{{ e }}</div>{% endfor %}
