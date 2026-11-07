@@ -260,5 +260,112 @@ input[type=text],input[type=password],input[type=number],input[type=date],select
         }
     </script>
     
+
+<!-- GLOBAL FILE UPLOAD PROGRESS ENGINE -->
+<style>
+  #upload-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(10, 15, 25, 0.95); z-index: 99999;
+      flex-direction: column; align-items: center; justify-content: center;
+      color: #fff; padding: 30px; text-align: center; backdrop-filter: blur(5px);
+  }
+  .progress-container {
+      width: 100%; max-width: 300px; background: #232838;
+      border-radius: 20px; overflow: hidden; height: 20px; margin: 20px 0;
+      border: 1px solid #333a4d;
+  }
+  .progress-bar {
+      height: 100%; width: 0%; background: linear-gradient(90deg, #4cc7e8, #5fd68a);
+      transition: width 0.2s ease; border-radius: 20px;
+  }
+  .progress-text { font-size: 24px; font-weight: bold; color: #4cc7e8; }
+  .progress-sub { font-size: 12px; color: #8f99b0; margin-top: 10px; }
+  .progress-success { color: #5fd68a !important; }
+</style>
+
+<div id="upload-overlay">
+    <div style="font-size: 40px; margin-bottom: 20px;">📤</div>
+    <div class="progress-text" id="progress-percent">0%</div>
+    <div class="progress-container">
+        <div class="progress-bar" id="progress-bar-fill"></div>
+    </div>
+    <div class="progress-sub" id="progress-status">Uploading secure files to cloud...</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('form');
+    
+    forms.forEach(form => {
+        // Only intercept forms that have file inputs
+        const fileInput = form.querySelector('input[type="file"]');
+        if (!fileInput) return;
+
+        form.addEventListener('submit', function(e) {
+            // Prevent default submission to handle via AJAX
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const xhr = new XMLHttpRequest();
+            const overlay = document.getElementById('upload-overlay');
+            const bar = document.getElementById('progress-bar-fill');
+            const percentText = document.getElementById('progress-percent');
+            const statusText = document.getElementById('progress-status');
+
+            // Show overlay
+            overlay.style.display = 'flex';
+            bar.style.width = '0%';
+            percentText.innerText = '0%';
+            percentText.classList.remove('progress-success');
+            statusText.innerText = 'Uploading secure files to cloud...';
+
+            // Track Upload Progress
+            xhr.upload.addEventListener('progress', function(evt) {
+                if (evt.lengthComputable) {
+                    const percent = Math.round((evt.loaded / evt.total) * 100);
+                    bar.style.width = percent + '%';
+                    percentText.innerText = percent + '%';
+                }
+            });
+
+            // When Upload is complete, wait for server to process
+            xhr.addEventListener('load', function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    percentText.innerText = '✅ 100%';
+                    percentText.classList.add('progress-success');
+                    statusText.innerText = 'Upload complete! Processing...';
+                    bar.style.width = '100%';
+                    
+                    // If the server sends a redirect, follow it
+                    if (xhr.responseURL) {
+                        window.location.href = xhr.responseURL;
+                    } else {
+                        window.location.reload();
+                    }
+                } else {
+                    statusText.innerText = '❌ Upload failed. Please try again.';
+                    setTimeout(() => { overlay.style.display = 'none'; }, 2000);
+                }
+            });
+
+            xhr.addEventListener('error', function() {
+                statusText.innerText = '❌ Network error occurred.';
+                setTimeout(() => { overlay.style.display = 'none'; }, 2000);
+            });
+
+            xhr.open('POST', form.action || window.location.href, true);
+            
+            // Add CSRF token if present
+            const csrfInput = form.querySelector('input[name="csrfmiddlewaretoken"]');
+            if (csrfInput) {
+                xhr.setRequestHeader('X-CSRFToken', csrfInput.value);
+            }
+
+            xhr.send(formData);
+        });
+    });
+});
+</script>
+
 </body>
 </html>
