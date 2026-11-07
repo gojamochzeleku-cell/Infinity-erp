@@ -451,6 +451,7 @@ class CompanyResource(models.Model):
     title = models.CharField(max_length=200)
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='OTHER')
     file = models.FileField(upload_to='resources/')
+    file_size = models.BigIntegerField(default=0, help_text='File size in bytes')
     uploaded_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

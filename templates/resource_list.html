@@ -1,9 +1,29 @@
 {% extends 'base.html' %}
 {% block title %}Resource Library{% endblock %}
 {% block content %}
+
+{% if messages %}
+  {% for m in messages %}
+    <div class="card" style="padding:10px; margin-bottom:15px; font-size:12px; background:{% if m.tags == 'error' %}#2a1515{% else %}#152a1c{% endif %}; color:{% if m.tags == 'error' %}#ff9b96{% else %}#5fd68a{% endif %};">
+      {{ m }}
+    </div>
+  {% endfor %}
+{% endif %}
+
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
   <h2>Resource Library</h2>
   <a class="btn btn-green" href="{% url 'resource_upload' %}" style="padding:8px 12px; font-size:12px;">+ Upload</a>
+</div>
+
+<!-- QUOTA BAR -->
+<div class="card" style="padding:15px; margin-bottom:20px; border-color:{% if usage_percent > 90 %}#e2504a{% else %}#4cc7e8{% endif %};">
+  <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+    <span class="meta" style="font-size:11px;">MY STORAGE QUOTA</span>
+    <span style="font-size:11px; font-weight:bold; color:{% if usage_percent > 90 %}#e2504a{% else %}#4cc7e8{% endif %};">{{ user_usage_mb }} MB / 500 MB</span>
+  </div>
+  <div style="width:100%; background:#0f1115; height:10px; border-radius:10px; overflow:hidden;">
+    <div style="width:{{ usage_percent }}%; background:{% if usage_percent > 90 %}#e2504a{% else %}#4cc7e8{% endif %}; height:100%;"></div>
+  </div>
 </div>
 
 <div style="margin-bottom:15px; display:flex; gap:8px; overflow-x:auto; padding-bottom:5px;">
@@ -21,7 +41,17 @@
     </div>
     <div class="ttl">{{ r.title }}</div>
     <div class="meta" style="margin-bottom:10px;">Uploaded by: {{ r.uploaded_by.full_name }}</div>
-    <a class="btn btn-grey" href="{{ r.file.url }}" target="_blank">Download File</a>
+    
+    <div style="display:flex; gap:10px;">
+      <a class="btn btn-grey" href="{{ r.file.url }}" target="_blank" style="flex:1; margin:0; text-align:center;">Download File</a>
+      
+      {% if user.employee == r.uploaded_by or user.employee.role in 'ADMIN,CEO' %}
+      <form method="post" action="{% url 'resource_delete' r.id %}" style="margin:0; flex:1;" onsubmit="return confirm('Delete this file to free up space?');">
+        {% csrf_token %}
+        <button class="btn btn-red" type="submit" style="width:100%; margin:0;">🗑️ Delete</button>
+      </form>
+      {% endif %}
+    </div>
   </div>
 {% empty %}
   <p class="empty">No resources uploaded yet.</p>

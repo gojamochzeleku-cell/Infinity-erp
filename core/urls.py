@@ -4,6 +4,7 @@ from django.urls import path
 from . import views, tender_views, storage_views, storage_views, history_views, pricing_views, assembly_views, war_room_views, repair_views, cover_sheet_views, pwa_views, supplier_views, filing_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
 
 urlpatterns = [
+    path('library/<int:pk>/delete/', resource_views.resource_delete, name='resource_delete'),
     path('tenders/<int:pk>/reupload-doc/', tender_views.reupload_bid_document, name='reupload_bid_document'),
     path('storage/', storage_views.storage_dashboard, name='storage_dashboard'),
     path('tenders/<int:pk>/archive/', storage_views.archive_tender_files, name='archive_tender'),
