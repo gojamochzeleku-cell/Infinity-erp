@@ -576,6 +576,7 @@ class Supplier(models.Model):
     email = models.EmailField(blank=True)
     rating = models.IntegerField(default=5, help_text="1 to 5 stars")
     notes = models.TextField(blank=True)
+    supplier_rating = models.PositiveIntegerField(default=5, help_text='1 to 5 stars')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -608,6 +609,7 @@ class InventoryItem(models.Model):
     qty_received = models.IntegerField(default=0)
     condition = models.CharField(max_length=20, choices=STATUS_CHOICES, default='GOOD')
     notes = models.TextField(blank=True)
+    supplier_rating = models.PositiveIntegerField(default=5, help_text='1 to 5 stars')
 
     def __str__(self):
         return f"{self.item_name} ({self.qty_received}/{self.qty_expected})"

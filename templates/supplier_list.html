@@ -22,6 +22,7 @@
       <span>{% if s.rating >= 4 %}⭐⭐⭐⭐⭐{% elif s.rating == 3 %}⭐⭐⭐{% else %}⭐{% endif %}</span>
     </div>
     <div class="meta">Contact: {{ s.contact_person|default:"-" }} | {{ s.phone|default:"-" }}</div>
+    <div class="meta" style="font-size:11px; color:#5fd68a;">Rating: {{ s.supplier_rating }}/5 ⭐</div>
   </div>
 {% empty %}
   <p class="empty">No suppliers registered.</p>

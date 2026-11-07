@@ -274,3 +274,43 @@ def parse_war_room_output(text):
     return result
 
 
+
+
+def predict_winning_price(tender, historical_context):
+    """Uses Gemini to suggest a winning price based on history."""
+    key = _api_key()
+    if not key:
+        return "API key missing."
+
+    prompt = f"""You are a strategic pricing AI for Infinity Investment Institute.
+Analyze the following tender details and historical company data to suggest a winning bid price.
+
+--- TENDER DETAILS ---
+Title: {tender.bid_title}
+Purchaser: {tender.purchaser_name}
+CPO Amount: {tender.cpo_amount}
+Our Total Landed Cost (Estimate): {tender.total_cost}
+
+--- HISTORICAL CONTEXT ---
+{historical_context}
+
+--- INSTRUCTIONS ---
+Provide a short, professional analysis:
+1. Suggest a winning price range.
+2. Explain the reasoning based on past wins/losses.
+3. Warn if the profit margin is too thin.
+"""
+    body = {'contents': [{'parts': [{'text': prompt}]}]}
+    
+    session = requests.Session()
+    headers = {'User-Agent': 'Mozilla/5.0 (Linux; Android 10)'}
+    
+    for model in MODELS_TO_TRY:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        try:
+            r = session.post(url, params={'key': key}, json=body, headers=headers, timeout=60)
+            if r.status_code == 200:
+                return r.json()['candidates'][0]['content']['parts'][0]['text']
+        except:
+            continue
+    return "AI is currently busy. Please try again."
