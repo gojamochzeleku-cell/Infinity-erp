@@ -93,18 +93,30 @@ def _send_to_gemini(file_obj, prompt):
         return "GEMINI_API_KEY not set. Edit Render Environment Variables."
     
     try:
-        raw = _get_file_bytes(file_obj)
-        # Check file size (Max 4MB to prevent Render Free Tier OOM crash)
-        if len(raw) > 4 * 1024 * 1024:
-            return "Error: The PDF is too large for AI extraction (Max 4MB). Please compress the PDF or fill the form manually."
+        # 1. Try to compress the PDF locally
+        raw = compress_pdf_if_needed(file_obj, max_size_mb=3.5)
     except Exception as e:
         return str(e)
-        
-    b64 = base64.b64encode(raw).decode('ascii')
-    body = {
-        'contents': [{'parts': [{'text': prompt}, {'inline_data': {'mime_type': 'application/pdf', 'data': b64}}]}]
-    }
-    
+
+    # 2. If the file is UNDER 4MB, use inline data
+    if len(raw) <= 4 * 1024 * 1024:
+        b64 = base64.b64encode(raw).decode('ascii')
+        body = {
+            'contents': [{'parts': [{'text': prompt}, {'inline_data': {'mime_type': 'application/pdf', 'data': b64}}]}]
+        }
+    else:
+        # 3. If the file is OVER 4MB, use the Google File API
+        try:
+            uri, error = upload_to_google_file_api(raw, "tender_document.pdf")
+            if error:
+                return f"File API Error (File too large): {error}"
+                
+            body = {
+                'contents': [{'parts': [{'text': prompt}, {'file_data': {'mime_type': 'application/pdf', 'file_uri': uri}}]}]
+            }
+        except Exception as e:
+            return f"Failed to upload large file to Google: {str(e)}"
+
     session = requests.Session()
     retry = Retry(connect=3, read=3, backoff_factor=1, status_forcelist=[502, 504])
     session.mount('https://', adapter := HTTPAdapter(max_retries=retry))
@@ -116,10 +128,7 @@ def _send_to_gemini(file_obj, prompt):
         try:
             r = session.post(url, params={'key': key}, json=body, headers=headers, timeout=120)
             if r.status_code == 200:
-                try:
-                    return r.json()['candidates'][0]['content']['parts'][0]['text']
-                except (KeyError, IndexError):
-                    return "AI returned an unexpected format. Please try again." 
+                return r.json()['candidates'][0]['content']['parts'][0]['text']
             elif r.status_code in (404, 429, 503):
                 last_err = f"HTTP {r.status_code}"
                 continue
