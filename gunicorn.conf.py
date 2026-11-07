@@ -1,0 +1,4 @@
+# Gunicorn configuration
+timeout = 120
+workers = 2
+bind = "0.0.0.0:10000"

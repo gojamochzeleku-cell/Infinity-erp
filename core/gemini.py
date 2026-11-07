@@ -94,7 +94,7 @@ def _send_to_gemini(file_obj, prompt):
     for model in MODELS_TO_TRY:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         try:
-            r = session.post(url, params={'key': key}, json=body, headers=headers, timeout=15)
+            r = session.post(url, params={'key': key}, json=body, headers=headers, timeout=120)
             if r.status_code == 200:
                 try:
                     return r.json()['candidates'][0]['content']['parts'][0]['text']
