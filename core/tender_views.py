@@ -6,17 +6,14 @@ from django.urls import reverse
 from .gemini import extract_tender_from_pdf
 from .models import Tender
 from .services import log_action
-from .chain import create_task, register_document
+from .chain import create_task
 from dateutil import parser as date_parser
-
 
 def _emp(request):
     return getattr(request.user, 'employee', None)
 
-
 def _co(request):
     return getattr(request, 'company', None)
-
 
 @login_required
 def tender_list(request):
@@ -51,7 +48,6 @@ def tender_list(request):
         'org_choices': Tender.ORG_TYPE_CHOICES
     })
 
-
 @login_required
 def tender_register(request):
     emp, company = _emp(request), _co(request)
@@ -68,29 +64,27 @@ def tender_register(request):
             if pdf_file is None:
                 errors.append('Choose the bid information sheet PDF first.')
             else:
-                # 1. Pass the file directly to the AI (Bypasses R2 path issue)
-                result = extract_tender_from_pdf(pdf_file)
-                
-                if 'error' in result:
-                    messages.error(request, 'AI failed: %s. Fill the form manually.' % result['error'])
-                    # Create a blank draft so they can fill it manually
-                    temp = Tender(company=company, registered_by=emp, status='DRAFT',
-                                  **{k: v for k, v in form_data.items() if v not in (None, '')})
-                    temp.bid_information_sheet = pdf_file
-                    temp.save()
-                    return redirect('tender_edit', pk=temp.id)
-                else:
-                    # 2. AI succeeded. Create the draft and apply the data.
-                    temp = Tender(company=company, registered_by=emp, status='DRAFT',
-                                  **{k: v for k, v in form_data.items() if v not in (None, '')})
-                    temp.bid_information_sheet = pdf_file
-                    temp.save()
+                try:
+                    # Pass the file object directly, NOT the path
+                    result = extract_tender_from_pdf(pdf_file)
                     
-                    _apply(temp, result['data'])
-                    temp.ai_extracted = True
-                    temp.save()
-                    messages.success(request, 'AI extracted the fields. Review and submit.')
-                    return redirect('tender_edit', pk=temp.id)
+                    if 'error' in result:
+                        messages.error(request, 'AI failed: %s. Fill the form manually.' % result['error'])
+                        temp = Tender(company=company, registered_by=emp, status='DRAFT', **{k: v for k, v in form_data.items() if v not in (None, '')})
+                        temp.bid_information_sheet = pdf_file
+                        temp.save()
+                        return redirect('tender_edit', pk=temp.id)
+                    else:
+                        temp = Tender(company=company, registered_by=emp, status='DRAFT', **{k: v for k, v in form_data.items() if v not in (None, '')})
+                        temp.bid_information_sheet = pdf_file
+                        temp.save()
+                        _apply(temp, result['data'])
+                        temp.ai_extracted = True
+                        temp.save()
+                        messages.success(request, 'AI extracted the fields. Review and submit.')
+                        return redirect('tender_edit', pk=temp.id)
+                except Exception as e:
+                    errors.append(f'System Error during AI extraction: {str(e)}')
 
         elif action in ('save_draft', 'submit'):
             form_data['status'] = 'REGISTERED' if action == 'submit' else 'DRAFT'
@@ -99,11 +93,8 @@ def tender_register(request):
                 if pdf_file:
                     tender.bid_information_sheet = pdf_file
                 tender.save()
-                log_action(emp, 'TENDER_' + action.upper(), tender.bid_title,
-                           'Tender', tender.id, company)
+                log_action(emp, 'TENDER_' + action.upper(), tender.bid_title, 'Tender', tender.id, company)
                 if action == 'submit':
-                    if tender.bid_information_sheet:
-                        register_document(tender, tender.bid_information_sheet, 'Bid Information Sheet', emp)
                     _to_bid_manager(request, tender)
                     messages.success(request, 'Tender registered and sent to Bid Manager.')
                 else:
@@ -113,9 +104,7 @@ def tender_register(request):
                 errors.append('Could not save: %s' % e)
                 initial = form_data
 
-    return render(request, 'tender_form.html',
-                  {'initial': initial, 'errors': errors, 'is_new': True})
-
+    return render(request, 'tender_form.html', {'initial': initial, 'errors': errors, 'is_new': True})
 
 @login_required
 def tender_edit(request, pk):
@@ -128,6 +117,7 @@ def tender_edit(request, pk):
     if request.method == 'POST':
         action = request.POST.get('action', 'save_draft')
         pdf_file = request.FILES.get('bid_information_sheet')
+        
         if action == 'extract':
             if pdf_file:
                 tender.bid_information_sheet = pdf_file
@@ -135,14 +125,20 @@ def tender_edit(request, pk):
             if not tender.bid_information_sheet:
                 messages.error(request, 'Upload a PDF first.')
                 return redirect('tender_edit', pk=tender.id)
-            result = extract_tender_from_pdf(tender.bid_information_sheet.path)
-            if 'error' in result:
-                messages.error(request, 'AI failed: %s' % result['error'])
-            else:
-                _apply(tender, result['data'])
-                tender.ai_extracted = True
-                tender.save()
-                messages.success(request, 'AI extracted fields. Review and submit.')
+            
+            try:
+                # CRITICAL FIX: Pass the file object directly (tender.bid_information_sheet), NOT .path
+                result = extract_tender_from_pdf(tender.bid_information_sheet)
+                if 'error' in result:
+                    messages.error(request, 'AI failed: %s' % result['error'])
+                else:
+                    _apply(tender, result['data'])
+                    tender.ai_extracted = True
+                    tender.save()
+                    messages.success(request, 'AI extracted fields. Review and submit.')
+            except Exception as e:
+                messages.error(request, 'System Error during AI extraction: %s' % str(e))
+                
             return redirect('tender_edit', pk=tender.id)
 
         form_data = _collect(request)
@@ -154,18 +150,14 @@ def tender_edit(request, pk):
             tender.status = 'REGISTERED'
             tender.save()
             _to_bid_manager(request, tender)
-            log_action(emp, 'TENDER_REGISTERED', tender.bid_title,
-                       'Tender', tender.id, company)
+            log_action(emp, 'TENDER_REGISTERED', tender.bid_title, 'Tender', tender.id, company)
             messages.success(request, 'Sent to Bid Manager.')
             return redirect('tender_detail', pk=tender.id)
         tender.save()
         messages.success(request, 'Tender updated.')
         return redirect('tender_detail', pk=tender.id)
 
-    return render(request, 'tender_form.html',
-                  {'tender': tender, 'initial': _initial(tender),
-                   'errors': errors, 'is_new': False})
-
+    return render(request, 'tender_form.html', {'tender': tender, 'initial': _initial(tender), 'errors': errors, 'is_new': False})
 
 @login_required
 def tender_detail(request, pk):
@@ -174,7 +166,6 @@ def tender_detail(request, pk):
         return redirect('select_company')
     tender = get_object_or_404(Tender, pk=pk, company=company)
     return render(request, 'tender_detail.html', {'tender': tender})
-
 
 @login_required
 def tender_submit(request, pk):
@@ -186,25 +177,20 @@ def tender_submit(request, pk):
         tender.status = 'REGISTERED'
         tender.save()
         _to_bid_manager(request, tender)
-        log_action(emp, 'TENDER_REGISTERED', tender.bid_title,
-                   'Tender', tender.id, company)
+        log_action(emp, 'TENDER_REGISTERED', tender.bid_title, 'Tender', tender.id, company)
         messages.success(request, 'Sent to Bid Manager.')
     return redirect('tender_detail', pk=pk)
-
 
 def _to_bid_manager(request, tender):
     task = create_task(
         company=tender.company, code='T02', role='BIDM',
         title='Feasibility review: %s' % tender.bid_title,
         description='Review feasibility and press GO or NO-GO.',
-        payload={'tender_id': tender.id, 'serial': tender.serial_number,
-                 'reference': tender.bid_reference_number},
+        payload={'tender_id': tender.id, 'serial': tender.serial_number, 'reference': tender.bid_reference_number},
         action_url=reverse('tender_detail', args=[tender.id]),
     )
     if task is None:
         messages.warning(request, 'No Bid Manager in this company. Add one in /admin/.')
-
-
 
 def _safe_date(val):
     if not val:
@@ -215,7 +201,6 @@ def _safe_date(val):
         return None
 
 def _collect(request):
-
     def v(n):
         x = request.POST.get(n, '').strip()
         return x or None
@@ -244,7 +229,6 @@ def _collect(request):
         'bid_opening_date': _safe_date(v('bid_opening_date')),
     }
 
-
 def _apply(tender, data):
     def pick(name, allowed):
         val = data.get(name)
@@ -268,8 +252,7 @@ def _apply(tender, data):
         picked = pick(field, allowed)
         if picked:
             setattr(tender, field, picked)
-    for field in ('bidder_location', 'contact_phone', 'account_holder_name',
-                  'bank_name', 'bank_account_number'):
+    for field in ('bidder_location', 'contact_phone', 'account_holder_name', 'bank_name', 'bank_account_number'):
         if data.get(field):
             setattr(tender, field, str(data[field])[:200])
     for field in ('published_date', 'bid_submission_date', 'bid_opening_date'):
@@ -281,7 +264,6 @@ def _apply(tender, data):
                 setattr(tender, field, str(data[field]).replace(',', ''))
             except Exception:
                 pass
-
 
 def _initial(t):
     return {
