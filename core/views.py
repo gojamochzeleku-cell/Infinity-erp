@@ -183,7 +183,12 @@ def task_action(request, pk):
                 task.status = 'COMPLETED'
                 task.completed_at = timezone.now()
                 task.save()
-                trigger_ai_tasks(tender)
+                # If it has lots, trigger individual assemblies, otherwise trigger master T09
+                if tender.lots.exists():
+                    from .chain import trigger_lot_assemblies
+                    trigger_lot_assemblies(tender)
+                else:
+                    trigger_ai_tasks(tender)
                 return redirect('dashboard')
                 
         elif task.code == 'T09':
@@ -209,7 +214,7 @@ def task_action(request, pk):
         elif task.code in ('T14', 'T15', 'T16', 'T17', 'T18'):
             tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
             if tender and act in ('BANK_LETTER_READY', 'LETTER_LOGGED', 'CPO_UPLOADED', 'DOCUMENTS_SEALED', 'RESULTS_REPORTED'):
-                advance_submission_chain(tender, task, act, note, request.POST, request.FILES)
+                advance_financial_submission(tender, task, act, note, request.POST, request.FILES)
                 return redirect('dashboard')
 
         else:

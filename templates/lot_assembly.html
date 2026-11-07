@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Assemble {{ lot.lot_name }}{% endblock %}
+{% block content %}
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+  <h2 style="color:#4cc7e8;">📑 {{ lot.lot_name }} Assembly</h2>
+  <a href="{% url 'dashboard' %}" class="btn btn-grey" style="padding:6px 12px; font-size:12px;">Back</a>
+</div>
+
+<div class="card" style="background:#1a1f2b; margin-bottom:20px;">
+  <div style="font-size:16px; font-weight:bold; color:#fff;">{{ tender.bid_title }}</div>
+  <div class="meta" style="font-size:12px;">Lot: {{ lot.lot_name }} | Ref: {{ tender.bid_reference_number }}</div>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  
+  <div class="card">
+    <div class="meta" style="color:#5fd68a; margin-bottom:15px;">UPLOAD COMPLETED BID COMPONENTS FOR {{ lot.lot_name|upper }}</div>
+    
+    <label class="meta">Technical Proposal</label>
+    {% if lot.bo_technical_proposal %}<div class="meta" style="color:#5fd68a; font-size:10px; margin-bottom:5px;">✅ Uploaded: <a href="{{ lot.bo_technical_proposal.url }}" target="_blank" style="color:#4cc7e8;">View</a></div>{% endif %}
+    <input type="file" name="bo_technical_proposal" style="color:#c8cfdd; margin-bottom:15px;">
+
+    <label class="meta">Financial Proposal (Price Schedule)</label>
+    {% if lot.bo_financial_proposal %}<div class="meta" style="color:#5fd68a; font-size:10px; margin-bottom:5px;">✅ Uploaded: <a href="{{ lot.bo_financial_proposal.url }}" target="_blank" style="color:#4cc7e8;">View</a></div>{% endif %}
+    <input type="file" name="bo_financial_proposal" style="color:#c8cfdd; margin-bottom:15px;">
+
+    <label class="meta">Compliance Matrix</label>
+    {% if lot.bo_compliance_matrix %}<div class="meta" style="color:#5fd68a; font-size:10px; margin-bottom:5px;">✅ Uploaded: <a href="{{ lot.bo_compliance_matrix.url }}" target="_blank" style="color:#4cc7e8;">View</a></div>{% endif %}
+    <input type="file" name="bo_compliance_matrix" style="color:#c8cfdd; margin-bottom:15px;">
+
+    <button class="btn btn-blue wide" name="action" value="save" style="margin-top:10px;">💾 Save Files</button>
+  </div>
+</form>
+
+<div class="card" style="border-color:#e8b64c; margin-top:20px;">
+  <div class="meta" style="color:#e8b64c; margin-bottom:10px;">FINAL ACTION</div>
+  <p class="meta" style="font-size:12px; margin-bottom:15px;">Once all documents are uploaded, send this lot to the CEO for final pricing.</p>
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn btn-green wide" name="action" value="complete">✅ Complete {{ lot.lot_name }} & Send to CEO</button>
+  </form>
+</div>
+{% endblock %}

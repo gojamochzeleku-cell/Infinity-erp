@@ -332,3 +332,67 @@ def advance_submission_chain(tender, task, action, note, data, files):
                     f'Upload Award Document: {tender.bid_title}',
                     'If the company won, upload the award document to trigger the WON status.',
                     {'tender_id': tender.id}, url)
+
+def trigger_lot_assemblies(tender):
+    """When T08 is complete, generate a T10 task for EVERY lot."""
+    company = tender.company
+    url = reverse('tender_detail', args=[tender.id])
+    
+    for lot in tender.lots.all():
+        create_task(
+            company, 'T10_LOT', 'BIDOP',
+            f'Assemble Bid: {lot.lot_name} ({tender.serial_number})',
+            f'Prepare technical and financial documents for {lot.lot_name}.',
+            {'tender_id': tender.id, 'lot_id': lot.id}, url
+        )
+
+
+def advance_financial_submission(tender, task, action, note, data, files):
+    task.status = 'COMPLETED'
+    task.save()
+    url = reverse('tender_detail', args=[tender.id])
+
+    if action == 'BANK_LETTER_READY':
+        if 'bank_letter' in files:
+            tender.bank_letter = files['bank_letter']
+            tender.save()
+            register_document(tender, tender.bank_letter, 'Bank Letter', task.assigned_to, 'FINANCE')
+            
+        create_task(tender.company, 'T15', 'OFFICE', 
+                    f'Log Outgoing Bank Letter: {tender.bid_title}',
+                    'Log the Bank Letter in the Mail Registry and prepare physical dispatch.',
+                    {'tender_id': tender.id}, url)
+                    
+    elif action == 'LETTER_LOGGED':
+        create_task(tender.company, 'T16', 'CASE', 
+                    f'Upload CPO & Hold Original: {tender.bid_title}',
+                    'Upload the received CPO and record its physical shelf location.',
+                    {'tender_id': tender.id}, url)
+                    
+    elif action == 'CPO_UPLOADED':
+        if 'cpo_document' in files:
+            tender.cpo_document = files['cpo_document']
+            tender.save()
+            register_document(tender, tender.cpo_document, 'Original CPO', task.assigned_to, 'FINANCE')
+            
+        create_task(tender.company, 'T17', 'BIDOP', 
+                    f'Final Sealing & Checklist: {tender.bid_title}',
+                    'Print, sign, stamp, and seal all lot documents. Confirm the checklist to proceed.',
+                    {'tender_id': tender.id}, url)
+                    
+    elif action == 'DOCUMENTS_SEALED':
+        create_task(tender.company, 'T18', 'CASE', 
+                    f'Physical Submission & Results: {tender.bid_title}',
+                    'Go to the purchaser, submit the bid, and report the results.',
+                    {'tender_id': tender.id}, url)
+                    
+    elif action == 'RESULTS_REPORTED':
+        tender.physical_submission_status = data.get('submission_status', '')
+        tender.competitor_prices = data.get('competitor_prices', '')
+        tender.technical_result = data.get('technical_result', '')
+        tender.save()
+        
+        create_task(tender.company, 'T20', 'OFFICE', 
+                    f'Upload Award Document: {tender.bid_title}',
+                    'If the company won, upload the award document to trigger the WON status.',
+                    {'tender_id': tender.id}, url)
