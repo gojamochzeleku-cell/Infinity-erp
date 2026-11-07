@@ -89,6 +89,7 @@ class Task(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    uploaded_file = models.FileField(upload_to='task_files/', blank=True, null=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -178,6 +179,7 @@ class Tender(models.Model):
     ai_extracted = models.BooleanField(default=False)
     ai_status = models.CharField(max_length=20, default='PENDING')
     ai_error = models.TextField(blank=True)
+    ai_summary = models.TextField(blank=True, help_text='AI Bid Analysis Summary')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
     registered_by = models.ForeignKey(Employee, null=True, blank=True,
                                       on_delete=models.SET_NULL, related_name='registered_tenders')

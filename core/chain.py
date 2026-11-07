@@ -103,29 +103,46 @@ def process_cost_request(tender, task, action, note):
                     reverse('tender_detail', args=[tender.id]))
 
 def trigger_ai_tasks(tender):
+    # Now only triggers the Master T09 Task for the Bid Manager
     company = tender.company
     t_id = tender.id
     url = reverse('tender_detail', args=[t_id])
     
-    create_task(company, 'T09A', 'BIDM',
-                f'AI Summary & Brand Selection: {tender.bid_title}',
-                'The bid document is uploaded. Review AI brand suggestions.',
+    create_task(company, 'T09', 'BIDM',
+                f'AI Analysis & Task Routing: {tender.bid_title}',
+                'Review the AI summary, add manual notes, and check which departments need to submit forms.',
                 {'tender_id': t_id}, url)
-                
-    create_task(company, 'T09B', 'FIN',
-                f'Fill Financial Forms: {tender.bid_title}',
-                'Please fill the financial standing forms.',
-                {'tender_id': t_id}, url)
-                
-    create_task(company, 'T09C', 'HR',
-                f'Fill Workers Information: {tender.bid_title}',
-                'Please fill the workers information form.',
-                {'tender_id': t_id}, url)
-                
-    create_task(company, 'T09D', 'BIDOP',
-                f'Prepare Submission Sheet: {tender.bid_title}',
-                'Please prepare the bid submission sheet and compliance.',
-                {'tender_id': t_id}, url)
+
+def route_t09_tasks(tender, task, action, note, data, files):
+    task.status = 'COMPLETED'
+    task.save()
+    url = reverse('tender_detail', args=[tender.id])
+    
+    # Save the manual notes/AI summary to the tender
+    if note:
+        tender.ai_summary = note
+        tender.save()
+
+    # Create T10 (Finance)
+    if data.get('route_fin'):
+        create_task(tender.company, 'T10', 'FIN', 
+                    f'Financial Standing Forms: {tender.bid_title}',
+                    'Upload the completed Financial Standing documents.',
+                    {'tender_id': tender.id}, url)
+
+    # Create T11 (HR)
+    if data.get('route_hr'):
+        create_task(tender.company, 'T11', 'HR', 
+                    f'Workers Information Forms: {tender.bid_title}',
+                    'Upload the completed CVs and Workers Information forms.',
+                    {'tender_id': tender.id}, url)
+
+    # Create T12 (Bid Operator)
+    if data.get('route_bidop'):
+        create_task(tender.company, 'T12', 'BIDOP', 
+                    f'Submission Sheet & Compliance: {tender.bid_title}',
+                    'Upload the filled Bid Submission Sheet and Compliance Matrix.',
+                    {'tender_id': tender.id}, url)
 
 def advance_supplier_chain(tender, task, action, note, data, files):
     task.status = 'COMPLETED'

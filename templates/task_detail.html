@@ -244,18 +244,42 @@
       <button class="btn btn-green" type="submit" name="action" value="complete">Upload & Complete</button>
 
 
-    {% elif task.code == 'T09A' %}
-      <div class="meta" style="margin-bottom:8px">BID ANALYSIS & BRAND SELECTION</div>
+    {% elif task.code == 'T09' %}
+      <div class="meta" style="margin-bottom:8px">MASTER AI ANALYSIS & ROUTING</div>
       
-      {% if not task.payload.ai_result %}
-        <p class="meta" style="margin-bottom:10px">Tap below to let Gemini AI read the PDF and generate suggestions. If it fails, you can type manually below.</p>
-        <button class="btn btn-blue wide" type="submit" name="action" value="analyze">Try AI Analysis</button>
-      {% endif %}
+      <div style="display:flex; gap:10px; margin-bottom:15px;">
+        <button class="btn btn-blue" type="submit" name="action" value="analyze" style="flex:1; margin:0;">1. Run AI Analysis</button>
+      </div>
 
-      <label class="meta" style="margin-top:15px;">Summary & Brand Suggestions (AI or Manual)</label>
-      <textarea name="note" placeholder="Type or paste brand suggestions, High Quality vs Low Cost options here..." style="min-height:150px;">{% if task.payload.ai_result %}{{ task.payload.ai_result }}{% endif %}</textarea>
+      <label class="meta" style="margin-top:15px;">Requirements & Brand Summary (AI or Manual)</label>
+      <textarea name="note" placeholder="AI summary will appear here. You can edit it or type manually..." style="min-height:150px;">{{ tender.ai_summary }}</textarea>
       
-      <button class="btn btn-green wide" type="submit" name="action" value="APPROVE_AI">Save & Send to Supplier Selection</button>
+      <div class="meta" style="margin-top:20px; color:#e8b64c; font-weight:bold;">2. Route Tasks to Departments</div>
+      <p class="meta" style="font-size:11px; margin-bottom:10px;">Check the boxes below to generate tasks for the required forms.</p>
+      
+      <label style="display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:13px;">
+        <input type="checkbox" name="route_fin" value="1" checked style="width:18px; height:18px;">
+        <strong>Finance Manager (T10)</strong> - Financial Standing Forms
+      </label>
+      <label style="display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:13px;">
+        <input type="checkbox" name="route_hr" value="1" checked style="width:18px; height:18px;">
+        <strong>HR Manager (T11)</strong> - Workers Information Forms
+      </label>
+      <label style="display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:13px;">
+        <input type="checkbox" name="route_bidop" value="1" checked style="width:18px; height:18px;">
+        <strong>Bid Operator (T12)</strong> - Submission Sheet & Compliance Matrix
+      </label>
+      
+      <button class="btn btn-green wide" type="submit" name="action" value="ROUTE_TASKS" style="margin-top:20px;">3. Save & Generate Tasks</button>
+
+    {% elif task.code in 'T10 T11 T12' %}
+      <div class="meta" style="margin-bottom:8px">UPLOAD COMPLETED FORMS</div>
+      <p class="meta" style="margin-bottom:10px">{{ task.description }}</p>
+      
+      <label class="meta">Upload PDF</label>
+      <input type="file" name="task_file" required style="color:#c8cfdd; margin-bottom:15px;">
+      
+      <button class="btn btn-green wide" type="submit" name="action" value="complete">Upload & Complete Task</button>
 
     {% elif task.code == 'T10' %}
       <div class="meta" style="margin-bottom:8px">SUPPLIER SELECTION & PROFORMA</div>
