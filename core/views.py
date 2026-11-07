@@ -192,14 +192,18 @@ def task_action(request, pk):
 
         elif task.code in ('T10', 'T11', 'T12'):
             tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
-            if tender and act == 'complete':
-                if 'task_file' in request.FILES:
-                    task.uploaded_file = request.FILES['task_file']
-                    register_document(tender, task.uploaded_file, f'Form Upload ({task.code})', emp, 'TENDER')
-                task.status = 'COMPLETED'
-                task.completed_at = timezone.now()
-                task.save()
-                return redirect('dashboard')
+            if tender:
+                if task.code == 'T10':
+                    # Redirect to the dedicated Assembly Workspace
+                    return redirect('bid_operator_workspace', pk=tender.id)
+                elif act == 'complete':
+                    if 'task_file' in request.FILES:
+                        task.uploaded_file = request.FILES['task_file']
+                        register_document(tender, task.uploaded_file, f'Form Upload ({task.code})', emp, 'TENDER')
+                    task.status = 'COMPLETED'
+                    task.completed_at = timezone.now()
+                    task.save()
+                    return redirect('dashboard')
 
         else:
             # Fallback for standard tasks

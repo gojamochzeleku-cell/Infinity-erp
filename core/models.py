@@ -184,6 +184,8 @@ class Tender(models.Model):
     war_room_brands = models.TextField(blank=True)
     war_room_suppliers = models.TextField(blank=True)
     war_room_checklist = models.TextField(blank=True)
+    final_technical_proposal = models.FileField(upload_to='tenders/tech_proposals/', blank=True, null=True)
+    bid_op_notes = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
     registered_by = models.ForeignKey(Employee, null=True, blank=True,
                                       on_delete=models.SET_NULL, related_name='registered_tenders')
