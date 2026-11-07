@@ -1,9 +1,11 @@
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
-from . import views, tender_views, export_views, qr_views, storage_views, storage_views, history_views, pricing_views, assembly_views, war_room_views, repair_views, cover_sheet_views, pwa_views, supplier_views, filing_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
+from . import views, tender_views, cost_views, export_views, qr_views, storage_views, storage_views, history_views, pricing_views, assembly_views, war_room_views, repair_views, cover_sheet_views, pwa_views, supplier_views, filing_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
 
 urlpatterns = [
+    path('tenders/<int:pk>/lots/<int:lot_id>/landed-cost/', cost_views.calculate_landed_cost, name='calculate_landed_cost'),
+    path('tenders/<int:pk>/lots/<int:lot_id>/ask-ai/', cost_views.ask_ai_for_price, name='ask_ai_for_price'),
     path('export/audit-log/', export_views.export_audit_log, name='export_audit_log'),
     path('tenders/<int:pk>/lots/<int:lot_id>/items/', assembly_views.manage_lot_items, name='manage_lot_items'),
     path('tenders/<int:pk>/lots/<int:lot_id>/pricing/', pricing_views.ceo_lot_pricing, name='ceo_lot_pricing'),

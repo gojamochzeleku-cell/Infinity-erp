@@ -16,6 +16,11 @@
   <div class="kv"><span class="k">Submission Date</span><span class="v">{{ lot.submission_date|date:"d M Y"|default:"Not set" }}</span></div>
 </div>
 
+<div style="display:flex; gap:10px; margin-bottom:20px;">
+  <a href="{% url 'calculate_landed_cost' tender.id lot.id %}" class="btn btn-blue" style="flex:1; margin:0; text-align:center;">🧮 Calculate Landed Cost</a>
+  <a href="{% url 'ask_ai_for_price' tender.id lot.id %}" class="btn btn-green" style="flex:1; margin:0; text-align:center;">🧠 Ask AI for Winning Price</a>
+</div>
+
 <form method="post" id="pricing-form">
   {% csrf_token %}
   
