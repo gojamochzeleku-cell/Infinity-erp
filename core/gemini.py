@@ -39,12 +39,27 @@ Numbers must be plain numbers (no commas, no currency symbols).
 }
 """
 
-ANALYSIS_PROMPT = """You are an expert procurement AI for an Ethiopian import company.
-Read the attached bid document and provide a clear, structured summary.
-1. Summarize the technical requirements.
-2. Suggest specific brands and models that meet the requirements. Split them into "High Quality (Premium)" and "Low Cost (Budget)".
-3. List the required bid submission forms (e.g., Bid Submission Sheet, Financial Standing, Workers Info, Compliance Matrix).
-Reply in plain text (no markdown tables, just bullet points).
+ANALYSIS_PROMPT = """You are an elite Procurement AI for an Ethiopian import company.
+Read the attached bid document carefully. You must output text using these EXACT 4 headers, separated by '---'.
+
+--- SUMMARY ---
+Provide a detailed summary of the technical requirements and the scope of work.
+
+--- CHECKLIST ---
+List the required bid submission forms (e.g., Bid Security, Technical Proposal, Compliance Matrix, Manufacturer Authorization).
+
+--- BRANDS ---
+Identify the required items. For each item, suggest specific brands/models:
+- High Quality (Premium): [Brand - Model] (Why it complies)
+- Low Cost (Budget): [Brand - Model] (Why it complies)
+
+--- SUPPLIERS ---
+Suggest 5 manufacturers or suppliers that can provide these items. 
+Include a mix of Foreign (Outside Ethiopia) and Local (Ethiopia) suppliers.
+Format each as: 
+- Type: [Foreign/Local]
+- Name: [Supplier Name]
+- Contact: [Website/Email/Phone if known]
 """
 
 def _api_key():
@@ -184,3 +199,17 @@ Answer:"""
         except Exception as e:
             continue
     return "The AI is currently experiencing high demand. Please try again in a minute."
+
+
+def parse_war_room_output(text):
+    parts = text.split('---')
+    result = {'summary': '', 'checklist': '', 'brands': '', 'suppliers': ''}
+    
+    for part in parts:
+        part = part.strip()
+        if part.startswith('SUMMARY'): result['summary'] = part.replace('SUMMARY', '').strip()
+        elif part.startswith('CHECKLIST'): result['checklist'] = part.replace('CHECKLIST', '').strip()
+        elif part.startswith('BRANDS'): result['brands'] = part.replace('BRANDS', '').strip()
+        elif part.startswith('SUPPLIERS'): result['suppliers'] = part.replace('SUPPLIERS', '').strip()
+        
+    return result

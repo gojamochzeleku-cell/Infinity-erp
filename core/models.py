@@ -180,6 +180,10 @@ class Tender(models.Model):
     ai_status = models.CharField(max_length=20, default='PENDING')
     ai_error = models.TextField(blank=True)
     ai_summary = models.TextField(blank=True, help_text='AI Bid Analysis Summary')
+    war_room_summary = models.TextField(blank=True)
+    war_room_brands = models.TextField(blank=True)
+    war_room_suppliers = models.TextField(blank=True)
+    war_room_checklist = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
     registered_by = models.ForeignKey(Employee, null=True, blank=True,
                                       on_delete=models.SET_NULL, related_name='registered_tenders')

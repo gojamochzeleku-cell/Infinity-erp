@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Bid Manager War Room{% endblock %}
+{% block content %}
+
+{% if tender.ai_status == 'PROCESSING' %}
+<div id="ai-overlay" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(15,17,21,0.95); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; text-align:center; padding:20px;">
+  <div class="spinner" style="width:50px; height:50px; border-width:4px; margin-bottom:20px;"></div>
+  <h2 style="color:#4cc7e8; margin-bottom:10px;">AI is Deep-Scanning the Document...</h2>
+  <p class="meta">Extracting specs, brands, and suppliers. This may take up to 2 minutes.</p>
+</div>
+<script>setTimeout(function() { window.location.reload(); }, 5000);</script>
+{% endif %}
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+  <h2 style="color:#e8b64c;">🎯 Bid War Room</h2>
+  <a href="{% url 'tender_detail' tender.id %}" class="btn btn-grey" style="padding:6px 12px; font-size:12px;">Back to Tender</a>
+</div>
+
+<div class="card" style="background:#1a1f2b;">
+  <div style="font-size:16px; font-weight:bold; color:#fff; margin-bottom:5px;">{{ tender.bid_title }}</div>
+  <div class="meta" style="font-size:12px;">Ref: {{ tender.bid_reference_number }} | Purchaser: {{ tender.purchaser_name }}</div>
+</div>
+
+<div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
+  <form method="post" style="margin:0;">
+    {% csrf_token %}
+    <button class="btn btn-blue" name="action" value="analyze" style="margin:0;">1. Run Deep AI Analysis</button>
+  </form>
+  {% if tender.war_room_summary %}
+  <a href="{% url 'war_room_pdf' tender.id %}" class="btn btn-green" style="margin:0;">⬇️ Download Strategy PDF</a>
+  {% endif %}
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  
+  <details open>
+    <summary style="background:#232838; padding:15px; border-radius:8px; font-weight:bold; color:#4cc7e8; cursor:pointer; list-style:none;">1. Bid Summary & Requirements</summary>
+    <div class="card" style="border-top-left-radius:0; border-top-right-radius:0; border-color:#4cc7e8;">
+      <textarea name="summary" style="min-height:150px;">{{ tender.war_room_summary }}</textarea>
+    </div>
+  </details>
+
+  <details>
+    <summary style="background:#232838; padding:15px; border-radius:8px; font-weight:bold; color:#e2504a; cursor:pointer; list-style:none; margin-top:10px;">2. Submission Checklist</summary>
+    <div class="card" style="border-top-left-radius:0; border-top-right-radius:0; border-color:#e2504a;">
+      <textarea name="checklist" style="min-height:150px;">{{ tender.war_room_checklist }}</textarea>
+    </div>
+  </details>
+
+  <details>
+    <summary style="background:#232838; padding:15px; border-radius:8px; font-weight:bold; color:#5fd68a; cursor:pointer; list-style:none; margin-top:10px;">3. Brand Sourcing (High/Low Cost)</summary>
+    <div class="card" style="border-top-left-radius:0; border-top-right-radius:0; border-color:#5fd68a;">
+      <textarea name="brands" style="min-height:200px;">{{ tender.war_room_brands }}</textarea>
+    </div>
+  </details>
+
+  <details>
+    <summary style="background:#232838; padding:15px; border-radius:8px; font-weight:bold; color:#e8b64c; cursor:pointer; list-style:none; margin-top:10px;">4. Supplier Intelligence (Local & Foreign)</summary>
+    <div class="card" style="border-top-left-radius:0; border-top-right-radius:0; border-color:#e8b64c;">
+      <textarea name="suppliers" style="min-height:200px;">{{ tender.war_room_suppliers }}</textarea>
+    </div>
+  </details>
+
+  <button class="btn btn-grey wide" name="action" value="manual_save" style="margin-top:20px;">💾 Save Manual Edits</button>
+</form>
+
+<div class="card" style="border-color:#4cc7e8; margin-top:20px;">
+  <div class="meta" style="color:#4cc7e8; margin-bottom:10px;">FINAL ACTION</div>
+  <p class="meta" style="font-size:12px; margin-bottom:15px;">Once you are satisfied with the strategy, click the button below to forward the package to the Bid Operator to start assembling the forms.</p>
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn btn-green wide" name="action" value="forward" style="margin:0;">🚀 Forward to Bid Operator (T10)</button>
+  </form>
+</div>
+{% endblock %}

@@ -185,33 +185,10 @@ def task_action(request, pk):
                 return redirect('dashboard')
                 
         elif task.code == 'T09':
+            # Simply redirect to the dedicated War Room workspace
             tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
             if tender:
-                if act == 'analyze':
-                    if tender.purchased_bid_document:
-                        tender.ai_status = 'PROCESSING'
-                        tender.ai_error = ''
-                        tender.save()
-                        
-                        def bg_ai():
-                            try:
-                                res = analyze_bid_document(tender.purchased_bid_document)
-                                tender.ai_summary = res
-                                tender.ai_status = 'DONE'
-                                tender.save()
-                            except Exception as e:
-                                tender.ai_error = str(e)
-                                tender.ai_status = 'FAILED'
-                                tender.save()
-                            finally:
-                                connection.close()
-                                
-                        threading.Thread(target=bg_ai).start()
-                    return redirect('task_detail', pk=task.id)
-                    
-                elif act == 'ROUTE_TASKS':
-                    route_t09_tasks(tender, task, act, note, request.POST, request.FILES)
-                    return redirect('dashboard')
+                return redirect('war_room', pk=tender.id)
 
         elif task.code in ('T10', 'T11', 'T12'):
             tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
