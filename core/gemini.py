@@ -5,6 +5,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from django.conf import settings
+from .gemini_file_api import upload_to_google_file_api
 
 MODELS_TO_TRY = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-3.5-flash']
 
