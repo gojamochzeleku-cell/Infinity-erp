@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.contrib import messages
-from .models import Tender, Task, TenderLot
+from .models import Tender, Task, TenderLot, LotItem
 from .chain import create_task
 from .services import log_action
 
@@ -30,17 +30,14 @@ def lot_assembly(request, pk, lot_id):
             return redirect('lot_assembly', pk=tender.id, lot_id=lot.id)
 
         elif action == 'complete':
-            # Mark the lot as ready
             lot.status = 'ASSEMBLED'
             lot.save()
             
-            # Find and complete the specific T10_LOT task
             task = Task.objects.filter(payload__tender_id=tender.id, code='T10_LOT', payload__lot_id=lot.id).first()
             if task:
                 task.status = 'COMPLETED'
                 task.save()
                 
-            # Create CEO Pricing task for this specific lot
             create_task(
                 tender.company, 'T13_LOT', 'CEO',
                 f'Set Price for {lot.lot_name} ({tender.serial_number})',
@@ -52,8 +49,6 @@ def lot_assembly(request, pk, lot_id):
             return redirect('dashboard')
 
     return render(request, 'lot_assembly.html', {'tender': tender, 'lot': lot})
-
-from .models import LotItem
 
 @login_required
 def manage_lot_items(request, pk, lot_id):
