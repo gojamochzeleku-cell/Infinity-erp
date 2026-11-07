@@ -264,3 +264,63 @@ def advance_logistics_chain(tender, task, action, note, data, files):
     elif action == 'PROJECT_CLOSED':
         tender.status = 'COMPLETED'
         tender.save()
+
+
+def advance_submission_chain(tender, task, action, note, data, files):
+    task.status = 'COMPLETED'
+    task.save()
+    url = reverse('tender_detail', args=[tender.id])
+
+    if action == 'BANK_LETTER_READY':
+        # T14 -> T15 (Office Asst)
+        cpo_exp = data.get('cpo_expiry')
+        if cpo_exp:
+            from dateutil import parser as date_parser
+            tender.cpo_expiry = date_parser.parse(cpo_exp).date()
+        if 'bank_letter' in files:
+            tender.bank_letter = files['bank_letter']
+        tender.save()
+        
+        create_task(tender.company, 'T15', 'OFFICE', 
+                    f'Log Outgoing Bank Letter: {tender.bid_title}',
+                    'Log the Bank Letter in the Mail Registry and prepare physical dispatch.',
+                    {'tender_id': tender.id}, url)
+                    
+    elif action == 'LETTER_LOGGED':
+        # T15 -> T16 (Case Exec)
+        create_task(tender.company, 'T16', 'CASE', 
+                    f'Upload CPO & Hold Original: {tender.bid_title}',
+                    'Upload the received CPO and record its physical shelf location.',
+                    {'tender_id': tender.id}, url)
+                    
+    elif action == 'CPO_UPLOADED':
+        # T16 -> T17 (Bid Operator)
+        if 'cpo_document' in files:
+            tender.cpo_document = files['cpo_document']
+            tender.save()
+            # Register it in Doc Registry automatically
+            register_document(tender, tender.cpo_document, 'Original CPO', task.assigned_to, 'FINANCE')
+            
+        create_task(tender.company, 'T17', 'BIDOP', 
+                    f'Final Sealing & Checklist: {tender.bid_title}',
+                    'Print, sign, stamp, and seal all documents. Confirm the checklist to proceed.',
+                    {'tender_id': tender.id}, url)
+                    
+    elif action == 'DOCUMENTS_SEALED':
+        # T17 -> T18 (Case Exec)
+        create_task(tender.company, 'T18', 'CASE', 
+                    f'Physical Submission & Results: {tender.bid_title}',
+                    'Go to the purchaser, submit the bid, and report the results.',
+                    {'tender_id': tender.id}, url)
+                    
+    elif action == 'RESULTS_REPORTED':
+        # T18 -> T20 (Office Asst - Award Document)
+        tender.physical_submission_status = data.get('submission_status', '')
+        tender.competitor_prices = data.get('competitor_prices', '')
+        tender.technical_result = data.get('technical_result', '')
+        tender.save()
+        
+        create_task(tender.company, 'T20', 'OFFICE', 
+                    f'Upload Award Document: {tender.bid_title}',
+                    'If the company won, upload the award document to trigger the WON status.',
+                    {'tender_id': tender.id}, url)

@@ -189,6 +189,11 @@ class Tender(models.Model):
     fx_rate = models.DecimalField(max_digits=10, decimal_places=4, default=0)
     profit_margin_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     final_bid_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    bank_letter = models.FileField(upload_to='tenders/bank_letters/', blank=True, null=True)
+    cpo_document = models.FileField(upload_to='tenders/cpos/', blank=True, null=True)
+    physical_submission_status = models.CharField(max_length=100, blank=True)
+    competitor_prices = models.TextField(blank=True)
+    technical_result = models.CharField(max_length=50, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
     registered_by = models.ForeignKey(Employee, null=True, blank=True,
                                       on_delete=models.SET_NULL, related_name='registered_tenders')

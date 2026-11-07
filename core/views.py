@@ -194,7 +194,6 @@ def task_action(request, pk):
             tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
             if tender:
                 if task.code == 'T10':
-                    # Redirect to the dedicated Assembly Workspace
                     return redirect('bid_operator_workspace', pk=tender.id)
                 elif act == 'complete':
                     if 'task_file' in request.FILES:
@@ -204,6 +203,12 @@ def task_action(request, pk):
                     task.completed_at = timezone.now()
                     task.save()
                     return redirect('dashboard')
+
+        elif task.code in ('T14', 'T15', 'T16', 'T17', 'T18'):
+            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
+            if tender and act in ('BANK_LETTER_READY', 'LETTER_LOGGED', 'CPO_UPLOADED', 'DOCUMENTS_SEALED', 'RESULTS_REPORTED'):
+                advance_submission_chain(tender, task, act, note, request.POST, request.FILES)
+                return redirect('dashboard')
 
         else:
             # Fallback for standard tasks
