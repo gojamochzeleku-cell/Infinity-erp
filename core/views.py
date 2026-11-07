@@ -8,7 +8,7 @@ from django.db.models import Q
 from decimal import Decimal
 
 from .models import Company, Task, Notification, Tender, LeaveRequest, ExpenseRequest
-from .services import log_action
+from .services import log_action, log_task_history
 from .chain import register_document, advance_tender_chain, process_cost_request
 
 class InfinityLoginView(LoginView):
@@ -217,9 +217,13 @@ def task_action(request, pk):
             elif act == 'complete':
                 task.status = 'COMPLETED'
                 task.completed_at = timezone.now()
+                log_task_history(task, 'COMPLETED', note, emp)
+                messages.success(request, '✅ Task marked as completed!')
             elif act == 'reject':
                 task.status = 'REJECTED'
                 task.completed_at = timezone.now()
+                log_task_history(task, 'REJECTED', note, emp)
+                messages.warning(request, '❌ Task was rejected.')
             
             payload = dict(task.payload or {})
             if note:

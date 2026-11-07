@@ -41,3 +41,17 @@ def log_action(actor, action, detail='', object_type='', object_id='', company=N
     return AuditLog.objects.create(
         actor=actor, action=action, detail=detail,
         object_type=object_type, object_id=str(object_id or ''), company=company)
+
+
+from .models import TaskHistory
+
+def log_task_history(task, action, note, completed_by):
+    TaskHistory.objects.create(
+        company=task.company,
+        task_code=task.code,
+        task_title=task.title,
+        assigned_to=task.assigned_to,
+        completed_by=completed_by,
+        action_taken=action,
+        note=note
+    )

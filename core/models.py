@@ -692,3 +692,21 @@ class TenderLot(models.Model):
 
     def __str__(self):
         return f"{self.tender.serial_number} - {self.lot_name}"
+
+
+class TaskHistory(models.Model):
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='task_history')
+    task_code = models.CharField(max_length=20)
+    task_title = models.CharField(max_length=250)
+    assigned_to = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True)
+    completed_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, related_name='completed_tasks')
+    action_taken = models.CharField(max_length=50)
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name_plural = "Task Histories"
+
+    def __str__(self):
+        return f"{self.task_code} - {self.task_title} ({self.action_taken})"
