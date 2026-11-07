@@ -1,3 +1,4 @@
+from django.urls import reverse
 import threading
 from django.db import connection
 from django.contrib.auth.decorators import login_required
@@ -14,6 +15,18 @@ from .chain import register_document, advance_tender_chain, process_cost_request
 class InfinityLoginView(LoginView):
     template_name = 'login.html'
     redirect_authenticated_user = True
+    
+    def form_valid(self, form):
+        # Log the user in
+        response = super().form_valid(form)
+        # Ensure the company session is completely clear on a fresh login
+        if 'company_id' in self.request.session:
+            del self.request.session['company_id']
+        return response
+        
+    def get_success_url(self):
+        # Force the app to ALWAYS go to the company selector after login
+        return str(reverse('select_company'))
 
 def home(request):
     if request.user.is_authenticated:
