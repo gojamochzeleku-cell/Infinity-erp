@@ -112,11 +112,26 @@ def _send_to_gemini(file_obj, prompt):
 
 def extract_tender_from_pdf(file_obj):
     result_text = _send_to_gemini(file_obj, TENDER_PROMPT)
-    if result_text.startswith("{"):
+    
+    # 1. Clean up the string (remove markdown backticks and extra spaces)
+    clean_text = result_text.strip()
+    if clean_text.startswith("```json"):
+        clean_text = clean_text[7:] # Remove ```json
+    elif clean_text.startswith("```"):
+        clean_text = clean_text[3:] # Remove ```
+        
+    if clean_text.endswith("```"):
+        clean_text = clean_text[:-3] # Remove ending ```
+        
+    clean_text = clean_text.strip()
+    
+    # 2. Try to parse the clean JSON
+    if clean_text.startswith("{"):
         try:
-            return {'data': json.loads(result_text)}
-        except:
-            pass
+            return {'data': json.loads(clean_text)}
+        except Exception as e:
+            return {'error': f"JSON Parsing Error: {str(e)}. Raw text: {clean_text[:100]}"}
+            
     return {'error': result_text}
 
 def analyze_bid_document(file_obj):
