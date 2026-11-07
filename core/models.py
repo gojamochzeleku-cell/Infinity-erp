@@ -187,6 +187,15 @@ class Tender(models.Model):
     war_room_compliance = models.TextField(blank=True)
     final_technical_proposal = models.FileField(upload_to='tenders/tech_proposals/', blank=True, null=True)
     bid_op_notes = models.TextField(blank=True)
+
+    bo_technical_proposal = models.FileField(upload_to='tenders/bo_tech/', blank=True, null=True)
+    bo_bid_forms = models.FileField(upload_to='tenders/bo_forms/', blank=True, null=True)
+    bo_compliance_matrix = models.FileField(upload_to='tenders/bo_compliance/', blank=True, null=True)
+    bo_certificates_datasheets = models.FileField(upload_to='tenders/bo_certs/', blank=True, null=True)
+    bo_mal = models.FileField(upload_to='tenders/bo_mal/', blank=True, null=True)
+    bo_landed_cost = models.FileField(upload_to='tenders/bo_landed/', blank=True, null=True)
+    bo_bid_price = models.FileField(upload_to='tenders/bo_price/', blank=True, null=True)
+
     bm_manual_upload = models.FileField(upload_to='tenders/bm_manual/', blank=True, null=True)
     bm_manual_summary = models.FileField(upload_to='tenders/bm_manual_summary/', blank=True, null=True)
     bm_manual_checklist = models.FileField(upload_to='tenders/bm_manual_checklist/', blank=True, null=True)
