@@ -186,6 +186,7 @@ class Tender(models.Model):
     war_room_checklist = models.TextField(blank=True)
     final_technical_proposal = models.FileField(upload_to='tenders/tech_proposals/', blank=True, null=True)
     bid_op_notes = models.TextField(blank=True)
+    bm_manual_upload = models.FileField(upload_to='tenders/bm_manual/', blank=True, null=True)
     fx_rate = models.DecimalField(max_digits=10, decimal_places=4, default=0)
     profit_margin_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     final_bid_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)

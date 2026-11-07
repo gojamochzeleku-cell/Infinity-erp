@@ -5,10 +5,19 @@
 {% if tender.ai_status == 'PROCESSING' %}
 <div id="ai-overlay" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(15,17,21,0.95); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; text-align:center; padding:20px;">
   <div class="spinner" style="width:50px; height:50px; border-width:4px; margin-bottom:20px;"></div>
-  <h2 style="color:#4cc7e8; margin-bottom:10px;">AI is Deep-Scanning the Document...</h2>
-  <p class="meta">Extracting specs, brands, and suppliers. This may take up to 2 minutes.</p>
+  <h2 style="color:#4cc7e8; margin-bottom:10px;">AI is Deep-Scanning...</h2>
+  <p class="meta">Extracting specs, brands, and suppliers. Please wait.</p>
+  <p class="meta" style="margin-top:10px; font-size:10px;">If this takes too long, you can type everything manually below.</p>
 </div>
 <script>setTimeout(function() { window.location.reload(); }, 5000);</script>
+{% endif %}
+
+{% if tender.ai_status == 'FAILED' %}
+<div class="card" style="border-color:#e2504a; background:#2a1515; margin-bottom:20px;">
+  <div style="color:#ff9b96; font-weight:bold;">AI Analysis Failed</div>
+  <div class="meta" style="font-size:12px;">{{ tender.ai_error }}</div>
+  <p class="meta" style="font-size:11px; margin-top:10px;">Don't worry, you can fill out the forms manually below.</p>
+</div>
 {% endif %}
 
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
@@ -16,9 +25,8 @@
   <a href="{% url 'tender_detail' tender.id %}" class="btn btn-grey" style="padding:6px 12px; font-size:12px;">Back to Tender</a>
 </div>
 
-<div class="card" style="background:#1a1f2b;">
-  <div style="font-size:16px; font-weight:bold; color:#fff; margin-bottom:5px;">{{ tender.bid_title }}</div>
-  <div class="meta" style="font-size:12px;">Ref: {{ tender.bid_reference_number }} | Purchaser: {{ tender.purchaser_name }}</div>
+<div class="card" style="background:#1a1f2b; margin-bottom:20px;">
+  <div style="font-size:16px; font-weight:bold; color:#fff;">{{ tender.bid_title }}</div>
 </div>
 
 <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
@@ -31,7 +39,7 @@
   {% endif %}
 </div>
 
-<form method="post">
+<form method="post" enctype="multipart/form-data">
   {% csrf_token %}
   
   <details open>
@@ -56,18 +64,27 @@
   </details>
 
   <details>
-    <summary style="background:#232838; padding:15px; border-radius:8px; font-weight:bold; color:#e8b64c; cursor:pointer; list-style:none; margin-top:10px;">4. Supplier Intelligence (Local & Foreign)</summary>
+    <summary style="background:#232838; padding:15px; border-radius:8px; font-weight:bold; color:#e8b64c; cursor:pointer; list-style:none; margin-top:10px;">4. Supplier Intelligence</summary>
     <div class="card" style="border-top-left-radius:0; border-top-right-radius:0; border-color:#e8b64c;">
       <textarea name="suppliers" style="min-height:200px;">{{ tender.war_room_suppliers }}</textarea>
     </div>
   </details>
 
-  <button class="btn btn-grey wide" name="action" value="manual_save" style="margin-top:20px;">💾 Save Manual Edits</button>
+  <div class="card" style="border-color:#8f99b0; margin-top:20px;">
+    <div class="meta" style="margin-bottom:10px;">MANUAL UPLOAD (If AI fails)</div>
+    <p class="meta" style="font-size:11px; margin-bottom:10px;">Upload your compiled strategy, brand list, or supplier list as a PDF.</p>
+    {% if tender.bm_manual_upload %}
+      <div class="meta" style="color:#5fd68a; margin-bottom:10px;">File Uploaded: <a href="{{ tender.bm_manual_upload.url }}" target="_blank" style="color:#4cc7e8;">Download</a></div>
+    {% endif %}
+    <input type="file" name="manual_file" style="color:#c8cfdd; margin-bottom:15px;">
+  </div>
+
+  <button class="btn btn-grey wide" name="action" value="manual_save" style="margin-top:20px;">💾 Save Manual Edits & Uploads</button>
 </form>
 
 <div class="card" style="border-color:#4cc7e8; margin-top:20px;">
   <div class="meta" style="color:#4cc7e8; margin-bottom:10px;">FINAL ACTION</div>
-  <p class="meta" style="font-size:12px; margin-bottom:15px;">Once you are satisfied with the strategy, click the button below to forward the package to the Bid Operator to start assembling the forms.</p>
+  <p class="meta" style="font-size:12px; margin-bottom:15px;">Forward the completed strategy and files to the Bid Operator.</p>
   <form method="post">
     {% csrf_token %}
     <button class="btn btn-green wide" name="action" value="forward" style="margin:0;">🚀 Forward to Bid Operator (T10)</button>

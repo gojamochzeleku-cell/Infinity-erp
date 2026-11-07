@@ -4,22 +4,26 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db import connection
 from django.http import HttpResponse
+from django.urls import reverse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from .models import Tender
+from .models import Tender, Task
 from .gemini import analyze_bid_document, parse_war_room_output
-from .chain import route_t09_tasks
+from .chain import create_task
+from .services import log_action
 
 @login_required
 def war_room(request, pk):
     tender = get_object_or_404(Tender, pk=pk, company=getattr(request, 'company', None))
+    
     if request.method == 'POST':
         action = request.POST.get('action')
         
         if action == 'analyze' and tender.purchased_bid_document:
             tender.ai_status = 'PROCESSING'
+            tender.ai_error = ''
             tender.save()
             
             def bg_ai():
@@ -46,19 +50,29 @@ def war_room(request, pk):
             tender.war_room_checklist = request.POST.get('checklist', '')
             tender.war_room_brands = request.POST.get('brands', '')
             tender.war_room_suppliers = request.POST.get('suppliers', '')
+            
+            if 'manual_file' in request.FILES:
+                tender.bm_manual_upload = request.FILES['manual_file']
+                
             tender.save()
             return redirect('war_room', pk=tender.id)
             
         elif action == 'forward':
-            # Forward to Bid Operator (T10)
-            task = create_task(
+            # Find the T09 task and mark it complete
+            task = Task.objects.filter(payload__tender_id=tender.id, code='T09').first()
+            if task:
+                task.status = 'COMPLETED'
+                task.save()
+            
+            # Create T10 for the Bid Operator
+            create_task(
                 tender.company, 'T10', 'BIDOP', 
                 f'Assemble Bid Documents: {tender.bid_title}',
-                'Bid Manager has finalized the strategy. Assemble the technical proposal.',
+                'Bid Manager has finalized the strategy. Assemble the technical proposal using the provided documents.',
                 {'tender_id': tender.id}, reverse('tender_detail', args=[tender.id])
             )
-            task.status = 'COMPLETED' # Complete the T09 task
-            task.save()
+            
+            log_action(request.user.employee, 'FORWARD_TO_BIDOP', 'Forwarded War Room to Bid Operator', 'Tender', tender.id, tender.company)
             return redirect('dashboard')
 
     return render(request, 'war_room.html', {'tender': tender})
@@ -83,7 +97,6 @@ def download_war_room_pdf(request, pk):
     ]:
         story.append(Paragraph(section_name, styles['Heading2']))
         story.append(Spacer(1, 6))
-        # Simple formatting: split by newlines
         for line in content.split('\n'):
             if line.strip():
                 story.append(Paragraph(line, styles['Normal']))
