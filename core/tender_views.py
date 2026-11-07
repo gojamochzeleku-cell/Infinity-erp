@@ -238,6 +238,24 @@ def _collect(request):
     }
 
 def _apply(tender, data):
+    # 1. Handle the Lots first
+    if 'lots' in data and isinstance(data['lots'], list):
+        tender.lots.all().delete() # Clear existing lots
+        from .models import TenderLot
+        for lot_data in data['lots']:
+            lot_name = lot_data.get('lot_name') or 'General'
+            desc = lot_data.get('description') or ''
+            cpo = lot_data.get('cpo_amount') or 0
+            sub_date = _safe_date(lot_data.get('submission_date'))
+            open_date = _safe_date(lot_data.get('opening_date'))
+            
+            TenderLot.objects.create(
+                tender=tender, lot_name=str(lot_name)[:100], 
+                description=str(desc)[:300], cpo_amount=cpo,
+                submission_date=sub_date, opening_date=open_date
+            )
+            
+    # 2. Handle Global fields (existing logic)
     def pick(name, allowed):
         val = data.get(name)
         if not val:

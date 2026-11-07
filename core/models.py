@@ -658,3 +658,15 @@ class PasswordResetCode(models.Model):
 
     def __str__(self):
         return f"{self.employee.user.username} - {self.code}"
+
+
+class TenderLot(models.Model):
+    tender = models.ForeignKey(Tender, on_delete=models.CASCADE, related_name='lots')
+    lot_name = models.CharField(max_length=100, help_text="e.g. Lot 1, Lot 2, or NIB/29/2026/27")
+    description = models.CharField(max_length=300, blank=True)
+    cpo_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    submission_date = models.DateField(null=True, blank=True)
+    opening_date = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.tender.serial_number} - {self.lot_name}"

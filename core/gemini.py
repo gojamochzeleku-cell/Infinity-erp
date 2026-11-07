@@ -27,10 +27,15 @@ Numbers must be plain numbers (no commas, no currency symbols).
   "account_holder_name": "account holder name if deposit",
   "bank_name": "bank name if deposit",
   "bank_account_number": "bank account number if deposit",
-  "cpo_amount": 0,
-  "cpo_type": "one of: AMOUNT or PERCENT",
-  "bid_submission_date": "deadline for submitting the bid",
-  "bid_opening_date": "date bids are opened"
+  "lots": [
+    {
+      "lot_name": "e.g. Lot 1, or the specific bid reference if it applies to this lot",
+      "description": "description of the item/service for this lot",
+      "cpo_amount": 0,
+      "submission_date": "YYYY-MM-DD",
+      "opening_date": "YYYY-MM-DD"
+    }
+  ]
 }
 """
 

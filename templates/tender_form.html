@@ -2,105 +2,175 @@
 {% block title %}{% if is_new %}Register Tender{% else %}Edit Tender{% endif %}{% endblock %}
 {% block content %}
 
-{% if tender.ai_status == 'PROCESSING' %}
+{% if tender and tender.ai_status == 'PROCESSING' %}
 <div id="ai-overlay" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(15,17,21,0.95); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; text-align:center; padding:20px;">
   <div class="spinner" style="width:50px; height:50px; border-width:4px; margin-bottom:20px;"></div>
   <h2 style="color:#4cc7e8; margin-bottom:10px;">AI is Reading the Document...</h2>
-  <p class="meta" style="font-size:14px;">Google Gemini is analyzing the PDF. This usually takes 15-30 seconds.</p>
-  <p class="meta" style="font-size:12px; margin-top:20px;">Do not close this page. It will refresh automatically.</p>
+  <p class="meta" style="font-size:14px;">Google Gemini is analyzing the PDF for global info and lots.</p>
 </div>
-<script>
-    setTimeout(function() {
-        window.location.reload();
-    }, 5000); // Refresh every 5 seconds
-</script>
+<script>setTimeout(function() { window.location.reload(); }, 5000);</script>
 {% endif %}
 
-{% if tender.ai_status == 'FAILED' %}
+{% if tender and tender.ai_status == 'FAILED' %}
 <div class="card" style="border-color:#e2504a; background:#2a1515; margin-bottom:20px;">
-  <div style="color:#ff9b96; font-size:13px; font-weight:bold; margin-bottom:5px;">AI Extraction Failed</div>
+  <div style="color:#ff9b96; font-size:13px; font-weight:bold;">AI Extraction Failed</div>
   <div style="color:#8f99b0; font-size:12px;">{{ tender.ai_error }}</div>
-  <p class="meta" style="font-size:11px; margin-top:10px;">Please fill the form manually below.</p>
 </div>
 {% endif %}
 
-<h2>{% if is_new %}Register Tender (T01){% else %}Edit {{ tender.serial_number }}{% endif %}</h2>
-{% if errors %}<div class="card" style="border-color:#7a2a2a;background:#2a1515">
-  {% for e in errors %}<div style="color:#ff9b96;font-size:13px">{{ e }}</div>{% endfor %}
-</div>{% endif %}
+<h2>{% if is_new %}Register Tender{% else %}Edit {{ tender.serial_number }}{% endif %}</h2>
+
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
-  <div class="card">
-    <div class="meta" style="margin-bottom:8px">BID INFORMATION SHEET (PDF)</div>
+  
+  <div class="card" style="border-color:#4cc7e8;">
+    <div class="meta" style="color:#4cc7e8; margin-bottom:10px;">STEP 1: UPLOAD & EXTRACT</div>
     {% if tender and tender.bid_information_sheet %}
       <div class="meta" style="margin-bottom:6px">Current: <a href="{{ tender.bid_information_sheet.url }}" target="_blank" style="color:#e8b64c">download PDF</a></div>
     {% endif %}
     <input type="file" name="bid_information_sheet" accept="application/pdf" style="color:#c8cfdd;margin-bottom:10px">
-    <button class="btn btn-blue" type="submit" name="action" value="extract" formnovalidate>Extract with AI</button>
-    <div class="meta" style="margin-top:6px">Upload the PDF and tap "Extract with AI" to auto-fill the form.</div>
+    <button class="btn btn-blue wide" type="submit" name="action" value="extract" formnovalidate style="margin:0;">Extract with AI</button>
   </div>
+
   <div class="card">
-    <div class="meta" style="margin-bottom:8px">IDENTIFICATION</div>
+    <div class="meta" style="color:#e8b64c; margin-bottom:10px;">STEP 2: MASTER TENDER DETAILS</div>
+    
     <label class="meta">Bid Reference Number</label>
     <input type="text" name="bid_reference_number" value="{{ initial.bid_reference_number|default:'' }}" required>
+    
     <label class="meta">Bid Title</label>
     <input type="text" name="bid_title" value="{{ initial.bid_title|default:'' }}" required>
-    <label class="meta">Bid Type</label>
-    <select name="bid_type">
-      <option value="EGP" {% if initial.bid_type == 'EGP' %}selected{% endif %}>eGP</option>
-      <option value="DOCUMENT" {% if initial.bid_type == 'DOCUMENT' or not initial.bid_type %}selected{% endif %}>Document</option>
-    </select>
+    
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+      <div>
+        <label class="meta">Bid Type</label>
+        <select name="bid_type">
+          <option value="DOCUMENT" {% if initial.bid_type == 'DOCUMENT' %}selected{% endif %}>Document</option>
+          <option value="EGP" {% if initial.bid_type == 'EGP' %}selected{% endif %}>eGP</option>
+        </select>
+      </div>
+      <div>
+        <label class="meta">Organization</label>
+        <select name="organization_type">
+          <option value="GOVERNMENT" {% if initial.organization_type == 'GOVERNMENT' %}selected{% endif %}>Government</option>
+          <option value="NON_GOVERNMENT" {% if initial.organization_type == 'NON_GOVERNMENT' %}selected{% endif %}>Non-Gov</option>
+          <option value="PRIVATE" {% if initial.organization_type == 'PRIVATE' %}selected{% endif %}>Private</option>
+        </select>
+      </div>
+    </div>
+
     <label class="meta">Purchaser Name</label>
     <input type="text" name="purchaser_name" value="{{ initial.purchaser_name|default:'' }}" required>
-    <label class="meta">Organization Type</label>
-    <select name="organization_type">
-      <option value="GOVERNMENT" {% if initial.organization_type == 'GOVERNMENT' or not initial.organization_type %}selected{% endif %}>Government</option>
-      <option value="NON_GOVERNMENT" {% if initial.organization_type == 'NON_GOVERNMENT' %}selected{% endif %}>Non-Government</option>
-      <option value="PRIVATE" {% if initial.organization_type == 'PRIVATE' %}selected{% endif %}>Private</option>
-    </select>
-    <label class="meta">Published Date (e.g. 2026-10-25)</label>
-    <input type="text" name="published_date" value="{{ initial.published_date|default:'' }}">
+    
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+      <div>
+        <label class="meta">Published Date (YYYY-MM-DD)</label>
+        <input type="text" name="published_date" value="{{ initial.published_date|default:'' }}">
+      </div>
+      <div>
+        <label class="meta">Contact Phone</label>
+        <input type="text" name="contact_phone" value="{{ initial.contact_phone|default:'' }}">
+      </div>
+    </div>
+    
     <label class="meta">Bidder Location</label>
     <input type="text" name="bidder_location" value="{{ initial.bidder_location|default:'' }}">
-    <label class="meta">Contact Phone</label>
-    <input type="text" name="contact_phone" value="{{ initial.contact_phone|default:'' }}">
   </div>
+
   <div class="card">
-    <div class="meta" style="margin-bottom:8px">DOCUMENT COST</div>
-    <label class="meta">Document Cost Amount</label>
-    <input type="text" name="bid_document_cost_amount" placeholder="0.00" value="{{ initial.bid_document_cost_amount|default:'' }}">
-    <label class="meta">Payment Mode</label>
-    <select name="bid_document_cost_payment_mode">
-      <option value="CASH" {% if initial.bid_document_cost_payment_mode == 'CASH' or not initial.bid_document_cost_payment_mode %}selected{% endif %}>Cash</option>
-      <option value="DEPOSIT" {% if initial.bid_document_cost_payment_mode == 'DEPOSIT' %}selected{% endif %}>Deposit in Account</option>
-    </select>
-    <label class="meta">Account Holder Name (if deposit)</label>
+    <div class="meta" style="color:#4cc7e8; margin-bottom:10px;">STEP 3: DOCUMENT COST & BANK INFO</div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+      <div>
+        <label class="meta">Doc Cost Amount</label>
+        <input type="text" name="bid_document_cost_amount" value="{{ initial.bid_document_cost_amount|default:'' }}">
+      </div>
+      <div>
+        <label class="meta">Payment Mode</label>
+        <select name="bid_document_cost_payment_mode">
+          <option value="CASH" {% if initial.bid_document_cost_payment_mode == 'CASH' %}selected{% endif %}>Cash</option>
+          <option value="DEPOSIT" {% if initial.bid_document_cost_payment_mode == 'DEPOSIT' %}selected{% endif %}>Deposit</option>
+        </select>
+      </div>
+    </div>
+    <label class="meta">Account Holder Name</label>
     <input type="text" name="account_holder_name" value="{{ initial.account_holder_name|default:'' }}">
-    <label class="meta">Bank Name (if deposit)</label>
-    <input type="text" name="bank_name" value="{{ initial.bank_name|default:'' }}">
-    <label class="meta">Bank Account Number (if deposit)</label>
-    <input type="text" name="bank_account_number" value="{{ initial.bank_account_number|default:'' }}">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+      <div>
+        <label class="meta">Bank Name</label>
+        <input type="text" name="bank_name" value="{{ initial.bank_name|default:'' }}">
+      </div>
+      <div>
+        <label class="meta">Account Number</label>
+        <input type="text" name="bank_account_number" value="{{ initial.bank_account_number|default:'' }}">
+      </div>
+    </div>
   </div>
-  <div class="card">
-    <div class="meta" style="margin-bottom:8px">CPO / BID GUARANTEE</div>
-    <label class="meta">CPO Value</label>
-    <input type="text" name="cpo_amount" placeholder="0.00" value="{{ initial.cpo_amount|default:'' }}">
-    <label class="meta">CPO Type</label>
-    <select name="cpo_type">
-      <option value="AMOUNT" {% if initial.cpo_type == 'AMOUNT' or not initial.cpo_type %}selected{% endif %}>Amount</option>
-      <option value="PERCENT" {% if initial.cpo_type == 'PERCENT' %}selected{% endif %}>Percent</option>
-    </select>
+
+  <!-- LOTS SECTION -->
+  <div class="card" style="border-color:#e8b64c;">
+    <div class="meta" style="color:#e8b64c; margin-bottom:10px;">STEP 4: TENDER LOTS & CPO DATES</div>
+    <p class="meta" style="font-size:11px; margin-bottom:10px;">If this tender has multiple lots, add them below. AI will auto-fill this list if it detects lots in the PDF.</p>
+    
+    <div id="lots-container">
+      {% if tender and tender.lots.exists %}
+        {% for lot in tender.lots.all %}
+        <div class="lot-item" style="background:#1a1f2b; padding:10px; border-radius:8px; margin-bottom:10px; border:1px solid #333a4d;">
+          <button type="button" onclick="this.parentElement.remove()" style="float:right; background:none; border:none; color:#e2504a; font-size:16px; cursor:pointer;">✖</button>
+          <label class="meta">Lot Name / Reference</label>
+          <input type="text" name="lot_name[]" value="{{ lot.lot_name }}" required>
+          <label class="meta">Description</label>
+          <input type="text" name="lot_desc[]" value="{{ lot.description }}">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div>
+              <label class="meta">CPO Amount</label>
+              <input type="number" name="lot_cpo[]" value="{{ lot.cpo_amount }}">
+            </div>
+            <div>
+              <label class="meta">Submission Date</label>
+              <input type="date" name="lot_sub_date[]" value="{{ lot.submission_date|date:'Y-m-d' }}">
+            </div>
+          </div>
+          <label class="meta">Opening Date</label>
+          <input type="date" name="lot_open_date[]" value="{{ lot.opening_date|date:'Y-m-d' }}">
+        </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    <button type="button" class="btn btn-grey wide" onclick="addLot()" style="margin-bottom:15px;">+ Add Lot Manually</button>
   </div>
-  <div class="card">
-    <div class="meta" style="margin-bottom:8px">DATES</div>
-    <label class="meta">Submission Deadline (e.g. 2026-11-01)</label>
-    <input type="text" name="bid_submission_date" value="{{ initial.bid_submission_date|default:'' }}">
-    <label class="meta">Opening Date (e.g. 2026-11-01)</label>
-    <input type="text" name="bid_opening_date" value="{{ initial.bid_opening_date|default:'' }}">
-  </div>
-  <div style="margin-bottom:20px">
-    <button class="btn btn-grey" type="submit" name="action" value="save_draft">Save as Draft</button>
-    <button class="btn btn-green" type="submit" name="action" value="submit">Register and Submit</button>
+
+  <div style="margin-bottom:30px;">
+    <button class="btn btn-green wide" type="submit" name="action" value="submit">Save & Submit to Bid Manager</button>
   </div>
 </form>
+
+<script>
+function addLot() {
+    const container = document.getElementById('lots-container');
+    const div = document.createElement('div');
+    div.className = 'lot-item';
+    div.style = 'background:#1a1f2b; padding:10px; border-radius:8px; margin-bottom:10px; border:1px solid #333a4d;';
+    div.innerHTML = `
+      <button type="button" onclick="this.parentElement.remove()" style="float:right; background:none; border:none; color:#e2504a; font-size:16px; cursor:pointer;">✖</button>
+      <label class="meta">Lot Name / Reference</label>
+      <input type="text" name="lot_name[]" placeholder="e.g. Lot 1" required>
+      <label class="meta">Description</label>
+      <input type="text" name="lot_desc[]" placeholder="e.g. PVC Resin">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div>
+          <label class="meta">CPO Amount</label>
+          <input type="number" name="lot_cpo[]" placeholder="0.00">
+        </div>
+        <div>
+          <label class="meta">Submission Date</label>
+          <input type="date" name="lot_sub_date[]">
+        </div>
+      </div>
+      <label class="meta">Opening Date</label>
+      <input type="date" name="lot_open_date[]">
+    `;
+    container.appendChild(div);
+}
+</script>
 {% endblock %}
