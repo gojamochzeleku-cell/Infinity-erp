@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}CEO Pricing Command{% endblock %}
+{% block content %}
+
+<h2 style="color:#e8b64c;">💼 Pricing Command Center</h2>
+
+<div class="card" style="background:#1a1f2b;">
+  <div style="font-size:16px; font-weight:bold; color:#fff;">{{ tender.bid_title }}</div>
+  <div class="meta" style="font-size:12px;">Ref: {{ tender.bid_reference_number }}</div>
+</div>
+
+<div class="card" style="border-color:#4cc7e8;">
+  <div class="meta" style="color:#4cc7e8; margin-bottom:10px;">SUPPLIER PROFORMA</div>
+  <div class="kv"><span class="k">Supplier</span><span class="v">{{ tender.supplier_name|default:"Not specified" }}</span></div>
+  <div class="kv"><span class="k">Document Cost</span><span class="v">{{ tender.bid_document_cost_amount }} ETB</span></div>
+  <div class="kv"><span class="k">Transport Cost</span><span class="v">{{ tender.transport_cost }} ETB</span></div>
+  <div class="kv"><span class="k">Total Base Cost</span><span class="v" style="color:#e8b64c; font-weight:bold;">{{ tender.total_cost }} ETB</span></div>
+</div>
+
+<form method="post" id="pricing-form">
+  {% csrf_token %}
+  
+  <div class="card" style="border-color:#5fd68a;">
+    <div class="meta" style="color:#5fd68a; margin-bottom:10px;">FX & PROFIT CALCULATION</div>
+    
+    <label class="meta">Current FX Rate (1 USD to ETB)</label>
+    <input type="number" step="0.01" name="fx_rate" id="fx_rate" value="{{ tender.fx_rate|default:'' }}" required oninput="calculatePrice()">
+    
+    <label class="meta">Desired Profit Margin (%)</label>
+    <input type="number" step="0.1" name="profit_margin" id="profit_margin" value="{{ tender.profit_margin_percent|default:'' }}" required oninput="calculatePrice()">
+    
+    <div style="background:#0f1115; padding:15px; border-radius:8px; text-align:center; margin-top:15px;">
+      <div class="meta" style="font-size:11px;">CALCULATED FINAL BID PRICE (ETB)</div>
+      <div id="suggested-price" style="font-size:28px; font-weight:bold; color:#e8b64c;">0.00</div>
+    </div>
+
+    <label class="meta" style="margin-top:20px;">Lock Final Bid Price (ETB)</label>
+    <input type="number" step="0.01" name="final_price" id="final_price" value="{{ tender.final_bid_price|default:'' }}" required>
+  </div>
+
+  <div class="card" style="border-color:#e2504a;">
+    <div class="meta" style="color:#e2504a; margin-bottom:5px;">CEO SIGNATURE REQUIRED</div>
+    <p class="meta" style="font-size:11px; margin-bottom:8px;">Sign with your finger to authorize this final price.</p>
+    <canvas id="sig-canvas" width="300" height="150" style="background:#fff; border-radius:4px; width:100%; touch-action:none;"></canvas>
+    <button type="button" class="btn btn-grey" style="margin-top:5px; padding:4px 8px; font-size:10px;" onclick="clearCanvas()">Clear</button>
+    <input type="hidden" name="signature_data" id="signature_data">
+  </div>
+
+  <button class="btn btn-green wide" type="submit" style="padding:15px; font-size:16px;">Lock Price & Send to Finance</button>
+</form>
+
+<script>
+    // 1. Price Calculation Logic
+    function calculatePrice() {
+        const baseCost = parseFloat("{{ tender.total_cost|default:0 }}");
+        const fxRate = parseFloat(document.getElementById('fx_rate').value) || 0;
+        const margin = parseFloat(document.getElementById('profit_margin').value) || 0;
+        
+        // Math: (Base Cost * FX Rate) + Margin %
+        // Note: If the base cost is already in ETB, we don't multiply by FX. 
+        // We assume the CEO wants to see the impact of FX on the import cost.
+        const landedCost = baseCost * (fxRate > 0 ? fxRate : 1);
+        const finalPrice = landedCost + (landedCost * (margin / 100));
+        
+        document.getElementById('suggested-price').innerText = finalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    // 2. Signature Pad Logic
+    const canvas = document.getElementById('sig-canvas');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let lastX = 0, lastY = 0;
+        
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        canvas.width = canvas.offsetWidth * ratio;
+        canvas.height = canvas.offsetHeight * ratio;
+        ctx.scale(ratio, ratio);
+        ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#111';
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function start(e) { e.preventDefault(); isDrawing = true; const p = getPos(e); lastX = p.x; lastY = p.y; }
+        function move(e) {
+            if (!isDrawing) return; e.preventDefault();
+            const p = getPos(e); ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke(); lastX = p.x; lastY = p.y;
+        }
+        function stop(e) { e.preventDefault(); isDrawing = false; }
+
+        canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); canvas.addEventListener('mouseup', stop);
+        canvas.addEventListener('touchstart', start); canvas.addEventListener('touchmove', move); canvas.addEventListener('touchend', stop);
+
+        window.clearCanvas = function() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+        
+        document.getElementById('pricing-form').addEventListener('submit', function() {
+            document.getElementById('signature_data').value = canvas.toDataURL('image/png');
+        });
+    }
+</script>
+{% endblock %}
