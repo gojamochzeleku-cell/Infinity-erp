@@ -6,7 +6,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from django.conf import settings
 
-MODELS_TO_TRY = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
+MODELS_TO_TRY = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-4-argon', 'gemini-2.5-flash']
 
 TENDER_PROMPT = """You are reading a tender / bid announcement PDF from Ethiopia.
 Extract the following and reply with ONLY a valid JSON object using these exact keys.
