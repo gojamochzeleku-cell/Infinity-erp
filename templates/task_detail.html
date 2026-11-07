@@ -248,7 +248,16 @@
       <div class="meta" style="margin-bottom:8px">MASTER AI ANALYSIS & ROUTING</div>
       
       <div style="display:flex; gap:10px; margin-bottom:15px;">
-        <button class="btn btn-blue" type="submit" name="action" value="analyze" style="flex:1; margin:0;">1. Run AI Analysis</button>
+        {% if tender.ai_status == 'PROCESSING' %}
+          <div class="card" style="border-color:#4cc7e8; background:#1a1f2b; text-align:center; flex:1; margin:0; padding:15px;">
+            <div class="spinner" style="width:30px; height:30px; border-width:3px; margin:0 auto 10px auto;"></div>
+            <p class="meta" style="color:#4cc7e8; font-weight:bold; margin:0;">AI is Reading Document...</p>
+            <p class="meta" style="font-size:10px; margin-top:5px;">Page refreshes automatically.</p>
+            <script>setTimeout(function() { window.location.reload(); }, 5000);</script>
+          </div>
+        {% else %}
+          <button class="btn btn-blue" type="submit" name="action" value="analyze" style="flex:1; margin:0;">1. Run AI Analysis</button>
+        {% endif %}
       </div>
 
       <label class="meta" style="margin-top:15px;">Requirements & Brand Summary (AI or Manual)</label>

@@ -1,3 +1,5 @@
+import threading
+from django.db import connection
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from django.shortcuts import render, redirect, get_object_or_404
@@ -121,9 +123,126 @@ def task_action(request, pk):
     task = get_object_or_404(Task, pk=pk)
     company = getattr(request, 'company', None)
     
-    # STRICT COMPANY ISOLATION
-    if task.company != company:
+    if emp is None or (task.assigned_to_id != emp.id and task.assigned_to.role != emp.role and not emp.is_group_level):
         return redirect('dashboard')
+        
+    if request.method == 'POST':
+        act = request.POST.get('action', '')
+        note = request.POST.get('note', '').strip()
+        
+        if task.code in ('T02', 'T03'):
+            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
+            if tender and act in ('GO', 'NO_GO', 'APPROVED', 'REJECTED'):
+                advance_tender_chain(request, tender, task, act, note)
+                return redirect('dashboard')
+                
+        elif task.code == 'T04':
+            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
+            if tender and act == 'SUBMIT_COST':
+                try:
+                    tc = Decimal(request.POST.get('transport_cost', '0'))
+                except:
+                    tc = Decimal('0')
+                tender.transport_cost = tc
+                tender.transport_from = request.POST.get('transport_from', '')
+                tender.transport_to = request.POST.get('transport_to', '')
+                tender.transport_reason = request.POST.get('transport_reason', '')
+                tender.total_cost = tender.bid_document_cost_amount + tender.transport_cost
+                tender.save()
+                process_cost_request(tender, task, 'SUBMIT_COST', note)
+                return redirect('dashboard')
+                
+        elif task.code in ('T05', 'T06'):
+            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
+            if tender:
+                if task.code == 'T05' and act == 'FIN_APPROVE':
+                    process_cost_request(tender, task, 'FIN_APPROVE', note)
+                elif task.code == 'T06' and act == 'CEO_COST_APPROVE':
+                    process_cost_request(tender, task, 'CEO_COST_APPROVE', note)
+                return redirect('dashboard')
+                
+        elif task.code == 'T07':
+            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
+            if tender and act == 'RECEIPT_UPLOADED':
+                if 'receipt' in request.FILES:
+                    tender.receipt = request.FILES['receipt']
+                    tender.save()
+                    register_document(tender, tender.receipt, 'Purchase Receipt', emp, 'FINANCE')
+                process_cost_request(tender, task, 'RECEIPT_UPLOADED', note)
+                return redirect('dashboard')
+                
+        elif task.code == 'T08':
+            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
+            if tender and act == 'complete':
+                if 'purchased_bid_document' in request.FILES:
+                    tender.purchased_bid_document = request.FILES['purchased_bid_document']
+                    tender.save()
+                    register_document(tender, tender.purchased_bid_document, 'Purchased Bid Document', emp, 'TENDER')
+                task.status = 'COMPLETED'
+                task.completed_at = timezone.now()
+                task.save()
+                trigger_ai_tasks(tender)
+                return redirect('dashboard')
+                
+        elif task.code == 'T09':
+            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
+            if tender:
+                if act == 'analyze':
+                    if tender.purchased_bid_document:
+                        tender.ai_status = 'PROCESSING'
+                        tender.ai_error = ''
+                        tender.save()
+                        
+                        def bg_ai():
+                            try:
+                                res = analyze_bid_document(tender.purchased_bid_document)
+                                tender.ai_summary = res
+                                tender.ai_status = 'DONE'
+                                tender.save()
+                            except Exception as e:
+                                tender.ai_error = str(e)
+                                tender.ai_status = 'FAILED'
+                                tender.save()
+                            finally:
+                                connection.close()
+                                
+                        threading.Thread(target=bg_ai).start()
+                    return redirect('task_detail', pk=task.id)
+                    
+                elif act == 'ROUTE_TASKS':
+                    route_t09_tasks(tender, task, act, note, request.POST, request.FILES)
+                    return redirect('dashboard')
+
+        elif task.code in ('T10', 'T11', 'T12'):
+            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
+            if tender and act == 'complete':
+                if 'task_file' in request.FILES:
+                    task.uploaded_file = request.FILES['task_file']
+                    register_document(tender, task.uploaded_file, f'Form Upload ({task.code})', emp, 'TENDER')
+                task.status = 'COMPLETED'
+                task.completed_at = timezone.now()
+                task.save()
+                return redirect('dashboard')
+
+        else:
+            # Fallback for standard tasks
+            if act == 'start':
+                task.status = 'IN_PROGRESS'
+            elif act == 'complete':
+                task.status = 'COMPLETED'
+                task.completed_at = timezone.now()
+            elif act == 'reject':
+                task.status = 'REJECTED'
+                task.completed_at = timezone.now()
+            
+            payload = dict(task.payload or {})
+            if note:
+                payload['last_note'] = note
+            payload['last_action'] = act
+            task.payload = payload
+            task.save()
+            
+    return redirect('dashboard')
         
     if emp is None or (task.assigned_to_id != emp.id and task.assigned_to.role != emp.role and not emp.is_group_level):
         return redirect('dashboard')
