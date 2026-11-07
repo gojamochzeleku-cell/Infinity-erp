@@ -1,9 +1,10 @@
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
-from . import views, tender_views, cover_sheet_views, pwa_views, supplier_views, filing_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
+from . import views, tender_views, repair_views, cover_sheet_views, pwa_views, supplier_views, filing_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
 
 urlpatterns = [
+    path('it/repair-chain/', repair_views.repair_chain, name='repair_chain'),
     path('mail/fetch/', mail_views.fetch_emails_action, name='fetch_emails_action'),
     path('mail/compose/', mail_views.compose_email, name='compose_email'),
     path('it/users/<int:pk>/edit/', it_views.it_edit_user, name='it_edit_user'),

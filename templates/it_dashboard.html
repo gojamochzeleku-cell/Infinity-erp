@@ -18,6 +18,15 @@
   </div>
 </div>
 
+<div class="card" style="border-color:#e2504a; margin-bottom:20px;">
+  <div class="meta" style="color:#e2504a; margin-bottom:10px;">SYSTEM MAINTENANCE</div>
+  <p class="meta" style="font-size:12px; margin-bottom:10px;">If a Tender is stuck and the 4 AI tasks (T09A-D) did not generate after uploading the bid document, click the button below to repair the chain.</p>
+  <form method="post" action="{% url 'repair_chain' %}">
+    {% csrf_token %}
+    <button class="btn btn-red wide" type="submit" style="margin:0;">🔧 Repair Stuck Tenders</button>
+  </form>
+</div>
+
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
   <h3 style="font-size:16px;">Support Tickets</h3>
   <a href="{% url 'it_user_management' %}" class="btn btn-blue" style="padding:6px 12px; font-size:12px;">Manage Users →</a>
