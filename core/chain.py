@@ -271,6 +271,22 @@ def advance_logistics_chain(tender, task, action, note, data, files):
     elif action == 'PROJECT_CLOSED':
         tender.status = 'COMPLETED'
         tender.save()
+        
+        # Automatically log the final customer revenue into the Cash Flow Ledger
+        from .models import CashFlowEntry
+        # Calculate total revenue based on the lots
+        total_revenue = sum(lot.final_price for lot in tender.lots.all() if lot.final_price > 0)
+        
+        if total_revenue > 0:
+            CashFlowEntry.objects.create(
+                company=tender.company,
+                flow_type='IN',
+                category='CUSTOMER',
+                amount=total_revenue,
+                description=f'Final Revenue Collection for {tender.serial_number}',
+                related_tender=tender,
+                created_by=task.assigned_to
+            )
 
 
 def advance_submission_chain(tender, task, action, note, data, files):
@@ -430,3 +446,19 @@ def advance_final_delivery(tender, task, action, note, data, files):
     elif action == 'PROJECT_CLOSED':
         tender.status = 'COMPLETED'
         tender.save()
+        
+        # Automatically log the final customer revenue into the Cash Flow Ledger
+        from .models import CashFlowEntry
+        # Calculate total revenue based on the lots
+        total_revenue = sum(lot.final_price for lot in tender.lots.all() if lot.final_price > 0)
+        
+        if total_revenue > 0:
+            CashFlowEntry.objects.create(
+                company=tender.company,
+                flow_type='IN',
+                category='CUSTOMER',
+                amount=total_revenue,
+                description=f'Final Revenue Collection for {tender.serial_number}',
+                related_tender=tender,
+                created_by=task.assigned_to
+            )
