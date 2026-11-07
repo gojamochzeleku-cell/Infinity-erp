@@ -1,32 +1,43 @@
+
 {% extends 'base.html' %}
 {% block title %}Task History{% endblock %}
 {% block content %}
 <h2>📜 Task History</h2>
-<p class="meta" style="margin-bottom:15px;">A complete audit trail of all completed or rejected tasks.</p>
+<p class="meta" style="margin-bottom:15px;">A complete audit trail of all actions taken in the system.</p>
 
-<form method="get" style="display:flex; gap:8px; margin-bottom:15px;">
-  <input type="text" name="q" value="{{ query }}" placeholder="Search by task title or employee..." style="margin:0; flex:1;">
+<form method="get" style="display:flex; gap:8px; margin-bottom:20px;">
+  <input type="text" name="q" value="{{ query }}" placeholder="Search by task, employee, or action..." style="margin:0; flex:1;">
   <button class="btn btn-grey" type="submit" style="margin:0; padding:0 15px;">Search</button>
 </form>
 
+<div style="position:relative; padding-left:20px; border-left:2px solid #333a4d; margin-left:10px;">
 {% for h in history %}
-  <div class="card" style="padding:15px; margin-bottom:10px; border-left:4px solid {% if h.action_taken == 'COMPLETED' %}#5fd68a{% else %}#e2504a{% endif %};">
-    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-      <span class="code" style="color:#e8b64c;">{{ h.task_code }}</span>
-      <span class="pill {% if h.action_taken == 'COMPLETED' %}completed{% else %}rejected{% endif %}">{{ h.action_taken }}</span>
-    </div>
-    <div class="ttl" style="font-size:14px; margin-bottom:6px; color:#fff;">{{ h.task_title }}</div>
+  <div style="position:relative; margin-bottom:20px;">
+    <!-- Timeline dot -->
+    <div style="position:absolute; left:-27px; top:5px; width:12px; height:12px; border-radius:50%; background:{% if h.action_taken == 'REJECTED' or h.action_taken == 'NO_GO' %}#e2504a{% else %}#5fd68a{% endif %}; border:2px solid #151922;"></div>
     
-    <div style="background:#0f1115; padding:8px; border-radius:6px; font-size:12px; color:#8f99b0; margin-bottom:10px;">
-      {% if h.note %}<strong>Note:</strong> {{ h.note }}{% else %}<em>No note provided</em>{% endif %}
-    </div>
+    <div class="card" style="padding:15px; border-left:4px solid {% if h.action_taken == 'REJECTED' or h.action_taken == 'NO_GO' %}#e2504a{% else %}#5fd68a{% endif %};">
+      <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+        <span class="code" style="color:#e8b64c; font-size:12px;">{{ h.task_code }} - {{ h.action_taken }}</span>
+        <span class="meta" style="font-size:10px;">{{ h.created_at|date:"d M Y H:i" }}</span>
+      </div>
+      
+      <div class="ttl" style="font-size:14px; margin-bottom:8px; color:#fff;">{{ h.task_title }}</div>
+      
+      {% if h.note %}
+      <div style="background:#0f1115; padding:10px; border-radius:6px; font-size:12px; color:#c8cfdd; margin-bottom:10px; font-style:italic;">
+        "{{ h.note }}"
+      </div>
+      {% endif %}
 
-    <div class="meta" style="font-size:11px; display:flex; justify-content:space-between;">
-      <span>By: <strong style="color:#4cc7e8;">{{ h.completed_by.full_name|default:"System" }}</strong></span>
-      <span>{{ h.created_at|date:"d M Y H:i" }}</span>
+      <div class="meta" style="font-size:11px; display:flex; justify-content:space-between;">
+        <span>Action By: <strong style="color:#4cc7e8;">{{ h.completed_by.full_name|default:"System" }}</strong></span>
+        <span>Originally Assigned: {{ h.assigned_to.full_name|default:"-" }}</span>
+      </div>
     </div>
   </div>
 {% empty %}
   <p class="empty">No task history found.</p>
 {% endfor %}
+</div>
 {% endblock %}

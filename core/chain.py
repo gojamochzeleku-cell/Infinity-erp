@@ -1,6 +1,6 @@
 from django.urls import reverse
 from .models import Employee, Task, Tender, TenderReview, Document, CompanySetting, CashFlowEntry, Shipment
-from .services import notify
+from .services import notify, log_task_history
 from decimal import Decimal
 
 def find_role(company, role):
@@ -36,6 +36,7 @@ def advance_tender_chain(request, tender, task, decision, note):
         tender=tender, employee=emp, role=emp.role, decision=decision, note=note)
     task.status = 'COMPLETED'
     task.save()
+    log_task_history(task, decision, note, emp)
 
     if task.code == 'T02':
         if decision == 'GO':
@@ -66,6 +67,7 @@ def advance_tender_chain(request, tender, task, decision, note):
 def process_cost_request(tender, task, action, note):
     task.status = 'COMPLETED'
     task.save()
+    log_task_history(task, action, note, task.assigned_to)
 
     if action == 'SUBMIT_COST':
         create_task(tender.company, 'T05', 'FIN',
@@ -116,6 +118,7 @@ def trigger_ai_tasks(tender):
 def route_t09_tasks(tender, task, action, note, data, files):
     task.status = 'COMPLETED'
     task.save()
+    log_task_history(task, 'ROUTED_TASKS', note, task.assigned_to)
     url = reverse('tender_detail', args=[tender.id])
     
     # Save the manual notes/AI summary to the tender
@@ -147,6 +150,7 @@ def route_t09_tasks(tender, task, action, note, data, files):
 def advance_supplier_chain(tender, task, action, note, data, files):
     task.status = 'COMPLETED'
     task.save()
+    log_task_history(task, action, note, task.assigned_to)
     url = reverse('tender_detail', args=[tender.id])
 
     if action == 'APPROVE_AI':
@@ -176,6 +180,7 @@ def advance_supplier_chain(tender, task, action, note, data, files):
 def advance_closing_chain(tender, task, action, note, data, files):
     task.status = 'COMPLETED'
     task.save()
+    log_task_history(task, action, note, task.assigned_to)
     url = reverse('tender_detail', args=[tender.id])
 
     if action == 'FINAL_DOCS_UPLOADED':
@@ -202,6 +207,7 @@ def advance_closing_chain(tender, task, action, note, data, files):
 def advance_import_chain(tender, task, action, note, data, files):
     task.status = 'COMPLETED'
     task.save()
+    log_task_history(task, action, note, task.assigned_to)
     url = reverse('tender_detail', args=[tender.id])
 
     if action == 'LEGAL_APPROVED':
@@ -234,6 +240,7 @@ def advance_import_chain(tender, task, action, note, data, files):
 def advance_logistics_chain(tender, task, action, note, data, files):
     task.status = 'COMPLETED'
     task.save()
+    log_task_history(task, action, note, task.assigned_to)
     url = reverse('tender_detail', args=[tender.id])
 
     if action == 'SHIPPING_DOCS_UPLOADED':
@@ -269,6 +276,7 @@ def advance_logistics_chain(tender, task, action, note, data, files):
 def advance_submission_chain(tender, task, action, note, data, files):
     task.status = 'COMPLETED'
     task.save()
+    log_task_history(task, action, note, task.assigned_to)
     url = reverse('tender_detail', args=[tender.id])
 
     if action == 'BANK_LETTER_READY':
