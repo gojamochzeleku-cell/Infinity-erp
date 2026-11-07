@@ -396,3 +396,37 @@ def advance_financial_submission(tender, task, action, note, data, files):
                     f'Upload Award Document: {tender.bid_title}',
                     'If the company won, upload the award document to trigger the WON status.',
                     {'tender_id': tender.id}, url)
+
+
+def advance_final_delivery(tender, task, action, note, data, files):
+    task.status = 'COMPLETED'
+    task.save()
+    url = reverse('tender_detail', args=[tender.id])
+
+    if action == 'DELIVERED':
+        create_task(tender.company, 'I13', 'CASE', 
+                    f'Customer Acceptance (GRN): {tender.bid_title}',
+                    'Get the customer signature and upload the GRN.',
+                    {'tender_id': tender.id}, url)
+                    
+    elif action == 'GRN_RECEIVED':
+        create_task(tender.company, 'I14', 'FIN', 
+                    f'Receivable & Collection: {tender.bid_title}',
+                    'Collect payment from the customer and upload the receipt.',
+                    {'tender_id': tender.id}, url)
+                    
+    elif action == 'PAYMENT_COLLECTED':
+        create_task(tender.company, 'I15', 'BIDM', 
+                    f'Project Closure Report: {tender.bid_title}',
+                    'Write the final project closure report.',
+                    {'tender_id': tender.id}, url)
+                    
+    elif action == 'CLOSURE_REPORTED':
+        create_task(tender.company, 'I16', 'CEO', 
+                    f'Final Project Approval: {tender.bid_title}',
+                    'Approve project closure.',
+                    {'tender_id': tender.id}, url)
+                    
+    elif action == 'PROJECT_CLOSED':
+        tender.status = 'COMPLETED'
+        tender.save()
