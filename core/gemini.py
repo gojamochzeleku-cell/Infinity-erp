@@ -6,7 +6,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from django.conf import settings
 
-MODELS_TO_TRY = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-4-argon', 'gemini-2.5-flash']
+MODELS_TO_TRY = ['gemini-1.5-flash-latest', 'gemini-1.5-pro-latest', 'gemini-1.5-flash']
 
 TENDER_PROMPT = """You are reading a tender / bid announcement PDF from Ethiopia.
 Extract the following and reply with ONLY a valid JSON object using these exact keys.
@@ -74,6 +74,9 @@ def _send_to_gemini(file_obj, prompt):
     
     try:
         raw = _get_file_bytes(file_obj)
+        # Check file size (Max 4MB to prevent Render Free Tier OOM crash)
+        if len(raw) > 4 * 1024 * 1024:
+            return "Error: The PDF is too large for AI extraction (Max 4MB). Please compress the PDF or fill the form manually."
     except Exception as e:
         return str(e)
         
