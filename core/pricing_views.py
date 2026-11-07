@@ -35,7 +35,6 @@ def ceo_lot_pricing(request, pk, lot_id):
         all_priced = all(l.status == 'PRICED' for l in tender.lots.all())
         
         if all_priced:
-            # All lots are priced, move to CPO preparation (T14) for the Master Tender
             create_task(
                 tender.company, 'T14', 'FIN',
                 f'Prepare CPOs & Bank Letters: {tender.bid_title}',
