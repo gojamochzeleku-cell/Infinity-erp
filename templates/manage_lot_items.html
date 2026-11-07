@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Manage Items: {{ lot.lot_name }}{% endblock %}
+{% block content %}
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+  <h2 style="color:#4cc7e8;">📦 Lot Items: {{ lot.lot_name }}</h2>
+  <a href="{% url 'lot_assembly' tender.id lot.id %}" class="btn btn-grey" style="padding:6px 12px; font-size:12px;">Back to Assembly</a>
+</div>
+
+<div class="card" style="background:#1a1f2b; margin-bottom:20px;">
+  <div style="font-size:16px; font-weight:bold; color:#fff;">{{ tender.bid_title }}</div>
+</div>
+
+<!-- Add Item Form -->
+<div class="card" style="border-color:#5fd68a; margin-bottom:20px;">
+  <div class="meta" style="color:#5fd68a; margin-bottom:10px;">+ ADD NEW ITEM TO THIS LOT</div>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add_item">
+    
+    <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:10px; margin-bottom:10px;">
+      <div>
+        <label class="meta">Item Name</label>
+        <input type="text" name="item_name" required placeholder="e.g. HP ProBook 450">
+      </div>
+      <div>
+        <label class="meta">Quantity</label>
+        <input type="number" step="0.01" name="quantity" required value="1">
+      </div>
+      <div>
+        <label class="meta">Unit</label>
+        <input type="text" name="unit" value="Pcs">
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
+      <div>
+        <label class="meta">Proposed Brand/Model</label>
+        <input type="text" name="proposed_brand" placeholder="e.g. HP / i7 12th Gen">
+      </div>
+      <div>
+        <label class="meta">Unit Price (ETB)</label>
+        <input type="number" step="0.01" name="unit_price" value="0">
+      </div>
+    </div>
+
+    <button class="btn btn-green wide" type="submit">Add Item</button>
+  </form>
+</div>
+
+<h3 style="font-size:14px; color:#e8b64c; margin-bottom:10px;">Items List ({{ items.count }})</h3>
+
+{% for item in items %}
+  <div class="card" style="padding:15px; margin-bottom:10px; border-left:4px solid #4cc7e8;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+      <strong style="color:#fff; font-size:14px;">{{ item.item_name }}</strong>
+      <span style="color:#e8b64c; font-weight:bold;">{{ item.total_price }} ETB</span>
+    </div>
+    
+    <div class="meta" style="font-size:12px; margin-bottom:6px;">
+      Qty: {{ item.quantity }} {{ item.unit }} | Brand: {{ item.proposed_brand|default:"-" }}
+    </div>
+    <div class="meta" style="font-size:11px;">
+      Unit Price: {{ item.unit_price }} ETB
+    </div>
+
+    <form method="post" style="margin-top:10px;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete_item">
+      <input type="hidden" name="item_id" value="{{ item.id }}">
+      <button class="btn btn-red" style="padding:4px 8px; font-size:10px; margin:0;" onclick="return confirm('Delete this item?');">🗑️ Remove</button>
+    </form>
+  </div>
+{% empty %}
+  <p class="empty">No items added yet. Add items above.</p>
+{% endfor %}
+
+<div class="card" style="background:#0f1115; text-align:right; margin-top:20px;">
+  <div class="meta" style="font-size:12px;">TOTAL ESTIMATED LOT COST</div>
+  <div style="font-size:24px; font-weight:bold; color:#5fd68a;">{{ total_items_cost }} ETB</div>
+</div>
+
+{% endblock %}

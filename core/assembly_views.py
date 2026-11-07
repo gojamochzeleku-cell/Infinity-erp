@@ -52,3 +52,43 @@ def lot_assembly(request, pk, lot_id):
             return redirect('dashboard')
 
     return render(request, 'lot_assembly.html', {'tender': tender, 'lot': lot})
+
+from .models import LotItem
+
+@login_required
+def manage_lot_items(request, pk, lot_id):
+    tender = get_object_or_404(Tender, pk=pk, company=getattr(request, 'company', None))
+    lot = get_object_or_404(TenderLot, pk=lot_id, tender=tender)
+    emp = getattr(request.user, 'employee', None)
+
+    if not emp or emp.role not in ('BIDOP', 'BIDM', 'ADMIN'):
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'add_item':
+            name = request.POST.get('item_name')
+            qty = request.POST.get('quantity', 1)
+            unit = request.POST.get('unit', 'Pcs')
+            brand = request.POST.get('proposed_brand', '')
+            price = request.POST.get('unit_price', 0)
+            
+            if name:
+                LotItem.objects.create(
+                    lot=lot, item_name=name, quantity=qty, unit=unit,
+                    proposed_brand=brand, unit_price=price
+                )
+            return redirect('manage_lot_items', pk=tender.id, lot_id=lot.id)
+
+        elif action == 'delete_item':
+            item_id = request.POST.get('item_id')
+            LotItem.objects.filter(pk=item_id, lot=lot).delete()
+            return redirect('manage_lot_items', pk=tender.id, lot_id=lot.id)
+
+    items = lot.items.all()
+    total_items_cost = sum(item.total_price for item in items)
+
+    return render(request, 'manage_lot_items.html', {
+        'tender': tender, 'lot': lot, 'items': items, 'total_items_cost': total_items_cost
+    })

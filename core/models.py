@@ -736,3 +736,29 @@ class TaskHistory(models.Model):
 
     def __str__(self):
         return f"{self.task_code} - {self.task_title} ({self.action_taken})"
+
+
+class LotItem(models.Model):
+    lot = models.ForeignKey(TenderLot, on_delete=models.CASCADE, related_name='items')
+    item_name = models.CharField(max_length=250)
+    description = models.TextField(blank=True)
+    quantity = models.DecimalField(max_digits=12, decimal_places=2, default=1)
+    unit = models.CharField(max_length=50, default='Pcs')
+    
+    # Pricing (Filled by Bid Operator / CEO)
+    unit_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    
+    # Technical (Filled by Bid Operator)
+    proposed_brand = models.CharField(max_length=150, blank=True)
+    compliance_status = models.CharField(max_length=50, default='Pending')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        # Auto-calculate total price
+        self.total_price = self.quantity * self.unit_price
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.item_name} ({self.quantity} {self.unit})"
