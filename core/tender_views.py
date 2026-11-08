@@ -245,7 +245,7 @@ def _collect(request):
 def _apply(tender, data):
     """Applies the AI extracted data to the Tender and creates Lots."""
     
-    # 1. Handle the Main Tender Fields
+    # 1. Main Tender Fields
     if data.get('bid_reference_number'):
         tender.bid_reference_number = str(data['bid_reference_number'])[:150]
     if data.get('bid_title'):
@@ -279,11 +279,9 @@ def _apply(tender, data):
             except Exception:
                 pass
 
-    # 2. Handle the Lots Array
-    if 'lots' in data and isinstance(data['lots'], list):
-        # Clear any existing lots to avoid duplicates if re-analyzing
+    # 2. Lots Array
+    if 'lots' in data and isinstance(data['lots'], list) and len(data['lots']) > 0:
         tender.lots.all().delete()
-        
         from .models import TenderLot
         
         for lot_data in data['lots']:
