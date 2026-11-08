@@ -242,7 +242,7 @@ input[type=text],input[type=password],input[type=number],input[type=date],select
                             if (submitter) {
                                 submitter.innerHTML = originalText;
                             }
-                        }, 10000);
+                        }, 180000);
                     }
                 });
             });
@@ -333,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (xhr.status >= 200 && xhr.status < 300) {
                     percentText.innerText = '✅ 100%';
                     percentText.classList.add('progress-success');
-                    statusText.innerText = 'Upload complete! Processing...';
+                    statusText.innerText = 'Upload complete! AI is reading your document. This may take up to 2 minutes...';
                     bar.style.width = '100%';
                     
                     // If the server sends a redirect, follow it
