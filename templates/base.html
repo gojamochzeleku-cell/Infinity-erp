@@ -353,7 +353,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => { overlay.style.display = 'none'; }, 2000);
             });
 
-            xhr.open('POST', form.action || window.location.href, true);
+            // Safely get the action URL. If form.action is an object, fallback to current URL.
+            let actionUrl = window.location.href;
+            if (typeof form.action === 'string' && form.action !== '') {
+                actionUrl = form.action;
+            }
+            xhr.open('POST', actionUrl, true);
             
             // Add CSRF token if present
             const csrfInput = form.querySelector('input[name="csrfmiddlewaretoken"]');
