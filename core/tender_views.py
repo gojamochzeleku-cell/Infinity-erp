@@ -259,7 +259,6 @@ def _apply(tender, data):
             TenderLot.objects.create(
                 tender=tender, lot_name=str(lot_name)[:100], 
                 description=str(desc)[:300], cpo_amount=cpo, cpo_type=cpo_type,
-                cpo_type=cpo_type,
                 submission_date=sub_date, opening_date=open_date
             )
             
