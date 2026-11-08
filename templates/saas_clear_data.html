@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Clear Test Data</h2>
+<div class="card" style="border-color:#e2504a;">
+  <p class="meta">This will permanently delete all Tenders, Tasks, Documents, and Notifications. Users and Companies will remain intact.</p>
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn btn-red wide" type="submit">Confirm Delete Test Data</button>
+    <a class="btn btn-grey wide" href="{% url 'saas_dashboard' %}" style="margin-top:5px;">Cancel</a>
+  </form>
+</div>
+{% endblock %}

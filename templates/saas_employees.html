@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Manage Employees{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+  <h2 style="color:#4cc7e8;">👥 Manage Employees</h2>
+  <a href="{% url 'saas_dashboard' %}" class="btn btn-grey" style="padding:6px 12px; font-size:12px;">Back to SaaS</a>
+</div>
+
+<div class="card">
+  <div class="meta" style="color:#5fd68a; margin-bottom:10px;">+ ADD NEW EMPLOYEE TO ANY COMPANY</div>
+  <form method="post">
+    {% csrf_token %}
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+      <input type="text" name="first_name" placeholder="First Name" required style="margin:0;">
+      <input type="text" name="last_name" placeholder="Last Name" required style="margin:0;">
+    </div>
+    <input type="text" name="username" placeholder="Username" required>
+    <input type="password" name="password" placeholder="Temporary Password" required>
+    
+    <label class="meta">Assign to Company</label>
+    <select name="company_id" required style="margin-bottom:10px;">
+      {% for c in companies %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+    </select>
+
+    <label class="meta">Role</label>
+    <select name="role" required style="margin-bottom:15px;">
+      {% for code, name in roles %}<option value="{{ code }}">{{ name }}</option>{% endfor %}
+    </select>
+
+    <button class="btn btn-green wide" type="submit">Create Employee</button>
+  </form>
+</div>
+
+<h3 style="font-size:14px; color:#fff; margin-bottom:10px;">All Employees ({{ employees.count }})</h3>
+{% for e in employees %}
+  <div class="card" style="padding:10px; margin-bottom:8px;">
+    <div style="display:flex; justify-content:space-between;">
+      <div>
+        <div style="font-size:13px; font-weight:bold; color:#fff;">{{ e.full_name }}</div>
+        <div class="meta" style="font-size:11px;">{{ e.company.short_name }} | {{ e.get_role_display }}</div>
+      </div>
+      <span class="meta" style="font-size:10px;">@{{ e.user.username }}</span>
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}

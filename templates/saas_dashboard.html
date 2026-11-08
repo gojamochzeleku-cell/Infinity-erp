@@ -2,36 +2,49 @@
 {% block title %}SaaS Super Admin{% endblock %}
 {% block content %}
 <h2 style="color:#b366ff;">🌐 SaaS Super Admin Portal</h2>
-<p class="meta" style="margin-bottom:20px;">Manage all companies using the Infinity ERP.</p>
+
+{% if messages %}
+  {% for m in messages %}
+    <div class="card" style="padding:10px; margin-bottom:15px; font-size:12px; background:#152a1c; color:#5fd68a;">{{ m }}</div>
+  {% endfor %}
+{% endif %}
 
 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
   <div class="card" style="text-align:center; padding:15px; border-top:3px solid #b366ff;">
-    <div class="meta" style="font-size:10px;">TOTAL COMPANIES</div>
-    <div style="font-size:28px; font-weight:bold; color:#b366ff;">{{ total_companies }}</div>
+    <div class="meta" style="font-size:10px;">COMPANIES</div>
+    <div style="font-size:24px; font-weight:bold; color:#b366ff;">{{ total_companies }}</div>
   </div>
   <div class="card" style="text-align:center; padding:15px; border-top:3px solid #4cc7e8;">
     <div class="meta" style="font-size:10px;">TOTAL USERS</div>
-    <div style="font-size:28px; font-weight:bold; color:#4cc7e8;">{{ total_employees }}</div>
-  </div>
-  <div class="card" style="text-align:center; padding:15px; border-top:3px solid #5fd68a;">
-    <div class="meta" style="font-size:10px;">TOTAL TENDERS</div>
-    <div style="font-size:28px; font-weight:bold; color:#5fd68a;">{{ total_tenders }}</div>
-  </div>
-  <div class="card" style="text-align:center; padding:15px; border-top:3px solid #e8b64c;">
-    <div class="meta" style="font-size:10px;">GLOBAL STORAGE</div>
-    <div style="font-size:28px; font-weight:bold; color:#e8b64c;">{{ total_storage_mb }} MB</div>
+    <div style="font-size:24px; font-weight:bold; color:#4cc7e8;">{{ total_employees }}</div>
   </div>
 </div>
 
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-  <h3 style="font-size:14px; color:#fff;">Companies Directory</h3>
-  <a href="{% url 'saas_add_company' %}" class="btn btn-green" style="padding:6px 12px; font-size:12px;">+ Onboard Company</a>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
+  <a href="{% url 'saas_add_company' %}" class="btn btn-green" style="margin:0; text-align:center; padding:12px; font-size:12px;">+ Onboard Company</a>
+  <a href="{% url 'saas_manage_employees' %}" class="btn btn-blue" style="margin:0; text-align:center; padding:12px; font-size:12px;">👥 Manage Employees</a>
 </div>
 
+<h3 style="font-size:14px; color:#fff; margin-bottom:10px;">Active Companies</h3>
 {% for stat in company_stats %}
   <div class="card" style="padding:15px; margin-bottom:10px; border-left:4px solid #b366ff;">
-    <div style="font-size:16px; font-weight:bold; color:#fff;">{{ stat.company.name }} ({{ stat.company.short_name }})</div>
-    <div class="meta" style="font-size:12px; margin-top:5px;">Employees: {{ stat.employees }} | Tenders: {{ stat.tenders }}</div>
+    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+      <strong style="color:#fff; font-size:14px;">{{ stat.company.name }}</strong>
+      <form method="post" action="{% url 'saas_delete_company' stat.company.id %}" onsubmit="return confirm('WARNING: Deleting {{ stat.company.name }} will delete ALL its employees and data. Continue?');">
+        {% csrf_token %}
+        <button class="btn btn-red" style="padding:4px 8px; font-size:10px; margin:0;">🗑️ Delete</button>
+      </form>
+    </div>
+    <div class="meta" style="font-size:11px;">{{ stat.employees }} employees | {{ stat.tenders }} tenders</div>
   </div>
 {% endfor %}
+
+<div class="card" style="border-color:#e2504a; margin-top:30px;">
+  <div class="meta" style="color:#e2504a; margin-bottom:5px;">DANGER ZONE</div>
+  <p class="meta" style="font-size:11px; margin-bottom:10px;">Wipe all test Tenders, Tasks, and Documents from the system. Companies and Employees will remain intact.</p>
+  <form method="post" action="{% url 'saas_clear_test_data' %}">
+    {% csrf_token %}
+    <button class="btn btn-red wide" style="margin:0;" onclick="return confirm('Are you absolutely sure? This deletes all Tenders, Tasks, and Documents!');">🚨 Clear All Test Data</button>
+  </form>
+</div>
 {% endblock %}
