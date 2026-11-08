@@ -1,21 +1,46 @@
+from django.utils import timezone
 import threading
 from django.db import connection
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
+from dateutil import parser as date_parser
 
 from .gemini import extract_tender_from_pdf
 from .models import Tender
 from .services import log_action
 from .chain import create_task
-from dateutil import parser as date_parser
+
+
+def run_ai_extraction(tender_id):
+    try:
+        tender = Tender.objects.get(id=tender_id)
+        result = extract_tender_from_pdf(tender.bid_information_sheet)
+        
+        if 'error' in result:
+            tender.ai_status = 'FAILED'
+            tender.ai_error = result['error']
+        else:
+            _apply(tender, result['data'])
+            tender.ai_extracted = True
+            tender.ai_status = 'DONE'
+        tender.save()
+    except Exception as e:
+        tender = Tender.objects.get(id=tender_id)
+        tender.ai_status = 'FAILED'
+        tender.ai_error = str(e)
+        tender.save()
+    finally:
+        connection.close()
+
 
 def _emp(request):
     return getattr(request.user, 'employee', None)
 
 def _co(request):
     return getattr(request, 'company', None)
+
 
 @login_required
 def tender_list(request):
@@ -51,27 +76,6 @@ def tender_list(request):
     })
 
 
-def run_ai_extraction(tender_id):
-    try:
-        tender = Tender.objects.get(id=tender_id)
-        result = extract_tender_from_pdf(tender.bid_information_sheet)
-        
-        if 'error' in result:
-            tender.ai_status = 'FAILED'
-            tender.ai_error = result['error']
-        else:
-            _apply(tender, result['data'])
-            tender.ai_extracted = True
-            tender.ai_status = 'DONE'
-        tender.save()
-    except Exception as e:
-        tender = Tender.objects.get(id=tender_id)
-        tender.ai_status = 'FAILED'
-        tender.ai_error = str(e)
-        tender.save()
-    finally:
-        connection.close() # Crucial for background threads in Django
-
 @login_required
 def tender_register(request):
     emp, company = _emp(request), _co(request)
@@ -85,20 +89,60 @@ def tender_register(request):
         pdf_file = request.FILES.get('bid_information_sheet')
 
         if action == 'extract':
+            if pdf_file is None:
+                errors.append('Choose the bid information sheet PDF first.')
+            else:
+                temp = Tender(company=company, registered_by=emp, status='DRAFT', **{k: v for k, v in form_data.items() if v not in (None, '')})
+                temp.bid_information_sheet = pdf_file
+                temp.ai_status = 'PROCESSING'
+                temp.save()
+                
+                # Start background thread
+                threading.Thread(target=run_ai_extraction, args=(temp.id,)).start()
+                
+                messages.info(request, 'AI is analyzing the document. This page will refresh automatically.')
+                return redirect('tender_edit', pk=temp.id)
+
+        elif action in ('save_draft', 'submit'):
+            form_data['status'] = 'REGISTERED' if action == 'submit' else 'DRAFT'
+            try:
+                tender = Tender(company=company, registered_by=emp, **form_data)
+                if pdf_file:
+                    tender.bid_information_sheet = pdf_file
+                tender.save()
+                log_action(emp, 'TENDER_' + action.upper(), tender.bid_title, 'Tender', tender.id, company)
+                if action == 'submit':
+                    _to_bid_manager(request, tender)
+                    messages.success(request, 'Tender registered and sent to Bid Manager.')
+                else:
+                    messages.success(request, 'Tender saved as draft.')
+                return redirect('tender_detail', pk=tender.id)
+            except Exception as e:
+                errors.append('Could not save: %s' % e)
+                initial = form_data
+
+    return render(request, 'tender_form.html', {'initial': initial, 'errors': errors, 'is_new': True})
+
+
+@login_required
+def tender_edit(request, pk):
+    emp, company = _emp(request), _co(request)
+    if emp is None or company is None:
+        return redirect('select_company')
+    tender = get_object_or_404(Tender, pk=pk, company=company)
+    errors = []
+
+    if request.method == 'POST':
+        action = request.POST.get('action', 'save_draft')
+        pdf_file = request.FILES.get('bid_information_sheet')
+        
+        if action == 'extract':
             if pdf_file:
                 tender.bid_information_sheet = pdf_file
+                tender.save()
             if not tender.bid_information_sheet:
                 messages.error(request, 'Upload a PDF first.')
                 return redirect('tender_edit', pk=tender.id)
-            
-            tender.ai_status = 'PROCESSING'
-            tender.ai_error = ''
-            tender.save()
-            
-            threading.Thread(target=run_ai_extraction, args=(tender.id,)).start()
-            
-            messages.info(request, 'AI is analyzing the document. Please wait...')
-            return redirect('tender_edit', pk=tender.id)
             
             tender.ai_status = 'PROCESSING'
             tender.ai_error = ''
@@ -128,6 +172,7 @@ def tender_register(request):
 
     return render(request, 'tender_form.html', {'tender': tender, 'initial': _initial(tender), 'errors': errors, 'is_new': False})
 
+
 @login_required
 def tender_detail(request, pk):
     emp, company = _emp(request), _co(request)
@@ -135,6 +180,7 @@ def tender_detail(request, pk):
         return redirect('select_company')
     tender = get_object_or_404(Tender, pk=pk, company=company)
     return render(request, 'tender_detail.html', {'tender': tender})
+
 
 @login_required
 def tender_submit(request, pk):
@@ -150,6 +196,45 @@ def tender_submit(request, pk):
         messages.success(request, 'Sent to Bid Manager.')
     return redirect('tender_detail', pk=pk)
 
+
+@login_required
+def delete_tender(request, pk):
+    company = getattr(request, 'company', None)
+    tender = get_object_or_404(Tender, pk=pk, company=company)
+    
+    if tender.status == 'DRAFT':
+        tender.delete()
+        messages.success(request, 'Draft tender deleted successfully.')
+        return redirect('tender_list')
+    else:
+        messages.error(request, 'You can only delete DRAFT tenders.')
+        return redirect('tender_detail', pk=tender.id)
+
+
+@login_required
+def view_ai_log(request):
+    from django.conf import settings
+    import os
+    log_path = os.path.join(settings.BASE_DIR, 'ai_error_log.txt')
+    content = "No log file found."
+    if os.path.exists(log_path):
+        with open(log_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    return render(request, 'ai_log.html', {'content': content})
+
+
+@login_required
+def view_ai_success_log(request):
+    from django.conf import settings
+    import os
+    log_path = os.path.join(settings.BASE_DIR, 'ai_success_log.txt')
+    content = "No successful AI extractions found yet."
+    if os.path.exists(log_path):
+        with open(log_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    return render(request, 'ai_log.html', {'content': content})
+
+
 def _to_bid_manager(request, tender):
     task = create_task(
         company=tender.company, code='T02', role='BIDM',
@@ -161,6 +246,7 @@ def _to_bid_manager(request, tender):
     if task is None:
         messages.warning(request, 'No Bid Manager in this company. Add one in /admin/.')
 
+
 def _safe_date(val):
     if not val:
         return None
@@ -168,6 +254,7 @@ def _safe_date(val):
         return date_parser.parse(val).date()
     except Exception:
         return None
+
 
 def _collect(request):
     def v(n):
@@ -198,9 +285,8 @@ def _collect(request):
         'bid_opening_date': _safe_date(v('bid_opening_date')),
     }
 
+
 def _apply(tender, data):
-    """Applies the AI extracted data to the Tender and creates Lots."""
-    
     # 1. Main Tender Fields
     if data.get('bid_reference_number'):
         tender.bid_reference_number = str(data['bid_reference_number'])[:150]
@@ -213,6 +299,7 @@ def _apply(tender, data):
         ('bid_type', ['EGP', 'DOCUMENT']),
         ('organization_type', ['GOVERNMENT', 'NON_GOVERNMENT', 'PRIVATE']),
         ('bid_document_cost_payment_mode', ['CASH', 'DEPOSIT']),
+        ('cpo_type', ['AMOUNT', 'PERCENT']),
     ):
         val = data.get(field)
         if val:
@@ -236,7 +323,7 @@ def _apply(tender, data):
                 pass
 
     # 2. Lots Array
-    if 'lots' in data and isinstance(data['lots'], list) and len(data['lots']) > 0:
+    if 'lots' in data and isinstance(data['lots'], list):
         tender.lots.all().delete()
         from .models import TenderLot
         
@@ -257,6 +344,7 @@ def _apply(tender, data):
                 submission_date=sub_date, 
                 opening_date=open_date
             )
+
 
 def _initial(t):
     return {
@@ -279,6 +367,7 @@ def _initial(t):
         'bid_opening_date': t.bid_opening_date.isoformat() if t.bid_opening_date else '',
     }
 
+
 @login_required
 def reupload_bid_document(request, pk):
     company = getattr(request, 'company', None)
@@ -299,45 +388,3 @@ def reupload_bid_document(request, pk):
             return redirect('tender_detail', pk=tender.id)
 
     return render(request, 'reupload_doc.html', {'tender': tender})
-
-
-@login_required
-def delete_tender(request, pk):
-    company = getattr(request, 'company', None)
-    tender = get_object_or_404(Tender, pk=pk, company=company)
-    emp = getattr(request.user, 'employee', None)
-    
-    # Only allow deleting if the status is DRAFT
-    if tender.status == 'DRAFT':
-        tender.delete()
-        messages.success(request, 'Draft tender deleted successfully.')
-        return redirect('tender_list')
-    else:
-        messages.error(request, 'You can only delete DRAFT tenders.')
-        return redirect('tender_detail', pk=tender.id)
-
-@login_required
-def view_ai_log(request):
-    from django.conf import settings
-    import os
-    log_path = os.path.join(settings.BASE_DIR, 'ai_error_log.txt')
-    
-    content = "No log file found. The AI has not returned any invalid JSON yet."
-    if os.path.exists(log_path):
-        with open(log_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-            
-    return render(request, 'ai_log.html', {'content': content})
-
-@login_required
-def view_ai_success_log(request):
-    from django.conf import settings
-    import os
-    log_path = os.path.join(settings.BASE_DIR, 'ai_success_log.txt')
-    
-    content = "No successful AI extractions found yet."
-    if os.path.exists(log_path):
-        with open(log_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-            
-    return render(request, 'ai_log.html', {'content': content})
