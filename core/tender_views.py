@@ -14,6 +14,8 @@ from .chain import create_task
 
 
 def run_ai_extraction(tender_id):
+    import time
+    time.sleep(2) # Wait 2 seconds for the main request to finish saving to DB
     try:
         tender = Tender.objects.get(id=tender_id)
         result = extract_tender_from_pdf(tender.bid_information_sheet)
@@ -94,17 +96,13 @@ def tender_register(request):
             else:
                 temp = Tender(company=company, registered_by=emp, status='DRAFT', **{k: v for k, v in form_data.items() if v not in (None, '')})
                 temp.bid_information_sheet = pdf_file
+                temp.ai_status = 'PROCESSING'
                 temp.save()
                 
-                # Run AI Synchronously
-                result = extract_tender_from_pdf(pdf_file)
-                if 'error' in result:
-                    messages.error(request, 'AI failed: %s. Fill the form manually.' % result['error'])
-                else:
-                    _apply(temp, result['data'])
-                    temp.ai_extracted = True
-                    messages.success(request, 'AI extracted the fields. Review and submit.')
-                temp.save()
+                # Start background thread
+                threading.Thread(target=run_ai_extraction, args=(temp.id,)).start()
+                
+                messages.info(request, 'AI is analyzing the document. This page will refresh automatically.')
                 return redirect('tender_edit', pk=temp.id)
 
         elif action in ('save_draft', 'submit'):
@@ -148,19 +146,14 @@ def tender_edit(request, pk):
                 messages.error(request, 'Upload a PDF first.')
                 return redirect('tender_edit', pk=tender.id)
             
-            # Run AI Synchronously
-            try:
-                result = extract_tender_from_pdf(tender.bid_information_sheet)
-                if 'error' in result:
-                    messages.error(request, 'AI failed: %s' % result['error'])
-                else:
-                    _apply(tender, result['data'])
-                    tender.ai_extracted = True
-                    messages.success(request, 'AI extracted fields. Review and submit.')
-                tender.save()
-            except Exception as e:
-                messages.error(request, 'System Error during AI extraction: %s' % str(e))
-                
+            tender.ai_status = 'PROCESSING'
+            tender.ai_error = ''
+            tender.save()
+            
+            # Start background thread
+            threading.Thread(target=run_ai_extraction, args=(tender.id,)).start()
+            
+            messages.info(request, 'AI is analyzing the document. Please wait...')
             return redirect('tender_edit', pk=tender.id)
 
         form_data = _collect(request)
