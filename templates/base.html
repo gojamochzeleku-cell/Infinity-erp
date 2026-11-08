@@ -72,6 +72,7 @@ input[type=text],input[type=password],input[type=number],input[type=date],select
 .logo p{color:#7d879c;font-size:12px;margin:0}
 .wide{width:100%}
 </style>
+<meta name="app-version" content="1794155418">
 </head>
 <body>
 
@@ -364,6 +365,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const csrfInput = form.querySelector('input[name="csrfmiddlewaretoken"]');
             if (csrfInput) {
                 xhr.setRequestHeader('X-CSRFToken', csrfInput.value);
+            }
+            
+            // If the user clicked a specific submit button, include its value
+            if (submitter && submitter.name) {
+                formData.append(submitter.name, submitter.value);
             }
 
             xhr.send(formData);

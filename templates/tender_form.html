@@ -18,7 +18,7 @@
 </div>
 {% endif %}
 
-<h2>{% if is_new %}Register Tender{% else %}Edit {{ tender.serial_number }}{% endif %}</h2>
+<h2 style="font-size:14px; color:#8f99b0; margin-bottom:5px;">Version: PATCH-227</h2><h2>{% if is_new %}Register Tender{% else %}Edit {{ tender.serial_number }}{% endif %}</h2>
 
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}

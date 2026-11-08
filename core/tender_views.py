@@ -85,59 +85,20 @@ def tender_register(request):
         pdf_file = request.FILES.get('bid_information_sheet')
 
         if action == 'extract':
-            if pdf_file is None:
-                errors.append('Choose the bid information sheet PDF first.')
-            else:
-                temp = Tender(company=company, registered_by=emp, status='DRAFT', **{k: v for k, v in form_data.items() if v not in (None, '')})
-                temp.bid_information_sheet = pdf_file
-                temp.ai_status = 'PROCESSING'
-                temp.save()
-                
-                # Start background thread
-                threading.Thread(target=run_ai_extraction, args=(temp.id,)).start()
-                
-                messages.info(request, 'AI is analyzing the document. This page will refresh automatically.')
-                return redirect('tender_edit', pk=temp.id)
-
-        elif action in ('save_draft', 'submit'):
-            form_data['status'] = 'REGISTERED' if action == 'submit' else 'DRAFT'
-            form_data['ai_status'] = 'PENDING'
-            try:
-                tender = Tender(company=company, registered_by=emp, **form_data)
-                if pdf_file:
-                    tender.bid_information_sheet = pdf_file
-                tender.save()
-                log_action(emp, 'TENDER_' + action.upper(), tender.bid_title, 'Tender', tender.id, company)
-                if action == 'submit':
-                    _to_bid_manager(request, tender)
-                    messages.success(request, 'Tender registered and sent to Bid Manager.')
-                else:
-                    messages.success(request, 'Tender saved as draft.')
-                return redirect('tender_detail', pk=tender.id)
-            except Exception as e:
-                errors.append('Could not save: %s' % e)
-                initial = form_data
-
-    return render(request, 'tender_form.html', {'initial': initial, 'errors': errors, 'is_new': True})
-
-@login_required
-def tender_edit(request, pk):
-    emp, company = _emp(request), _co(request)
-    if emp is None or company is None:
-        return redirect('select_company')
-    tender = get_object_or_404(Tender, pk=pk, company=company)
-    errors = []
-
-    if request.method == 'POST':
-        action = request.POST.get('action', 'save_draft')
-        pdf_file = request.FILES.get('bid_information_sheet')
-        
-        if action == 'extract':
             if pdf_file:
                 tender.bid_information_sheet = pdf_file
             if not tender.bid_information_sheet:
                 messages.error(request, 'Upload a PDF first.')
                 return redirect('tender_edit', pk=tender.id)
+            
+            tender.ai_status = 'PROCESSING'
+            tender.ai_error = ''
+            tender.save()
+            
+            threading.Thread(target=run_ai_extraction, args=(tender.id,)).start()
+            
+            messages.info(request, 'AI is analyzing the document. Please wait...')
+            return redirect('tender_edit', pk=tender.id)
             
             tender.ai_status = 'PROCESSING'
             tender.ai_error = ''
