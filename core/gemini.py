@@ -9,35 +9,41 @@ from .gemini_file_api import upload_to_google_file_api
 
 MODELS_TO_TRY = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-3.5-flash']
 
-TENDER_PROMPT = """You are reading a tender / bid announcement PDF from Ethiopia.
-Extract the following and reply with ONLY a valid JSON object using these exact keys.
-Use null for any field you cannot determine. Dates must be YYYY-MM-DD format.
-Numbers must be plain numbers (no commas, no currency symbols).
+TENDER_PROMPT = """You are an expert procurement analyst for an Ethiopian import company.
+You are reading a tender/bid document PDF. Your job is to extract the following information with 100% accuracy.
+
+Output ONLY a valid JSON object with these exact keys. Do not include any markdown, explanations, or extra text.
 
 {
-  "bid_reference_number": "the official bid/tender reference number",
-  "bid_title": "the title of the bid",
-  "bid_type": "one of: EGP or DOCUMENT",
-  "purchaser_name": "the name of the purchasing organization",
-  "organization_type": "one of: GOVERNMENT or NON_GOVERNMENT or PRIVATE",
-  "published_date": "date the bid was published",
-  "bidder_location": "location where bids are to be submitted",
-  "contact_phone": "contact phone numbers",
-  "bid_document_cost_amount": 0,
-  "bid_document_cost_payment_mode": "one of: CASH or DEPOSIT",
-  "account_holder_name": "account holder name if deposit",
-  "bank_name": "bank name if deposit",
-  "bank_account_number": "bank account number if deposit",
+  "bid_reference_number": "The official reference number (e.g. EEP/NPCB/04/2019, or the lot reference if it applies to the whole tender)",
+  "bid_title": "The full title of the tender",
+  "bid_type": "EGP or DOCUMENT (Choose EGP if it is an electronic government procurement, otherwise DOCUMENT)",
+  "purchaser_name": "The exact name of the organization buying the goods (e.g. Ethiopian Electric Power, Nib International Bank)",
+  "organization_type": "GOVERNMENT, NON_GOVERNMENT, or PRIVATE",
+  "published_date": "The date the tender was published in YYYY-MM-DD format",
+  "bidder_location": "The physical address/location where the bid must be submitted",
+  "contact_phone": "The contact phone numbers",
+  "bid_document_cost_amount": 0.00,
+  "bid_document_cost_payment_mode": "CASH or DEPOSIT (Choose DEPOSIT if there is a bank account number provided)",
+  "account_holder_name": "The account holder name if payment is via deposit, otherwise null",
+  "bank_name": "The bank name if payment is via deposit, otherwise null",
+  "bank_account_number": "The bank account number if payment is via deposit, otherwise null",
   "lots": [
     {
-      "lot_name": "e.g. Lot 1, or the specific bid reference if it applies to this lot",
-      "description": "description of the item/service for this lot",
-      "cpo_amount": 0,
-      "submission_date": "YYYY-MM-DD",
-      "opening_date": "YYYY-MM-DD"
+      "lot_name": "The name of the lot (e.g. Lot 1, Lot 2, or the specific item description if no lots exist)",
+      "description": "A brief description of the items in this lot",
+      "cpo_amount": 0.00,
+      "cpo_type": "AMOUNT or PERCENT",
+      "submission_date": "The deadline for this specific lot in YYYY-MM-DD format",
+      "opening_date": "The opening date for this specific lot in YYYY-MM-DD format"
     }
   ]
 }
+
+Rules:
+- If a date is not found, use null.
+- If there is only one item and no lots, create ONE lot with the item's description.
+- Look deep into the document for the CPO (Bid Security) and the submission dates. They are often on page 2 or 3.
 """
 
 ANALYSIS_PROMPT = """You are an elite Procurement AI for an Ethiopian import company.

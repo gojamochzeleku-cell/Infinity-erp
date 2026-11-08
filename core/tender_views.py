@@ -251,12 +251,14 @@ def _apply(tender, data):
             lot_name = lot_data.get('lot_name') or 'General'
             desc = lot_data.get('description') or ''
             cpo = lot_data.get('cpo_amount') or 0
+            cpo_type = lot_data.get('cpo_type') or 'AMOUNT'
             sub_date = _safe_date(lot_data.get('submission_date'))
             open_date = _safe_date(lot_data.get('opening_date'))
             
             TenderLot.objects.create(
                 tender=tender, lot_name=str(lot_name)[:100], 
                 description=str(desc)[:300], cpo_amount=cpo,
+                cpo_type=cpo_type,
                 submission_date=sub_date, opening_date=open_date
             )
             
