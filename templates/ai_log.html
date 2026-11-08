@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}AI Error Log{% endblock %}
+{% block content %}
+<h2>🔍 AI Error Log</h2>
+<p class="meta" style="margin-bottom:15px;">This is the raw text the AI returned when it failed to parse.</p>
+
+<div class="card" style="background:#0f1115; border-color:#e2504a;">
+  <pre style="white-space:pre-wrap; font-size:11px; color:#c8cfdd; margin:0;">{{ content }}</pre>
+</div>
+
+<a class="btn btn-grey wide" href="{% url 'saas_dashboard' %}">Back to SaaS</a>
+{% endblock %}

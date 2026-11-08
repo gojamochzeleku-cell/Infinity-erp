@@ -359,3 +359,16 @@ def delete_tender(request, pk):
     else:
         messages.error(request, 'You can only delete DRAFT tenders.')
         return redirect('tender_detail', pk=tender.id)
+
+@login_required
+def view_ai_log(request):
+    from django.conf import settings
+    import os
+    log_path = os.path.join(settings.BASE_DIR, 'ai_error_log.txt')
+    
+    content = "No log file found. The AI has not returned any invalid JSON yet."
+    if os.path.exists(log_path):
+        with open(log_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            
+    return render(request, 'ai_log.html', {'content': content})
