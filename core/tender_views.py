@@ -90,18 +90,13 @@ def tender_register(request):
             else:
                 temp = Tender(company=company, registered_by=emp, status='DRAFT', **{k: v for k, v in form_data.items() if v not in (None, '')})
                 temp.bid_information_sheet = pdf_file
+                temp.ai_status = 'PROCESSING'
                 temp.save()
                 
-                # Run synchronously so the user waits for it to finish
-                result = extract_tender_from_pdf(pdf_file)
+                # Start background thread
+                threading.Thread(target=run_ai_extraction, args=(temp.id,)).start()
                 
-                if 'error' in result:
-                    messages.error(request, 'AI failed: %s. Fill the form manually.' % result['error'])
-                else:
-                    _apply(temp, result['data'])
-                    temp.ai_extracted = True
-                    messages.success(request, 'AI extracted the fields. Review and submit.')
-                
+                messages.info(request, 'AI is analyzing the document. This page will refresh automatically.')
                 return redirect('tender_edit', pk=temp.id)
 
         elif action in ('save_draft', 'submit'):
