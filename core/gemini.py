@@ -182,29 +182,100 @@ def _send_to_gemini(file_obj, prompt):
             continue
     return f"All AI models failed. Last error: {last_err}"
 
+import datetime
+
 def extract_tender_from_pdf(file_obj):
-    result_text = _send_to_gemini(file_obj, TENDER_PROMPT)
-    
-    # 1. Clean up the string (remove markdown backticks and extra spaces)
-    clean_text = result_text.strip()
-    if clean_text.startswith("```json"):
-        clean_text = clean_text[7:] # Remove ```json
-    elif clean_text.startswith("```"):
-        clean_text = clean_text[3:] # Remove ```
+    key = _api_key()
+    if not key:
+        return {'error': 'GEMINI_API_KEY not set.'}
         
-    if clean_text.endswith("```"):
-        clean_text = clean_text[:-3] # Remove ending ```
+    try:
+        raw = _get_file_bytes(file_obj)
+    except Exception as e:
+        return {'error': str(e)}
         
-    clean_text = clean_text.strip()
+    b64 = base64.b64encode(raw).decode('ascii')
+    today_str = datetime.date.today().strftime('%Y-%m-%d')
     
-    # 2. Try to parse the clean JSON
-    if clean_text.startswith("{"):
+    prompt = f"""You are an expert Ethiopian procurement analyst. Today's date is {today_str}.
+Read the attached tender PDF and extract the data into a valid JSON object.
+If a date does not include a year, assume the current year ({today_str[:4]}).
+Do not leave any fields blank if the information is present in the text.
+"""
+
+    schema = {
+        "type": "OBJECT",
+        "properties": {
+            "bid_reference_number": {"type": "STRING"},
+            "bid_title": {"type": "STRING"},
+            "bid_type": {"type": "STRING", "enum": ["EGP", "DOCUMENT"]},
+            "purchaser_name": {"type": "STRING"},
+            "organization_type": {"type": "STRING", "enum": ["GOVERNMENT", "NON_GOVERNMENT", "PRIVATE"]},
+            "published_date": {"type": "STRING", "description": "YYYY-MM-DD or null"},
+            "bidder_location": {"type": "STRING"},
+            "contact_phone": {"type": "STRING"},
+            "bid_document_cost_amount": {"type": "NUMBER"},
+            "bid_document_cost_payment_mode": {"type": "STRING", "enum": ["CASH", "DEPOSIT"]},
+            "account_holder_name": {"type": "STRING"},
+            "bank_name": {"type": "STRING"},
+            "bank_account_number": {"type": "STRING"},
+            "lots": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "lot_name": {"type": "STRING"},
+                        "description": {"type": "STRING"},
+                        "cpo_amount": {"type": "NUMBER"},
+                        "cpo_type": {"type": "STRING", "enum": ["AMOUNT", "PERCENT"]},
+                        "submission_date": {"type": "STRING", "description": "YYYY-MM-DD or null"},
+                        "opening_date": {"type": "STRING", "description": "YYYY-MM-DD or null"}
+                    },
+                    "required": ["lot_name", "description", "cpo_amount", "cpo_type", "submission_date", "opening_date"]
+                }
+            }
+        },
+        "required": [
+            "bid_reference_number", "bid_title", "bid_type", "purchaser_name", 
+            "organization_type", "published_date", "bidder_location", "contact_phone",
+            "bid_document_cost_amount", "bid_document_cost_payment_mode", 
+            "account_holder_name", "bank_name", "bank_account_number", "lots"
+        ]
+    }
+
+    body = {
+        'contents': [{'parts': [{'text': prompt}, {'inline_data': {'mime_type': 'application/pdf', 'data': b64}}]}],
+        'generationConfig': {
+            'response_mime_type': 'application/json',
+            'response_schema': schema,
+            'temperature': 0.1
+        }
+    }
+    
+    session = requests.Session()
+    headers = {'User-Agent': 'Mozilla/5.0 (Linux; Android 10)'}
+    
+    last_err = "Unknown error"
+    for model in MODELS_TO_TRY:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         try:
-            return {'data': json.loads(clean_text)}
+            r = session.post(url, params={'key': key}, json=body, headers=headers, timeout=120)
+            if r.status_code == 200:
+                try:
+                    text = r.json()['candidates'][0]['content']['parts'][0]['text']
+                    return {'data': json.loads(text)}
+                except Exception as e:
+                    return {'error': f"Failed to parse AI JSON: {e}"}
+            elif r.status_code in (404, 429, 503):
+                last_err = f"HTTP {r.status_code}"
+                continue
+            else:
+                return {'error': f"Gemini Error {r.status_code}: {r.text[:200]}"}
         except Exception as e:
-            return {'error': f"JSON Parsing Error: {str(e)}. Raw text: {clean_text[:100]}"}
+            last_err = str(e)
+            continue
             
-    return {'error': result_text}
+    return {'error': f"All AI models failed. {last_err}"}
 
 def analyze_bid_document(file_obj):
     return _send_to_gemini(file_obj, ANALYSIS_PROMPT)

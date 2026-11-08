@@ -252,12 +252,13 @@ def _apply(tender, data):
             desc = lot_data.get('description') or ''
             cpo = lot_data.get('cpo_amount') or 0
             cpo_type = lot_data.get('cpo_type') or 'AMOUNT'
+            cpo_type = lot_data.get('cpo_type') or 'AMOUNT'
             sub_date = _safe_date(lot_data.get('submission_date'))
             open_date = _safe_date(lot_data.get('opening_date'))
             
             TenderLot.objects.create(
                 tender=tender, lot_name=str(lot_name)[:100], 
-                description=str(desc)[:300], cpo_amount=cpo,
+                description=str(desc)[:300], cpo_amount=cpo, cpo_type=cpo_type,
                 cpo_type=cpo_type,
                 submission_date=sub_date, opening_date=open_date
             )
@@ -339,3 +340,19 @@ def reupload_bid_document(request, pk):
             return redirect('tender_detail', pk=tender.id)
 
     return render(request, 'reupload_doc.html', {'tender': tender})
+
+
+@login_required
+def delete_tender(request, pk):
+    company = getattr(request, 'company', None)
+    tender = get_object_or_404(Tender, pk=pk, company=company)
+    emp = getattr(request.user, 'employee', None)
+    
+    # Only allow deleting if the status is DRAFT
+    if tender.status == 'DRAFT':
+        tender.delete()
+        messages.success(request, 'Draft tender deleted successfully.')
+        return redirect('tender_list')
+    else:
+        messages.error(request, 'You can only delete DRAFT tenders.')
+        return redirect('tender_detail', pk=tender.id)
