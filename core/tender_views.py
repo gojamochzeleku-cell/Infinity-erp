@@ -243,60 +243,66 @@ def _collect(request):
     }
 
 def _apply(tender, data):
-    # 1. Handle the Lots first
-    if 'lots' in data and isinstance(data['lots'], list):
-        tender.lots.all().delete() # Clear existing lots
-        from .models import TenderLot
-        for lot_data in data['lots']:
-            lot_name = lot_data.get('lot_name') or 'General'
-            desc = lot_data.get('description') or ''
-            cpo = lot_data.get('cpo_amount') or 0
-            cpo_type = lot_data.get('cpo_type') or 'AMOUNT'
-            cpo_type = lot_data.get('cpo_type') or 'AMOUNT'
-            sub_date = _safe_date(lot_data.get('submission_date'))
-            open_date = _safe_date(lot_data.get('opening_date'))
-            
-            TenderLot.objects.create(
-                tender=tender, lot_name=str(lot_name)[:100], 
-                description=str(desc)[:300], cpo_amount=cpo, cpo_type=cpo_type,
-                submission_date=sub_date, opening_date=open_date
-            )
-            
-    # 2. Handle Global fields (existing logic)
-    def pick(name, allowed):
-        val = data.get(name)
-        if not val:
-            return None
-        val = str(val).strip().upper().replace(' ', '_')
-        return val if val in allowed else None
-
+    """Applies the AI extracted data to the Tender and creates Lots."""
+    
+    # 1. Handle the Main Tender Fields
     if data.get('bid_reference_number'):
         tender.bid_reference_number = str(data['bid_reference_number'])[:150]
     if data.get('bid_title'):
         tender.bid_title = str(data['bid_title'])[:300]
     if data.get('purchaser_name'):
         tender.purchaser_name = str(data['purchaser_name'])[:250]
+        
     for field, allowed in (
         ('bid_type', ['EGP', 'DOCUMENT']),
         ('organization_type', ['GOVERNMENT', 'NON_GOVERNMENT', 'PRIVATE']),
         ('bid_document_cost_payment_mode', ['CASH', 'DEPOSIT']),
-        ('cpo_type', ['AMOUNT', 'PERCENT']),
     ):
-        picked = pick(field, allowed)
-        if picked:
-            setattr(tender, field, picked)
+        val = data.get(field)
+        if val:
+            val = str(val).strip().upper().replace(' ', '_')
+            if val in allowed:
+                setattr(tender, field, val)
+
     for field in ('bidder_location', 'contact_phone', 'account_holder_name', 'bank_name', 'bank_account_number'):
         if data.get(field):
             setattr(tender, field, str(data[field])[:200])
+            
     for field in ('published_date', 'bid_submission_date', 'bid_opening_date'):
         if data.get(field):
             setattr(tender, field, _safe_date(str(data[field])))
+            
     for field in ('bid_document_cost_amount', 'cpo_amount'):
         if data.get(field) not in (None, ''):
             try:
                 setattr(tender, field, str(data[field]).replace(',', ''))
             except Exception:
                 pass
+
+    # 2. Handle the Lots Array
+    if 'lots' in data and isinstance(data['lots'], list):
+        # Clear any existing lots to avoid duplicates if re-analyzing
+        tender.lots.all().delete()
+        
+        from .models import TenderLot
+        
+        for lot_data in data['lots']:
+            lot_name = lot_data.get('lot_name') or 'General'
+            desc = lot_data.get('description') or ''
+            cpo = lot_data.get('cpo_amount') or 0
+            cpo_type = lot_data.get('cpo_type') or 'AMOUNT'
+            sub_date = _safe_date(lot_data.get('submission_date'))
+            open_date = _safe_date(lot_data.get('opening_date'))
+            
+            TenderLot.objects.create(
+                tender=tender, 
+                lot_name=str(lot_name)[:100], 
+                description=str(desc)[:300], 
+                cpo_amount=cpo,
+                cpo_type=cpo_type,
+                submission_date=sub_date, 
+                opening_date=open_date
+            )
 
 def _initial(t):
     return {
