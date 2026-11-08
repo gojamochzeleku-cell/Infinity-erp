@@ -13,7 +13,7 @@ try:
 except ImportError:
     fitz = None
 
-MODELS_TO_TRY = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-1.5-flash']
+MODELS_TO_TRY = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-2.5-flash']
 
 TENDER_PROMPT = """You are an expert procurement AI for an Ethiopian import company.
 Read the attached bid document and extract the following information.
