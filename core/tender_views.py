@@ -372,3 +372,16 @@ def view_ai_log(request):
             content = f.read()
             
     return render(request, 'ai_log.html', {'content': content})
+
+@login_required
+def view_ai_success_log(request):
+    from django.conf import settings
+    import os
+    log_path = os.path.join(settings.BASE_DIR, 'ai_success_log.txt')
+    
+    content = "No successful AI extractions found yet."
+    if os.path.exists(log_path):
+        with open(log_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            
+    return render(request, 'ai_log.html', {'content': content})

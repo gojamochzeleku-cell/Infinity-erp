@@ -4,6 +4,7 @@ from django.urls import path
 from . import views, tender_views, forecast_views, profit_views, saas_views, cost_views, export_views, qr_views, storage_views, storage_views, history_views, pricing_views, assembly_views, war_room_views, repair_views, cover_sheet_views, pwa_views, supplier_views, filing_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
 
 urlpatterns = [
+    path('ai-success-log/', tender_views.view_ai_success_log, name='view_ai_success_log'),
     path('ai-log/', tender_views.view_ai_log, name='view_ai_log'),
     path('tenders/<int:pk>/delete/', tender_views.delete_tender, name='delete_tender'),
     path('saas/company/<int:pk>/delete/', saas_views.saas_delete_company, name='saas_delete_company'),

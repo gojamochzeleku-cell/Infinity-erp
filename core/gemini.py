@@ -263,6 +263,11 @@ Do not leave any fields blank if the information is present in the text.
             if r.status_code == 200:
                 try:
                     text = r.json()['candidates'][0]['content']['parts'][0]['text']
+                    import os
+                    from django.conf import settings
+                    debug_path = os.path.join(settings.BASE_DIR, 'ai_success_log.txt')
+                    with open(debug_path, 'w', encoding='utf-8') as log:
+                        log.write(text)
                     return {'data': json.loads(text)}
                 except Exception as e:
                     return {'error': f"Failed to parse AI JSON: {e}"}
