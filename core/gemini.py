@@ -13,39 +13,66 @@ try:
 except ImportError:
     fitz = None
 
-MODELS_TO_TRY = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-2.5-flash']
+MODELS_TO_TRY = ['gemini-3-flash-preview', 'gemini-flash-latest']
 
-TENDER_PROMPT = """You are an expert procurement AI for an Ethiopian import company.
-Read the attached bid document and extract the following information.
-Reply with ONLY a valid JSON object. Do not include markdown or explanations.
+TENDER_PROMPT = """You are an expert procurement document analyst for an Ethiopian import company.
+
+Read the ENTIRE attached tender document carefully, including all pages, tables, annexes, schedules and lot descriptions.
+
+Extract the information into ONE valid JSON object only. Do not include Markdown or explanations.
+
+IMPORTANT LOT EXTRACTION RULES:
+1. Extract EVERY distinct lot separately. Never merge different lots.
+2. Extract ALL items belonging to each lot. Do not omit items from tables.
+3. Each lot may have its own CPO amount or percentage, guarantee requirements, submission deadline and opening schedule. Keep these details attached to the correct lot.
+4. Do not assume that all lots share the same dates, times or CPO.
+5. If the document has no lot divisions, create one "General" lot and include the identified items.
+6. Preserve item names, quantities and units as written.
+7. Never invent missing information. Use null for unknown values.
+8. Dates must use YYYY-MM-DD. Times must use 24-hour HH:MM format.
+9. Distinguish a fixed CPO amount from a percentage. Use AMOUNT or PERCENT.
+10. Include guarantee type, validity, issuing bank requirements and other security conditions in guarantee_details when stated.
+
+Use this exact JSON structure:
 
 {
-  "bid_reference_number": "the official bid reference number",
-  "bid_title": "the title of the bid",
-  "bid_type": "one of: EGP or DOCUMENT",
-  "purchaser_name": "the name of the purchasing organization",
-  "organization_type": "one of: GOVERNMENT or NON_GOVERNMENT or PRIVATE",
-  "published_date": "YYYY-MM-DD",
-  "bidder_location": "location where bids are to be submitted",
-  "contact_phone": "contact phone numbers",
-  "bid_document_cost_amount": 0,
-  "bid_document_cost_payment_mode": "one of: CASH or DEPOSIT",
-  "account_holder_name": "account holder name if deposit",
-  "bank_name": "bank name if deposit",
-  "bank_account_number": "bank account number if deposit",
+  "bid_reference_number": null,
+  "bid_title": null,
+  "bid_type": null,
+  "purchaser_name": null,
+  "organization_type": null,
+  "published_date": null,
+  "bidder_location": null,
+  "contact_phone": null,
+  "bid_document_cost_amount": null,
+  "bid_document_cost_payment_mode": null,
+  "account_holder_name": null,
+  "bank_name": null,
+  "bank_account_number": null,
   "lots": [
     {
-      "lot_name": "e.g. Lot 1",
-      "description": "description of items in this lot",
-      "cpo_amount": 0,
-      "cpo_type": "one of: AMOUNT or PERCENT",
-      "submission_date": "YYYY-MM-DD",
-      "opening_date": "YYYY-MM-DD"
+      "lot_name": null,
+      "description": null,
+      "cpo_amount": null,
+      "cpo_type": null,
+      "guarantee_details": null,
+      "submission_date": null,
+      "submission_time": null,
+      "opening_date": null,
+      "opening_time": null,
+      "items": [
+        {
+          "item_name": null,
+          "description": null,
+          "quantity": null,
+          "unit": null
+        }
+      ]
     }
   ]
 }
 
-If a field is not found, use null. Even if there is only one item, include it in the "lots" array.
+Return valid JSON only. Ensure every lot and every identifiable item in the document is included.
 """
 
 ANALYSIS_PROMPT = """You are an elite Procurement AI for an Ethiopian import company.

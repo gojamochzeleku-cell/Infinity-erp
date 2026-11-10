@@ -6,7 +6,7 @@ from django.utils import timezone
 from dateutil import parser as date_parser
 
 from .gemini import extract_tender_from_pdf
-from .models import Tender, TenderLot
+from .models import Tender, TenderLot, LotItem
 from .services import log_action
 from .chain import create_task
 
@@ -290,9 +290,21 @@ def _to_bid_manager(request, tender):
         messages.warning(request, 'No Bid Manager in this company.')
 
 def _safe_date(val):
-    if not val: return None
-    try: return date_parser.parse(val).date()
-    except: return None
+    if not val:
+        return None
+    try:
+        return date_parser.parse(str(val)).date()
+    except (ValueError, TypeError, OverflowError):
+        return None
+
+
+def _safe_time(val):
+    if not val:
+        return None
+    try:
+        return date_parser.parse(str(val)).time().replace(second=0, microsecond=0)
+    except (ValueError, TypeError, OverflowError):
+        return None
 
 def _collect(request):
     def v(n):
@@ -328,7 +340,7 @@ def _apply(tender, data):
         tender.bid_title = str(data['bid_title'])[:300]
     if data.get('purchaser_name'):
         tender.purchaser_name = str(data['purchaser_name'])[:250]
-        
+
     for field, allowed in (
         ('bid_type', ['EGP', 'DOCUMENT']),
         ('organization_type', ['GOVERNMENT', 'NON_GOVERNMENT', 'PRIVATE']),
@@ -338,33 +350,111 @@ def _apply(tender, data):
         val = data.get(field)
         if val:
             val = str(val).strip().upper().replace(' ', '_')
-            if val in allowed: setattr(tender, field, val)
+            if val in allowed:
+                setattr(tender, field, val)
 
-    for field in ('bidder_location', 'contact_phone', 'account_holder_name', 'bank_name', 'bank_account_number'):
-        if data.get(field): setattr(tender, field, str(data[field])[:200])
-            
+    for field in (
+        'bidder_location', 'contact_phone', 'account_holder_name',
+        'bank_name', 'bank_account_number'
+    ):
+        if data.get(field):
+            setattr(tender, field, str(data[field])[:200])
+
     for field in ('published_date', 'bid_submission_date', 'bid_opening_date'):
-        if data.get(field): setattr(tender, field, _safe_date(str(data[field])))
-            
-    for field in ('bid_document_cost_amount', 'cpo_amount'):
-        if data.get(field) not in (None, ''):
-            try: setattr(tender, field, str(data[field]).replace(',', ''))
-            except: pass
+        if data.get(field):
+            parsed = _safe_date(data[field])
+            if parsed:
+                setattr(tender, field, parsed)
 
-    if 'lots' in data and isinstance(data['lots'], list):
-        tender.lots.all().delete()
-        for lot_data in data['lots']:
-            lot_name = lot_data.get('lot_name') or 'General'
-            desc = lot_data.get('description') or ''
-            cpo = lot_data.get('cpo_amount') or 0
-            cpo_type = lot_data.get('cpo_type') or 'AMOUNT'
-            sub_date = _safe_date(lot_data.get('submission_date'))
-            open_date = _safe_date(lot_data.get('opening_date'))
-            TenderLot.objects.create(
-                tender=tender, lot_name=str(lot_name)[:100], description=str(desc)[:300],
-                cpo_amount=cpo, cpo_type=cpo_type,
-                submission_date=sub_date, opening_date=open_date
-            )
+    for field in ('bid_document_cost_amount', 'cpo_amount'):
+        val = data.get(field)
+        if val not in (None, ''):
+            try:
+                setattr(tender, field, str(val).replace(',', '').replace('%', ''))
+            except (ValueError, TypeError):
+                pass
+
+    lots_data = data.get('lots')
+    if isinstance(lots_data, list):
+        for lot_data in lots_data:
+            if not isinstance(lot_data, dict):
+                continue
+
+            lot_name = str(lot_data.get('lot_name') or 'General').strip()[:100]
+            if not lot_name:
+                lot_name = 'General'
+
+            lot = tender.lots.filter(lot_name__iexact=lot_name).first()
+            if lot is None:
+                lot = TenderLot.objects.create(
+                    tender=tender,
+                    lot_name=lot_name,
+                )
+
+            if lot_data.get('description'):
+                lot.description = str(lot_data['description'])[:300]
+
+            cpo = lot_data.get('cpo_amount')
+            if cpo not in (None, ''):
+                try:
+                    lot.cpo_amount = str(cpo).replace(',', '').replace('%', '')
+                except (ValueError, TypeError):
+                    pass
+
+            cpo_type = str(lot_data.get('cpo_type') or '').strip().upper()
+            if cpo_type in ('AMOUNT', 'PERCENT'):
+                lot.cpo_type = cpo_type
+
+            if lot_data.get('guarantee_details'):
+                lot.guarantee_details = str(lot_data['guarantee_details'])
+
+            for field in ('submission_date', 'opening_date'):
+                if lot_data.get(field):
+                    parsed = _safe_date(lot_data[field])
+                    if parsed:
+                        setattr(lot, field, parsed)
+
+            for field in ('submission_time', 'opening_time'):
+                if lot_data.get(field):
+                    parsed = _safe_time(lot_data[field])
+                    if parsed:
+                        setattr(lot, field, parsed)
+
+            lot.save()
+
+            items_data = lot_data.get('items')
+            if not isinstance(items_data, list):
+                continue
+
+            for item_data in items_data:
+                if not isinstance(item_data, dict) or not item_data.get('item_name'):
+                    continue
+
+                item_name = str(item_data['item_name']).strip()[:250]
+                if not item_name:
+                    continue
+
+                item = lot.items.filter(item_name__iexact=item_name).first()
+                if item is None:
+                    item = LotItem(lot=lot, item_name=item_name)
+
+                if item_data.get('description'):
+                    item.description = str(item_data['description'])
+
+                if item_data.get('unit'):
+                    item.unit = str(item_data['unit'])[:50]
+
+                quantity = item_data.get('quantity')
+                if quantity not in (None, ''):
+                    try:
+                        from decimal import Decimal
+                        q = Decimal(str(quantity).replace(',', ''))
+                        if q.is_finite() and q > 0:
+                            item.quantity = q
+                    except Exception:
+                        pass
+
+                item.save()
 
 def _initial(t):
     return {

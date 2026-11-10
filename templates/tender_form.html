@@ -16,7 +16,7 @@
       <div class="meta" style="margin-bottom:6px">Current: <a href="{{ tender.bid_information_sheet.url }}" target="_blank" style="color:#e8b64c">download PDF</a></div>
     {% endif %}
     <input type="file" name="bid_information_sheet" accept="application/pdf" style="color:#c8cfdd;margin-bottom:10px">
-    <button class="btn btn-blue wide" type="submit" name="action" value="extract" style="margin:0;">🤖 Extract with AI</button>
+    <button class="btn btn-blue wide" type="submit" name="action" value="extract" formnovalidate style="margin:0;">🤖 Extract with AI</button>
   </div>
 
   <div class="card">
@@ -57,6 +57,44 @@
     <label class="meta">Contact Phone</label>
     <input type="text" name="contact_phone" value="{{ initial.contact_phone|default:'' }}">
   </div>
+
+
+  {% if tender and tender.lots.exists %}
+  <div class="card" style="border-color:#e8b64c;">
+    <div class="meta" style="color:#e8b64c; margin-bottom:12px;">
+      EXTRACTED LOTS ({{ tender.lots.count }})
+    </div>
+    {% for lot in tender.lots.all %}
+    <div style="border:1px solid #465365; border-radius:8px; padding:12px; margin-bottom:12px;">
+      <h3>{{ lot.lot_name }}</h3>
+      {% if lot.description %}<p>{{ lot.description }}</p>{% endif %}
+      <p><strong>CPO:</strong> {{ lot.cpo_amount }} {{ lot.get_cpo_type_display }}</p>
+      {% if lot.guarantee_details %}<p><strong>Guarantee:</strong> {{ lot.guarantee_details|linebreaksbr }}</p>{% endif %}
+      <p><strong>Submission:</strong> {{ lot.submission_date|date:"d M Y"|default:"-" }}{% if lot.submission_time %} at {{ lot.submission_time|time:"H:i" }}{% endif %}</p>
+      <p><strong>Opening:</strong> {{ lot.opening_date|date:"d M Y"|default:"-" }}{% if lot.opening_time %} at {{ lot.opening_time|time:"H:i" }}{% endif %}</p>
+      <strong>Items ({{ lot.items.count }})</strong>
+      <div style="overflow-x:auto;">
+        <table style="width:100%; font-size:12px;">
+          <thead><tr><th>Item</th><th>Description</th><th>Quantity</th><th>Unit</th></tr></thead>
+          <tbody>
+          {% for item in lot.items.all %}
+          <tr>
+            <td>{{ item.item_name }}</td>
+            <td>{{ item.description|default:"-" }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.unit }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4">No items extracted.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <a href="{% url 'manage_lot_items' tender.id lot.id %}" class="btn btn-blue" style="margin-top:10px;">Manage Lot Items</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   <div class="card">
     <div class="meta" style="color:#4cc7e8; margin-bottom:10px;">STEP 3: DOCUMENT COST</div>

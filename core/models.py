@@ -835,8 +835,16 @@ class TenderLot(models.Model):
     lot_name = models.CharField(max_length=100, help_text="e.g. Lot 1, Lot 2")
     description = models.CharField(max_length=300, blank=True)
     cpo_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    cpo_type = models.CharField(
+        max_length=20,
+        choices=[('AMOUNT', 'Amount'), ('PERCENT', 'Percent')],
+        default='AMOUNT',
+    )
+    guarantee_details = models.TextField(blank=True)
     submission_date = models.DateField(null=True, blank=True)
+    submission_time = models.TimeField(null=True, blank=True)
     opening_date = models.DateField(null=True, blank=True)
+    opening_time = models.TimeField(null=True, blank=True)
     
     # Independent Sub-Tender Fields
     status = models.CharField(max_length=50, default='PENDING')

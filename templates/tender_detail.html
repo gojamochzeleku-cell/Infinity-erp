@@ -39,6 +39,52 @@
   </div>
   {% endif %}
 </div>
+
+{% if tender.lots.exists %}
+<div class="card" style="border-color:#e8b64c;">
+  <div class="meta" style="margin-bottom:12px; color:#e8b64c;">LOT BREAKDOWN ({{ tender.lots.count }})</div>
+  {% for lot in tender.lots.all %}
+  <div style="border:1px solid #465365; border-radius:8px; padding:14px; margin-bottom:12px;">
+    <h3 style="margin:0 0 10px;">{{ lot.lot_name }}</h3>
+    {% if lot.description %}<p>{{ lot.description }}</p>{% endif %}
+    <div class="kv"><span class="k">CPO</span><span class="v">{{ lot.cpo_amount }} {{ lot.get_cpo_type_display }}</span></div>
+    {% if lot.guarantee_details %}
+    <div class="kv"><span class="k">Guarantee</span><span class="v">{{ lot.guarantee_details|linebreaksbr }}</span></div>
+    {% endif %}
+    <div class="kv"><span class="k">Submission</span><span class="v">{{ lot.submission_date|date:"d M Y"|default:"-" }}{% if lot.submission_time %} at {{ lot.submission_time|time:"H:i" }}{% endif %}</span></div>
+    <div class="kv"><span class="k">Opening</span><span class="v">{{ lot.opening_date|date:"d M Y"|default:"-" }}{% if lot.opening_time %} at {{ lot.opening_time|time:"H:i" }}{% endif %}</span></div>
+
+    {% with items=lot.items.all %}
+    <div style="margin-top:12px;">
+      <strong>Extracted Items ({{ items|length }})</strong>
+      {% if items %}
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; margin-top:8px; font-size:12px;">
+          <thead><tr><th style="text-align:left; padding:7px;">Item</th><th style="text-align:left; padding:7px;">Description</th><th style="text-align:right; padding:7px;">Quantity</th><th style="text-align:left; padding:7px;">Unit</th></tr></thead>
+          <tbody>
+          {% for item in items %}
+          <tr>
+            <td style="padding:7px; border-top:1px solid #465365;">{{ item.item_name }}</td>
+            <td style="padding:7px; border-top:1px solid #465365;">{{ item.description|default:"-" }}</td>
+            <td style="padding:7px; border-top:1px solid #465365; text-align:right;">{{ item.quantity }}</td>
+            <td style="padding:7px; border-top:1px solid #465365;">{{ item.unit }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="meta">No items recorded for this lot yet.</p>
+      {% endif %}
+    </div>
+    {% endwith %}
+
+    <a href="{% url 'manage_lot_items' tender.id lot.id %}" class="btn btn-blue" style="margin-top:12px;">Manage Lot Items</a>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 <div class="card" style="border-color:#4cc7e8;">
   <div class="meta" style="margin-bottom:8px; color:#4cc7e8;">SUPPLIER COLLABORATION</div>
   <p class="meta" style="font-size:12px; margin-bottom:10px;">Generate a secure link to send to your supplier via WhatsApp so they can upload their Proforma Invoice directly.</p>
