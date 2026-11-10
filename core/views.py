@@ -2,15 +2,22 @@ from django.urls import reverse
 import threading
 from django.db import connection
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.contrib.auth.views import LoginView
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.db.models import Q
 from decimal import Decimal
 
-from .models import Company, Task, Notification, Tender, LeaveRequest, ExpenseRequest
+from .models import Company, Task, Notification, Tender, LeaveRequest, ExpenseRequest, CompanyMembership, MembershipRole
 from .services import log_action, log_task_history
-from .chain import register_document, advance_tender_chain, process_cost_request
+from .chain import (
+    register_document,
+    advance_tender_chain,
+    process_cost_request,
+    trigger_ai_tasks,
+    advance_tender_execution_chain,
+)
 
 class InfinityLoginView(LoginView):
     template_name = 'login.html'
@@ -25,10 +32,7 @@ class InfinityLoginView(LoginView):
         return response
         
     def get_success_url(self):
-        # If SuperAdmin, go straight to SaaS Portal. Otherwise, select company.
-        emp = getattr(self.request.user, 'employee', None)
-        if emp and emp.role == 'SUPERADMIN':
-            return str(reverse('saas_dashboard'))
+        # Every user enters through company membership selection.
         return str(reverse('select_company'))
 
 def home(request):
@@ -38,357 +42,478 @@ def home(request):
 
 @login_required
 def select_company(request):
-    emp = getattr(request.user, 'employee', None)
-    if emp and emp.role == 'SUPERADMIN':
-        return redirect('saas_dashboard')
-        
-    companies = Company.objects.filter(is_active=True)
+    memberships = CompanyMembership.objects.filter(
+        employee__user=request.user,
+        employee__is_active=True,
+        is_active=True,
+        company__is_active=True,
+    ).select_related('company').order_by('company__name')
+
+    companies = Company.objects.filter(
+        pk__in=memberships.values('company_id'),
+        is_active=True,
+    ).order_by('name')
+
     if request.method == 'POST':
-        cid = request.POST.get('company_id')
-        if cid:
-            request.session['company_id'] = int(cid)
+        raw_company_id = request.POST.get('company_id', '')
+
+        try:
+            company_id = int(raw_company_id)
+        except (TypeError, ValueError):
+            company_id = None
+
+        membership = None
+        if company_id is not None:
+            membership = memberships.filter(
+                company_id=company_id
+            ).first()
+
+        if membership is not None:
+            request.session['company_id'] = membership.company_id
             return redirect('dashboard')
-    return render(request, 'select_company.html', {'companies': companies})
+
+    return render(
+        request,
+        'select_company.html',
+        {'companies': companies},
+    )
 
 @login_required
 def dashboard(request):
     emp = getattr(request.user, 'employee', None)
+    company = getattr(request, 'company', None)
+    membership = getattr(request, 'membership', None)
+
     if emp is None:
         return render(request, 'no_profile.html')
-    company = getattr(request, 'company', None)
-    
+
+    if (
+        company is None
+        or membership is None
+        or membership.employee_id != emp.id
+        or membership.company_id != company.id
+        or not membership.is_active
+    ):
+        return redirect('select_company')
+
+    # Tasks are visible only to their actual designated assignee.
     qs = Task.objects.filter(
-        Q(assigned_to=emp) | Q(assigned_to__role=emp.role),
-        company=company
-    ).distinct().exclude(status__in=['COMPLETED', 'CANCELLED'])
-    
-    if company is not None:
-        qs = qs.filter(company=company)
-        
+        company=company,
+        assigned_to=emp,
+    ).exclude(
+        status__in=['COMPLETED', 'CANCELLED']
+    )
+
     tasks = list(qs.order_by('-created_at')[:100])
-    
+
     done = Task.objects.filter(
-        Q(assigned_to=emp) | Q(assigned_to__role=emp.role)
-    ).distinct().filter(status='COMPLETED')
-    if company is not None:
-        done = done.filter(company=company)
-        
+        company=company,
+        assigned_to=emp,
+        status='COMPLETED',
+    )
+
     stats = {
         'pending': sum(1 for t in tasks if t.status == 'PENDING'),
         'in_progress': sum(1 for t in tasks if t.status == 'IN_PROGRESS'),
         'completed': done.count(),
     }
 
-    # EXECUTIVE ROUTING
-    if emp.role in ('CEO', 'GM', 'ADMIN', 'SUPERADMIN'):
-        # Filter for tasks that strictly require Executive approval/action
-        approval_codes = ['T03', 'T06', 'T12', 'T16', 'I03', 'I08', 'I16', 'CEO_EXPENSE', 'GM_AGENT_APPROVED', 'GM_LEAVE']
-        
-        # We want all pending tasks assigned to them, but we will categorize them
-        executive_approvals = [t for t in tasks if t.code in approval_codes]
-        
-        # Get active tenders for the tracker
-        active_tenders = Tender.objects.filter(company=company).exclude(status__in=['WON', 'LOST', 'COMPLETED', 'DRAFT']).order_by('-updated_at')[:5]
-        
-        # Get recent audit logs for tracking
+    # Executive classification uses company-specific membership roles.
+    roles = set(
+        MembershipRole.objects.filter(
+            membership=membership
+        ).values_list('role', flat=True)
+    )
+
+    if roles.intersection({'CEO', 'GM', 'ADMIN'}):
+        approval_codes = [
+            'T03', 'T06', 'T12', 'T16',
+            'I03', 'I08', 'I16',
+            'CEO_EXPENSE', 'GM_AGENT_APPROVED', 'GM_LEAVE',
+        ]
+
+        executive_approvals = [
+            t for t in tasks if t.code in approval_codes
+        ]
+
+        active_tenders = Tender.objects.filter(
+            company=company
+        ).exclude(
+            status__in=['WON', 'LOST', 'COMPLETED', 'DRAFT']
+        ).order_by('-updated_at')[:5]
+
         from .models import AuditLog
-        recent_activity = AuditLog.objects.filter(company=company).order_by('-created_at')[:5]
+        recent_activity = AuditLog.objects.filter(
+            company=company
+        ).order_by('-created_at')[:5]
 
         return render(request, 'dashboard_executive.html', {
             'approvals': executive_approvals,
-            'other_tasks': [t for t in tasks if t.code not in approval_codes],
+            'other_tasks': [
+                t for t in tasks if t.code not in approval_codes
+            ],
             'stats': stats,
             'active_tenders': active_tenders,
             'recent_activity': recent_activity,
-            'today': timezone.now().date()
+            'today': timezone.now().date(),
         })
 
-    return render(request, 'dashboard.html', {'tasks': tasks, 'stats': stats, 'today': timezone.now().date()})
+    return render(request, 'dashboard.html', {
+        'tasks': tasks,
+        'stats': stats,
+        'today': timezone.now().date(),
+    })
 
 @login_required
 def task_detail(request, pk):
     emp = getattr(request.user, 'employee', None)
-    task = get_object_or_404(Task, pk=pk)
     company = getattr(request, 'company', None)
-    
-    # STRICT COMPANY ISOLATION
-    if task.company != company:
-        return redirect('dashboard')
-        
-    if emp is None or (task.assigned_to_id != emp.id and task.assigned_to.role != emp.role and not emp.is_group_level):
-        return redirect('dashboard')
-    
+    membership = getattr(request, 'membership', None)
+
+    if (
+        emp is None
+        or company is None
+        or membership is None
+        or membership.employee_id != emp.id
+        or membership.company_id != company.id
+        or not membership.is_active
+    ):
+        return redirect('select_company')
+
+    task = get_object_or_404(
+        Task,
+        pk=pk,
+        company=company,
+        assigned_to=emp,
+    )
+
     tender = None
-    if task.payload and 'tender_id' in task.payload:
-        tender = Tender.objects.filter(pk=task.payload['tender_id']).first()
-        
+    tender_id = (task.payload or {}).get('tender_id')
+
+    if tender_id:
+        tender = Tender.objects.filter(
+            pk=tender_id,
+            company=company,
+        ).first()
+
     from .models import Product
-    all_products = Product.objects.filter(company=task.company)
+    all_products = Product.objects.filter(company=company)
+
     if request.method == 'POST' and 'comment_text' in request.POST:
         from .models import TaskComment
-        text = request.POST.get('comment_text')
-        if text:
-            TaskComment.objects.create(task=task, author=emp, text=text)
-            # Notify the person who created the task (if different from commenter)
+
+        comment_text = request.POST.get('comment_text', '').strip()
+
+        if comment_text:
+            TaskComment.objects.create(
+                task=task,
+                author=emp,
+                text=comment_text,
+            )
+
             if task.assigned_by and task.assigned_by != emp:
                 from .services import notify
-                notify(task.assigned_by, f'New Comment on {task.code}', f'{emp.full_name}: {text}', task)
+                notify(
+                    task.assigned_by,
+                    f'New Comment on {task.code}',
+                    f'{emp.full_name}: {comment_text}',
+                    task,
+                )
+
         return redirect('task_detail', pk=task.id)
 
-    return render(request, 'task_detail.html', {'task': task, 'tender': tender, 'all_products': all_products})
+    return render(request, 'task_detail.html', {
+        'task': task,
+        'tender': tender,
+        'all_products': all_products,
+    })
 
 @login_required
 def task_action(request, pk):
     emp = getattr(request.user, 'employee', None)
-    task = get_object_or_404(Task, pk=pk)
     company = getattr(request, 'company', None)
-    
-    if emp is None or (task.assigned_to_id != emp.id and task.assigned_to.role != emp.role and not emp.is_group_level):
+    membership = getattr(request, 'membership', None)
+
+    if (
+        emp is None
+        or company is None
+        or membership is None
+        or membership.employee_id != emp.id
+        or membership.company_id != company.id
+        or not membership.is_active
+    ):
+        return redirect('select_company')
+
+    # A task must belong to the selected company and be assigned
+    # to this exact employee. Legacy global roles are not permissions.
+    task = get_object_or_404(
+        Task,
+        pk=pk,
+        company=company,
+        assigned_to=emp,
+    )
+
+    if request.method != 'POST':
         return redirect('dashboard')
-        
-    if request.method == 'POST':
-        act = request.POST.get('action', '')
-        note = request.POST.get('note', '').strip()
-        
-        if task.code in ('T02', 'T03'):
-            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
-            if tender and act in ('GO', 'NO_GO', 'APPROVED', 'REJECTED'):
-                advance_tender_chain(request, tender, task, act, note)
-                return redirect('dashboard')
-                
-        elif task.code == 'T04':
-            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
-            if tender and act == 'SUBMIT_COST':
-                try:
-                    tc = Decimal(request.POST.get('transport_cost', '0'))
-                except:
-                    tc = Decimal('0')
-                tender.transport_cost = tc
-                tender.transport_from = request.POST.get('transport_from', '')
-                tender.transport_to = request.POST.get('transport_to', '')
-                tender.transport_reason = request.POST.get('transport_reason', '')
-                tender.total_cost = tender.bid_document_cost_amount + tender.transport_cost
-                tender.save()
-                process_cost_request(tender, task, 'SUBMIT_COST', note)
-                return redirect('dashboard')
-                
-        elif task.code in ('T05', 'T06'):
-            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
-            if tender:
-                if task.code == 'T05' and act == 'FIN_APPROVE':
-                    process_cost_request(tender, task, 'FIN_APPROVE', note)
-                elif task.code == 'T06' and act == 'CEO_COST_APPROVE':
-                    process_cost_request(tender, task, 'CEO_COST_APPROVE', note)
-                return redirect('dashboard')
-                
-        elif task.code == 'T07':
-            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
-            if tender and act == 'RECEIPT_UPLOADED':
-                if 'receipt' in request.FILES:
-                    tender.receipt = request.FILES['receipt']
-                    tender.save()
-                    register_document(tender, tender.receipt, 'Purchase Receipt', emp, 'FINANCE')
-                process_cost_request(tender, task, 'RECEIPT_UPLOADED', note)
-                return redirect('dashboard')
-                
-        elif task.code == 'T08':
-            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
-            if tender and act == 'complete':
-                if 'purchased_bid_document' in request.FILES:
-                    tender.purchased_bid_document = request.FILES['purchased_bid_document']
-                    tender.bid_document_uploaded_at = timezone.now()
-                    tender.bid_document_purged = False
-                    tender.save()
-                    register_document(tender, tender.purchased_bid_document, 'Purchased Bid Document', emp, 'TENDER')
-                task.status = 'COMPLETED'
-                task.completed_at = timezone.now()
-                task.save()
-                # If it has lots, trigger individual assemblies, otherwise trigger master T09
-                if tender.lots.exists():
-                    from .chain import trigger_lot_assemblies
-                    trigger_lot_assemblies(tender)
-                else:
-                    trigger_ai_tasks(tender)
-                return redirect('dashboard')
-                
-        elif task.code == 'T09':
-            # Simply redirect to the dedicated War Room workspace
-            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
-            if tender:
-                return redirect('war_room', pk=tender.id)
 
-        elif task.code in ('T10', 'T11', 'T12'):
-            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
-            if tender:
-                if task.code == 'T10':
-                    return redirect('bid_operator_workspace', pk=tender.id)
-                elif act == 'complete':
-                    if 'task_file' in request.FILES:
-                        task.uploaded_file = request.FILES['task_file']
-                        register_document(tender, task.uploaded_file, f'Form Upload ({task.code})', emp, 'TENDER')
-                    task.status = 'COMPLETED'
-                    task.completed_at = timezone.now()
-                    task.save()
-                    return redirect('dashboard')
+    act = request.POST.get('action', '')
+    note = request.POST.get('note', '').strip()
 
-        elif task.code in ('T14', 'T15', 'T16', 'T17', 'T18'):
-            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
-            if tender and act in ('BANK_LETTER_READY', 'LETTER_LOGGED', 'CPO_UPLOADED', 'DOCUMENTS_SEALED', 'RESULTS_REPORTED'):
-                advance_financial_submission(tender, task, act, note, request.POST, request.FILES)
-                return redirect('dashboard')
+    tender_id = (task.payload or {}).get('tender_id')
+    tender = None
 
-        else:
-            # Fallback for standard tasks
-            if act == 'start':
-                task.status = 'IN_PROGRESS'
-            elif act == 'complete':
-                task.status = 'COMPLETED'
-                task.completed_at = timezone.now()
-                log_task_history(task, 'COMPLETED', note, emp)
-                messages.success(request, '✅ Task marked as completed!')
-            elif act == 'reject':
-                task.status = 'REJECTED'
-                task.completed_at = timezone.now()
-                log_task_history(task, 'REJECTED', note, emp)
-                messages.warning(request, '❌ Task was rejected.')
-            
-            payload = dict(task.payload or {})
-            if note:
-                payload['last_note'] = note
-            payload['last_action'] = act
-            task.payload = payload
-            task.save()
-            
-    return redirect('dashboard')
-        
-    if emp is None or (task.assigned_to_id != emp.id and task.assigned_to.role != emp.role and not emp.is_group_level):
-        return redirect('dashboard')
-        
-    if request.method == 'POST':
-        act = request.POST.get('action', '')
-        note = request.POST.get('note', '').strip()
-        
-        if task.code == 'SUPPLY_REQ':
-            if act == 'complete':
-                task.status = 'COMPLETED'
-                task.save()
-                return redirect('dashboard')
+    if tender_id:
+        tender = Tender.objects.filter(
+            pk=tender_id,
+            company=company,
+        ).first()
 
-        elif task.code == 'FIN_PAYROLL':
-            from .models import PayrollRecord, CashFlowEntry
-            payroll_id = task.payload.get('payroll_id')
-            payroll = PayrollRecord.objects.filter(pk=payroll_id).first()
-            if payroll and act == 'complete':
-                payroll.status = 'PAID'
-                payroll.save()
-                CashFlowEntry.objects.create(
-                    company=task.company, flow_type='OUT', category='SALARY',
-                    amount=payroll.total_amount, description=f'Payroll for {payroll.month} {payroll.year}',
-                    created_by=emp
+    if task.code in ('T02', 'T03'):
+        if tender and act in ('GO', 'NO_GO', 'APPROVED', 'REJECTED'):
+            advance_tender_chain(request, tender, task, act, note)
+            return redirect('dashboard')
+
+    elif task.code == 'T04':
+        if tender and act == 'SUBMIT_COST':
+            try:
+                transport_cost = Decimal(
+                    request.POST.get('transport_cost', '0')
                 )
-                task.status = 'COMPLETED'
-                task.save()
-                return redirect('dashboard')
+            except Exception:
+                transport_cost = Decimal('0')
 
-        elif task.code in ('T02', 'T03'):
-            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
-            if tender:
-                if act in ('GO', 'NO_GO', 'APPROVED', 'REJECTED'):
-                    advance_tender_chain(request, tender, task, act, note)
-                    return redirect('dashboard')
-                elif act in ('complete', 'start'):
-                    # Failsafe: if they somehow click the generic button, just complete it
-                    task.status = 'COMPLETED'
-                    task.save()
-                    return redirect('dashboard')
-                
-        elif task.code == 'T04':
-            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
-            if tender and act == 'SUBMIT_COST':
-                try:
-                    tc = Decimal(request.POST.get('transport_cost', '0'))
-                except:
-                    tc = Decimal('0')
-                tender.transport_cost = tc
-                tender.transport_from = request.POST.get('transport_from', '')
-                tender.transport_to = request.POST.get('transport_to', '')
-                tender.transport_reason = request.POST.get('transport_reason', '')
-                tender.total_cost = tender.bid_document_cost_amount + tender.transport_cost
+            tender.transport_cost = transport_cost
+            tender.transport_from = request.POST.get('transport_from', '')
+            tender.transport_to = request.POST.get('transport_to', '')
+            tender.transport_reason = request.POST.get('transport_reason', '')
+            tender.total_cost = (
+                tender.bid_document_cost_amount + tender.transport_cost
+            )
+            tender.save()
+
+            process_cost_request(tender, task, 'SUBMIT_COST', note)
+            return redirect('dashboard')
+
+    elif task.code in ('T05', 'T06'):
+        if tender:
+            if task.code == 'T05' and act == 'FIN_APPROVE':
+                process_cost_request(tender, task, 'FIN_APPROVE', note)
+            elif task.code == 'T06' and act == 'CEO_COST_APPROVE':
+                process_cost_request(tender, task, 'CEO_COST_APPROVE', note)
+
+            return redirect('dashboard')
+
+    elif task.code == 'T07':
+        if tender and act == 'RECEIPT_UPLOADED':
+            if 'receipt' in request.FILES:
+                tender.receipt = request.FILES['receipt']
                 tender.save()
-                process_cost_request(tender, task, 'SUBMIT_COST', note)
-                return redirect('dashboard')
-                
-        elif task.code in ('T05', 'T06'):
-            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
-            if tender:
-                if task.code == 'T05' and act == 'FIN_APPROVE':
-                    process_cost_request(tender, task, 'FIN_APPROVE', note)
-                elif task.code == 'T06' and act == 'CEO_COST_APPROVE':
-                    process_cost_request(tender, task, 'CEO_COST_APPROVE', note)
-                return redirect('dashboard')
-                
-        elif task.code == 'T07':
-            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
-            if tender and act == 'RECEIPT_UPLOADED':
-                if 'receipt' in request.FILES:
-                    tender.receipt = request.FILES['receipt']
-                    tender.save()
-                    register_document(tender, tender.receipt, 'Purchase Receipt', emp, 'FINANCE')
-                process_cost_request(tender, task, 'RECEIPT_UPLOADED', note)
-                return redirect('dashboard')
-                
-        elif task.code == 'T08':
-            tender = Tender.objects.filter(pk=task.payload.get('tender_id')).first()
-            if tender and act == 'complete':
-                if 'purchased_bid_document' in request.FILES:
-                    tender.purchased_bid_document = request.FILES['purchased_bid_document']
-                    tender.bid_document_uploaded_at = timezone.now()
-                    tender.bid_document_purged = False
-                    tender.save()
-                    register_document(tender, tender.purchased_bid_document, 'Purchased Bid Document', emp, 'TENDER')
+
+                register_document(
+                    tender,
+                    tender.receipt,
+                    'Purchase Receipt',
+                    emp,
+                    'FINANCE',
+                )
+
+            process_cost_request(
+                tender, task, 'RECEIPT_UPLOADED', note
+            )
+            return redirect('dashboard')
+
+    elif task.code == 'T08':
+        if tender and act == 'complete':
+            if 'purchased_bid_document' in request.FILES:
+                tender.purchased_bid_document = request.FILES[
+                    'purchased_bid_document'
+                ]
+                tender.bid_document_uploaded_at = timezone.now()
+                tender.bid_document_purged = False
+                tender.save()
+
+                register_document(
+                    tender,
+                    tender.purchased_bid_document,
+                    'Purchased Bid Document',
+                    emp,
+                    'TENDER',
+                )
+
+            task.status = 'COMPLETED'
+            task.completed_at = timezone.now()
+            task.save()
+
+            if tender.lots.exists():
+                from .chain import trigger_lot_assemblies
+                trigger_lot_assemblies(tender)
+            else:
+                trigger_ai_tasks(tender)
+
+            return redirect('dashboard')
+
+    elif task.code == 'T09':
+        if tender:
+            return redirect('war_room', pk=tender.id)
+
+    elif task.code in ('T10', 'T11', 'T12'):
+        if tender:
+            if task.code == 'T10':
+                section = (task.payload or {}).get('section')
+                if section in {'summary', 'checklist', 'brands', 'suppliers', 'all'}:
+                    current_roles = set(
+                        membership.roles.values_list('role', flat=True)
+                    )
+                    if 'BIDOP' not in current_roles:
+                        return redirect('dashboard')
+                    return redirect(
+                        'bid_operator_workspace',
+                        pk=tender.id,
+                        task_id=task.id,
+                    )
+
+            if act == 'complete':
+                if 'task_file' in request.FILES:
+                    task.uploaded_file = request.FILES['task_file']
+
+                    register_document(
+                        tender,
+                        task.uploaded_file,
+                        f'Form Upload ({task.code})',
+                        emp,
+                        'TENDER',
+                    )
+
                 task.status = 'COMPLETED'
                 task.completed_at = timezone.now()
                 task.save()
                 return redirect('dashboard')
+
+    elif task.code in (
+        'T14', 'T15', 'T16', 'T17', 'T18',
+        'T19', 'T20', 'T21', 'T22', 'T23', 'T24',
+        'I01', 'I02', 'I03', 'I04', 'I05',
+        'I06', 'I06G', 'I07', 'I08', 'I09', 'I10',
+        'I11', 'I12', 'I13', 'I14', 'I15', 'I16',
+    ):
+        if tender:
+            result = advance_tender_execution_chain(
+                tender,
+                task,
+                act,
+                note,
+                request.POST,
+                request.FILES,
+                emp,
+            )
+            task.refresh_from_db()
+            if result:
+                messages.error(request, result)
+            elif task.code == 'I11' and task.status == 'IN_PROGRESS':
+                messages.warning(
+                    request,
+                    'Inspection saved, but no usable goods are available. '
+                    'I11 remains open; replacement or corrective action is required.',
+                )
+            else:
+                messages.success(
+                    request,
+                    'Task completed and workflow updated successfully.',
+                )
+            return redirect('dashboard')
+
+    else:
+        if act == 'start':
+            task.status = 'IN_PROGRESS'
+
+        elif act == 'complete':
+            task.status = 'COMPLETED'
+            task.completed_at = timezone.now()
+            log_task_history(task, 'COMPLETED', note, emp)
+            messages.success(
+                request,
+                'Task marked as completed.',
+            )
+
+        elif act == 'reject':
+            task.status = 'REJECTED'
+            task.completed_at = timezone.now()
+            log_task_history(task, 'REJECTED', note, emp)
+            messages.warning(
+                request,
+                'Task was rejected.',
+            )
 
         else:
-            # Standard tasks
-            if act == 'start':
-                task.status = 'IN_PROGRESS'
-            elif act == 'complete':
-                task.status = 'COMPLETED'
-                task.completed_at = timezone.now()
-            elif act == 'reject':
-                task.status = 'REJECTED'
-                task.completed_at = timezone.now()
-            
-            payload = dict(task.payload or {})
-            if note:
-                payload['last_note'] = note
-            payload['last_action'] = act
-            task.payload = payload
-            task.save()
-            log_action(emp, 'TASK_%s' % act.upper(), 'Task #%s | note: %s' % (task.id, note), 'Task', task.id, task.company)
-            
+            return redirect('dashboard')
+
+        payload = dict(task.payload or {})
+
+        if note:
+            payload['last_note'] = note
+
+        payload['last_action'] = act
+        task.payload = payload
+        task.save()
+
     return redirect('dashboard')
 
 @login_required
 def notifications(request):
     emp = getattr(request.user, 'employee', None)
     company = getattr(request, 'company', None)
-    if emp and company:
-        # Only show notifications for tasks in the current company, or general memos
-        items = Notification.objects.filter(employee=emp).filter(Q(task__company=company) | Q(task__isnull=True))[:100]
-    else:
-        items = []
-    return render(request, 'notifications.html', {'items': items})
+    membership = getattr(request, 'membership', None)
+
+    if (
+        emp is None
+        or company is None
+        or membership is None
+        or membership.employee_id != emp.id
+        or membership.company_id != company.id
+        or not membership.is_active
+    ):
+        return redirect('select_company')
+
+    # Taskless notifications have no reliable company ownership.
+    # Exclude them until Notification receives a company field.
+    items = Notification.objects.filter(
+        employee=emp,
+        task__company=company,
+    ).select_related('task')[:100]
+
+    return render(
+        request,
+        'notifications.html',
+        {'items': items},
+    )
+
 
 @login_required
 def mark_all_read(request):
     emp = getattr(request.user, 'employee', None)
-    if emp:
-        Notification.objects.filter(employee=emp, is_read=False).update(is_read=True)
-    return redirect(request.META.get('HTTP_REFERER', '/dashboard/'))
+    company = getattr(request, 'company', None)
+    membership = getattr(request, 'membership', None)
+
+    if (
+        emp is None
+        or company is None
+        or membership is None
+        or membership.employee_id != emp.id
+        or membership.company_id != company.id
+        or not membership.is_active
+    ):
+        return redirect('select_company')
+
+    if request.method == 'POST':
+        Notification.objects.filter(
+            employee=emp,
+            task__company=company,
+            is_read=False,
+        ).update(is_read=True)
+
+    return redirect(
+        request.META.get('HTTP_REFERER', '/dashboard/')
+    )
 
 @login_required
 def add_personal_task(request):

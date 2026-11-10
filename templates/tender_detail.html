@@ -31,7 +31,7 @@
   <div style="background:#2a1515; border:1px solid #e2504a; border-radius:8px; padding:12px; margin-top:10px;">
     <div style="color:#ff9b96; font-size:12px; font-weight:bold; margin-bottom:5px;">⚠️ BID DOCUMENT PURGED</div>
     <p class="meta" style="font-size:11px; margin-bottom:10px;">The heavy bid document was removed from the cloud to save storage space (3 days passed).</p>
-    {% if user.employee.role in 'OFFICE,ADMIN' %}
+    {% if 'OFFICE' in membership_roles or 'ADMIN' in membership_roles %}
     <a href="{% url 'reupload_bid_document' tender.id %}" class="btn btn-green" style="padding:6px 12px; font-size:11px; margin:0;">⬆️ Re-upload Document</a>
     {% else %}
     <p class="meta" style="font-size:11px; color:#e8b64c;">Ask the Office Assistant to re-upload the document if you need to run a new AI analysis.</p>

@@ -407,10 +407,17 @@
       <button class="btn btn-green wide" type="submit" name="action" value="SUMMARY_REVIEWED" style="margin-top:15px">{% if tender.status == 'LOST' %}Submit Loss Analysis & Close{% else %}Acknowledge Summary{% endif %}</button>
 
     {% elif task.code == 'T20' %}
-      <div class="meta" style="margin-bottom:8px">UPLOAD AWARD DOCUMENT</div>
-      <p class="meta" style="margin-bottom:10px">If the company won, upload the award document here.</p>
-      <input type="file" name="award_doc" required style="color:#c8cfdd;margin-bottom:10px">
-      <button class="btn btn-green" type="submit" name="action" value="AWARD_UPLOADED">Mark as WON & Upload</button>
+      {% if tender.status == 'LOST' %}
+        <div style="background:#3a1a1a; border:1px solid #e2504a; border-radius:8px; padding:12px;">
+          <strong style="color:#e2504a;">AWARD UPLOAD BLOCKED</strong>
+          <p class="meta">This tender is marked LOST. It cannot proceed to award or agreement processing.</p>
+        </div>
+      {% else %}
+        <div class="meta" style="margin-bottom:8px">UPLOAD AWARD DOCUMENT</div>
+        <p class="meta" style="margin-bottom:10px">If the company won, upload the official award document here.</p>
+        <input type="file" name="award_doc" required style="color:#c8cfdd;margin-bottom:10px">
+        <button class="btn btn-green" type="submit" name="action" value="AWARD_UPLOADED">Mark as WON & Upload</button>
+      {% endif %}
 
     {% elif task.code == 'T21' %}
       <div class="meta" style="margin-bottom:8px">UPLOAD DRAFT AGREEMENT</div>
@@ -475,7 +482,7 @@
     {% elif task.code == 'I06' %}
       <div class="meta" style="margin-bottom:8px">ASSIGN CLEARING AGENT</div>
       <input type="text" name="clearing_agent" placeholder="Agent Name / Company" required>
-      <button class="btn btn-green" type="submit" name="action" value="AGENT_ASSIGNED">Assign & Send to Finance</button>
+      <button class="btn btn-green" type="submit" name="action" value="AGENT_ASSIGNED">Assign & Send to GM for Approval</button>
 
     {% elif task.code == 'I06G' %}
       <div class="meta" style="margin-bottom:8px">GM APPROVAL: CLEARING AGENT FEES</div>
@@ -492,6 +499,7 @@
     {% elif task.code == 'I08' %}
       <div class="meta" style="margin-bottom:8px">CEO DUTY APPROVAL</div>
       <div class="kv" style="margin-bottom:10px"><span class="k">Amount</span><span class="v">{{ tender.duty_tax_amount }}</span></div>
+      <textarea name="note" placeholder="CEO Duty Approval Notes..." required></textarea>
       <button class="btn btn-green" type="submit" name="action" value="DUTY_APPROVED">Approve & Send to Logistics</button>
 
     {% elif task.code == 'I09' %}
@@ -508,11 +516,17 @@
       <div class="meta" style="margin-bottom:8px">RECEIVING & INSPECTION (STOCK IN)</div>
       <label class="meta">Item Name</label>
       <input type="text" name="item_name" required placeholder="e.g., HP ProBook Laptop">
+      <label class="meta">Quantity Expected</label>
+      <input type="number" name="qty_expected" min="1" required value="1">
       <label class="meta">Quantity Received</label>
-      <input type="number" name="qty_received" required value="1">
+      <input type="number" name="qty_received" min="1" required value="1">
+      <label class="meta">Quantity Damaged</label>
+      <input type="number" name="qty_damaged" min="0" required value="0">
+      <label class="meta">Inspection Notes / Discrepancies</label>
+      <textarea name="inspection_notes" placeholder="Record shortages, damage details, or corrective action..." rows="3"></textarea>
       <label class="meta">Upload Inspection Report</label>
       <input type="file" name="inspection_report" required style="color:#c8cfdd;margin-bottom:10px">
-      <button class="btn btn-green wide" type="submit" name="action" value="INSPECTION_DONE">Upload Report & Add to Inventory</button>
+      <button class="btn btn-green wide" type="submit" name="action" value="INSPECTION_DONE">Save Inspection & Update Usable Stock</button>
 
     {% elif task.code == 'I12' %}
       <div class="meta" style="margin-bottom:8px">DELIVER TO CUSTOMER (STOCK OUT)</div>

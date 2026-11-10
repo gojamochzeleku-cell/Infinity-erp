@@ -6,11 +6,30 @@ from .models import CashFlowEntry, CompanySetting, Tender, Employee
 from .services import log_action
 from decimal import Decimal
 
-@login_required
-def cashflow_dashboard(request):
+
+def _finance_context(request):
     emp = getattr(request.user, 'employee', None)
     company = getattr(request, 'company', None)
-    if not emp or not company or emp.role not in ('FIN', 'CEO', 'ADMIN', 'GM'):
+    membership = getattr(request, 'membership', None)
+
+    if (
+        not request.user.is_authenticated
+        or not request.user.is_active
+        or not emp or not emp.is_active
+        or not company or not company.is_active
+        or not membership or not membership.is_active
+        or membership.employee_id != emp.id
+        or membership.company_id != company.id
+    ):
+        return None, None, set()
+
+    roles = set(membership.roles.values_list('role', flat=True))
+    return emp, company, roles
+
+@login_required
+def cashflow_dashboard(request):
+    emp, company, roles = _finance_context(request)
+    if not emp or not company or not roles.intersection({'FIN', 'CEO', 'ADMIN', 'GM'}):
         return redirect('dashboard')
 
     entries = CashFlowEntry.objects.filter(company=company)
@@ -38,9 +57,8 @@ def cashflow_dashboard(request):
 
 @login_required
 def guarantee_tracker(request):
-    emp = getattr(request.user, 'employee', None)
-    company = getattr(request, 'company', None)
-    if not emp or not company or emp.role not in ('FIN', 'CEO', 'ADMIN', 'GM', 'LEGAL'):
+    emp, company, roles = _finance_context(request)
+    if not emp or not company or not roles.intersection({'FIN', 'CEO', 'ADMIN', 'GM', 'LEGAL'}):
         return redirect('dashboard')
 
     # Get all tenders that have bonds/CPOs
@@ -51,9 +69,8 @@ def guarantee_tracker(request):
 
 @login_required
 def finance_settings(request):
-    emp = getattr(request.user, 'employee', None)
-    company = getattr(request, 'company', None)
-    if not emp or not company or emp.role not in ('CEO', 'ADMIN'):
+    emp, company, roles = _finance_context(request)
+    if not emp or not company or not roles.intersection({'CEO', 'ADMIN'}):
         return redirect('dashboard')
 
     setting, _ = CompanySetting.objects.get_or_create(company=company)

@@ -42,7 +42,7 @@
     <span class="icon">💰</span> Financial<br>Ledger
   </a>
 
-  {% if user.employee.role == 'ADMIN' or user.employee.role == 'IT' %}
+  {% if 'ADMIN' in membership_roles or 'IT' in membership_roles %}
   <a href="{% url 'it_dashboard' %}" class="exec-btn" style="border-color:#e2504a;">
     <span class="icon">🛠️</span> IT Command<br>Center
   </a>
@@ -60,11 +60,7 @@
   <a href="{% url 'role_manual' %}" class="exec-btn">
     <span class="icon">📖</span> My<br>Manual
   </a>
-  {% if user.employee.role == 'SUPERADMIN' %}
-  <a href="{% url 'saas_dashboard' %}" class="exec-btn" style="border-color:#b366ff; grid-column:span 2;">
-    <span class="icon">🌐</span> SaaS Super Admin Portal
-  </a>
-  {% endif %}
+
 </div>
 
 <h3 style="font-size: 15px; color: #e2504a; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">

@@ -13,6 +13,7 @@
   </div>
 </div>
 
+{% if can_add_product %}
 <div class="card" style="background:#1a1f2b; margin-bottom:20px;">
   <h3 style="font-size:13px; color:#e8b64c; margin-bottom:10px;">+ Add New Product to Catalog</h3>
   <form method="post">
@@ -30,6 +31,7 @@
     <button class="btn btn-green wide" type="submit">Save Product</button>
   </form>
 </div>
+{% endif %}
 
 {% for p in products %}
   <div class="card" style="padding:15px; margin-bottom:10px; border-left:4px solid {% if p.current_stock <= p.min_stock_level %}#e2504a{% else %}#5fd68a{% endif %};">
@@ -43,9 +45,11 @@
     {% if p.current_stock <= p.min_stock_level %}
       <div style="font-size:11px; color:#e2504a; font-weight:bold; margin-bottom:8px;">⚠️ BELOW MINIMUM LEVEL ({{ p.min_stock_level }})</div>
     {% endif %}
+    {% if can_adjust_stock %}
     <a href="{% url 'inventory_adjust' p.id %}" class="btn btn-grey" style="padding:6px 12px; font-size:11px;">Adjust Stock</a>
+    {% endif %}
   </div>
 {% empty %}
-  <p class="empty">Warehouse is empty. Add a product above.</p>
+  <p class="empty">{% if can_add_product %}Warehouse is empty. Add a product above.{% else %}No products are currently recorded in this company's inventory.{% endif %}</p>
 {% endfor %}
 {% endblock %}

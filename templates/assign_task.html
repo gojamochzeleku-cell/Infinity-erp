@@ -5,19 +5,18 @@
 <div class="card">
   <form method="post">
     {% csrf_token %}
-    
+
     <label class="meta">Task Title</label>
-    <input type="text" name="title" required placeholder="e.g. Review the Ministry Bid Document">
-    
+    <input type="text" name="title" required maxlength="250" placeholder="e.g. Review the Ministry Bid Document">
+
     <label class="meta">Instructions / Description</label>
     <textarea name="description" placeholder="Provide detailed instructions..." style="min-height:80px;"></textarea>
-    
+
     <label class="meta">Assign To</label>
     <select name="assignee" required>
       <option value="">-- Select Employee --</option>
-{% if pre_role %}<option value="" disabled style="color:#e8b64c;">Pre-filtered for: {{ pre_role }}</option>{% endif %}
       {% for e in employees %}
-        <option value="{{ e.id }}" {% if pre_role == e.role %}selected{% endif %}>{{ e.full_name }} ({{ e.get_role_display }})</option>
+        <option value="{{ e.id }}">{{ e.full_name }}</option>
       {% endfor %}
     </select>
 

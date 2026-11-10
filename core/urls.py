@@ -20,6 +20,7 @@ urlpatterns = [
     path('tenders/<int:pk>/lots/<int:lot_id>/items/', assembly_views.manage_lot_items, name='manage_lot_items'),
     path('tenders/<int:pk>/lots/<int:lot_id>/pricing/', pricing_views.ceo_lot_pricing, name='ceo_lot_pricing'),
     path('tenders/<int:pk>/lots/<int:lot_id>/assemble/', assembly_views.lot_assembly, name='lot_assembly'),
+    path('tenders/<int:pk>/bid-operator/<int:task_id>/', assembly_views.bid_operator_workspace, name='bid_operator_workspace'),
     path('documents/<int:pk>/qr/', qr_views.generate_qr_code, name='generate_qr_code'),
     path('library/<int:pk>/delete/', resource_views.resource_delete, name='resource_delete'),
     path('tenders/<int:pk>/reupload-doc/', tender_views.reupload_bid_document, name='reupload_bid_document'),

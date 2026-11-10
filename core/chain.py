@@ -1,10 +1,38 @@
 from django.urls import reverse
-from .models import Employee, Task, Tender, TenderReview, Document, CompanySetting, CashFlowEntry, Shipment
+from django.db import transaction
+from django.core.exceptions import PermissionDenied
+from django.utils import timezone
+from .models import Employee, Task, Tender, TenderReview, Document, CompanySetting, CashFlowEntry, Shipment, CompanyRoleAssignment, Correspondence, InventoryItem, Product, StockTransaction
 from .services import notify, log_task_history
 from decimal import Decimal
 
 def find_role(company, role):
-    return Employee.objects.filter(role=role, is_active=True).first()
+    """Return the designated active employee for a role in this company.
+
+    Routing is strictly company-scoped. An employee's legacy global role
+    is never used to determine workflow recipients.
+    """
+    if company is None or not getattr(company, 'is_active', False):
+        return None
+
+    assignment = (
+        CompanyRoleAssignment.objects
+        .select_related('membership__employee__user')
+        .filter(
+            company=company,
+            role=role,
+            membership__company=company,
+            membership__is_active=True,
+            membership__employee__is_active=True,
+            membership__roles__role=role,
+        )
+        .first()
+    )
+
+    if assignment is None:
+        return None
+
+    return assignment.membership.employee
 
 def create_task(company, code, role, title, description='', payload=None, action_url=''):
     assignee = find_role(company, role)
@@ -31,9 +59,59 @@ def register_document(tender, file_obj, title, employee, category='TENDER'):
     )
 
 def advance_tender_chain(request, tender, task, decision, note):
+    """Record T02/T03 decisions only for the authorized company membership."""
+
     emp = getattr(request.user, 'employee', None)
+    company = getattr(request, 'company', None)
+    membership = getattr(request, 'membership', None)
+
+    expected_roles = {
+        'T02': 'BIDM',
+        'T03': 'CEO',
+    }
+    allowed_decisions = {
+        'T02': ('GO', 'NO_GO'),
+        'T03': ('APPROVED', 'REJECTED'),
+    }
+
+    expected_role = expected_roles.get(task.code)
+
+    if (
+        emp is None
+        or company is None
+        or membership is None
+        or expected_role is None
+        or not membership.is_active
+        or not company.is_active
+        or membership.employee_id != emp.id
+        or membership.company_id != company.id
+        or task.company_id != company.id
+        or task.assigned_to_id != emp.id
+        or tender.company_id != company.id
+        or decision not in allowed_decisions[task.code]
+    ):
+        raise PermissionDenied("You are not authorized to approve this tender task.")
+
+    if not membership.roles.filter(role=expected_role).exists():
+        raise PermissionDenied("Your company membership does not hold the required role.")
+
+    designated = CompanyRoleAssignment.objects.filter(
+        company=company,
+        role=expected_role,
+        membership=membership,
+    ).exists()
+
+    if not designated:
+        raise PermissionDenied("You are not the designated approver for this company role.")
+
     TenderReview.objects.create(
-        tender=tender, employee=emp, role=emp.role, decision=decision, note=note)
+        tender=tender,
+        employee=emp,
+        role=expected_role,
+        decision=decision,
+        note=note,
+    )
+
     task.status = 'COMPLETED'
     task.save()
     log_task_history(task, decision, note, emp)
@@ -42,11 +120,13 @@ def advance_tender_chain(request, tender, task, decision, note):
         if decision == 'GO':
             tender.status = 'GO'
             tender.save()
-            create_task(tender.company, 'T03', 'CEO',
-                        f'CEO Approval: {tender.bid_title}',
-                        f'Bid Manager marked GO. Note: {note}',
-                        {'tender_id': tender.id},
-                        reverse('tender_detail', args=[tender.id]))
+            create_task(
+                tender.company, 'T03', 'CEO',
+                f'CEO Approval: {tender.bid_title}',
+                f'Bid Manager marked GO. Note: {note}',
+                {'tender_id': tender.id},
+                reverse('tender_detail', args=[tender.id])
+            )
         else:
             tender.status = 'NO_GO'
             tender.save()
@@ -55,14 +135,17 @@ def advance_tender_chain(request, tender, task, decision, note):
         if decision == 'APPROVED':
             tender.status = 'CEO_APPROVED'
             tender.save()
-            create_task(tender.company, 'T04', 'CASE',
-                        f'Cost Request: {tender.bid_title}',
-                        f'CEO Approved. Note: {note}',
-                        {'tender_id': tender.id},
-                        reverse('tender_detail', args=[tender.id]))
+            create_task(
+                tender.company, 'T04', 'CASE',
+                f'Cost Request: {tender.bid_title}',
+                f'CEO Approved. Note: {note}',
+                {'tender_id': tender.id},
+                reverse('tender_detail', args=[tender.id])
+            )
         else:
             tender.status = 'CEO_REJECTED'
             tender.save()
+
 
 def process_cost_request(tender, task, action, note):
     task.status = 'COMPLETED'
@@ -361,6 +444,845 @@ def trigger_lot_assemblies(tender):
             f'Prepare technical and financial documents for {lot.lot_name}.',
             {'tender_id': tender.id, 'lot_id': lot.id}, url
         )
+
+
+
+def advance_tender_execution_chain(tender, task, action, note, data, files, actor):
+    """
+    Process T14-I16 tender execution tasks.
+
+    Validate submitted information and successor-role availability before
+    completing the current task. All database changes are atomic.
+    """
+
+    expected_actions = {
+        'T14': 'LETTER_UPLOADED',
+        'T15': 'CPO_UPLOADED',
+        'T16': 'FINAL_PRICE_LOCKED',
+        'T17': 'FINAL_DOCS_UPLOADED',
+        'T18': 'RESULTS_REPORTED',
+        'T19': 'SUMMARY_REVIEWED',
+        'T20': 'AWARD_UPLOADED',
+        'T21': 'DRAFT_AGREEMENT_UPLOADED',
+        'T22': 'LEGAL_APPROVED',
+        'T23': 'AGREEMENT_SIGNED',
+        'T24': 'FINAL_AGREEMENT_UPLOADED',
+        'I01': 'PO_ISSUED',
+        'I02': 'PAYMENT_REQUESTED',
+        'I03': 'PAYMENT_APPROVED',
+        'I04': 'LC_OPENED',
+        'I05': 'SHIPPING_DOCS_UPLOADED',
+        'I06': 'AGENT_ASSIGNED',
+        'I06G': 'GM_AGENT_APPROVED',
+        'I07': 'DUTY_REQUESTED',
+        'I08': 'DUTY_APPROVED',
+        'I09': 'CUSTOMS_CLEARED',
+        'I10': 'WAREHOUSE_RECEIVED',
+        'I11': 'INSPECTION_DONE',
+        'I12': 'DELIVERED',
+        'I13': 'GRN_RECEIVED',
+        'I14': 'PAYMENT_COLLECTED',
+        'I15': 'CLOSURE_REPORTED',
+        'I16': 'PROJECT_CLOSED',
+    }
+
+    if task.code not in expected_actions:
+        return "This task is not part of the T14-I16 workflow."
+
+    if action != expected_actions[task.code]:
+        return (
+            "Invalid action for %s. Expected %s."
+            % (task.code, expected_actions[task.code])
+        )
+
+    if task.status in ('COMPLETED', 'REJECTED', 'CANCELLED'):
+        return "This task has already been closed."
+
+    def required_file(key, label):
+        uploaded = files.get(key)
+        if not uploaded:
+            raise ValueError("%s is required." % label)
+        return uploaded
+
+    def required_text(key, label):
+        value = str(data.get(key, '') or '').strip()
+        if not value:
+            raise ValueError("%s is required." % label)
+        return value
+
+    def queue_definition(code, role, title, description):
+        return {
+            'code': code,
+            'role': role,
+            'title': title,
+            'description': description,
+        }
+
+    url = reverse('tender_detail', args=[tender.id])
+    next_tasks = []
+
+    try:
+        # Validate the submitted information and prepare successor tasks.
+        if task.code == 'T14':
+            bank_file = required_file('bank_letter', 'Bank letter')
+            recipient = (tender.purchaser_name or '').strip()
+            if not recipient:
+                raise ValueError(
+                    "The tender purchaser name is missing. "
+                    "Complete it before registering the outgoing letter."
+                )
+
+            next_tasks.append(queue_definition(
+                'T15', 'CASE',
+                'Register CPO: %s' % tender.bid_title,
+                'Register and upload the bid security CPO.',
+            ))
+
+        elif task.code == 'T15':
+            cpo_file = required_file('cpo', 'CPO document')
+            next_tasks.append(queue_definition(
+                'T16', 'CEO',
+                'Lock Final Bid Price: %s' % tender.bid_title,
+                'Confirm the final bid price and authorized signature.',
+            ))
+
+        elif task.code == 'T16':
+            final_price = Decimal(required_text(
+                'final_price', 'Final bid price'
+            ))
+            if final_price <= 0:
+                raise ValueError("Final bid price must be greater than zero.")
+
+            signature = required_text(
+                'signature_data', 'Final price authorization signature'
+            )
+            next_tasks.append(queue_definition(
+                'T17', 'BIDOP',
+                'Upload Sealed Final Documents: %s' % tender.bid_title,
+                'Upload the final sealed bid documents.',
+            ))
+
+        elif task.code == 'T17':
+            final_docs = required_file('final_docs', 'Final bid documents')
+            sealed = str(data.get('is_sealed', '')).lower()
+            if sealed not in ('true', 'on', '1', 'yes'):
+                raise ValueError(
+                    "Confirm that the final bid documents are sealed."
+                )
+
+            next_tasks.append(queue_definition(
+                'T18', 'CASE',
+                'Report Tender Submission Results: %s' % tender.bid_title,
+                'Record submission, technical and financial results.',
+            ))
+
+        elif task.code == 'T18':
+            submission = required_text(
+                'submission_status', 'Submission status'
+            )
+            technical = required_text('tech_result', 'Technical result')
+            financial = required_text('fin_result', 'Financial result')
+
+            if submission not in ('Submitted', 'Rejected'):
+                raise ValueError("Invalid submission status.")
+            if technical not in ('In Progress', 'Pass', 'Fail'):
+                raise ValueError("Invalid technical result.")
+            if financial not in ('In Progress', 'Opened'):
+                raise ValueError("Invalid financial result.")
+
+            # T19 is always required for management review.
+            next_tasks.append(queue_definition(
+                'T19', 'BIDM',
+                'Review Tender Results: %s' % tender.bid_title,
+                'Review and summarize the tender results.',
+            ))
+
+            # Do not create an award task for rejected or failed bids.
+            if submission != 'Rejected' and technical != 'Fail':
+                next_tasks.append(queue_definition(
+                    'T20', 'OFFICE',
+                    'Upload Award Document: %s' % tender.bid_title,
+                    'Upload the official award document if awarded.',
+                ))
+
+        elif task.code == 'T19':
+            if tender.status == 'LOST':
+                required_text('loss_reason', 'Loss reason')
+
+        elif task.code == 'T20':
+            if tender.status == 'LOST':
+                raise ValueError(
+                    "This tender is marked LOST. Award upload is blocked."
+                )
+
+            award_file = required_file('award_doc', 'Award document')
+            next_tasks.append(queue_definition(
+                'T21', 'OFFICE',
+                'Upload Draft Agreement: %s' % tender.bid_title,
+                'Upload the draft agreement received from the purchaser.',
+            ))
+
+        elif task.code == 'T21':
+            draft_file = required_file(
+                'draft_agreement', 'Draft agreement'
+            )
+            next_tasks.append(queue_definition(
+                'T22', 'LEGAL',
+                'Review Draft Agreement: %s' % tender.bid_title,
+                'Review the draft agreement and upload the legally approved copy.',
+            ))
+
+        elif task.code == 'T22':
+            legal_file = required_file(
+                'legal_doc', 'Legally approved agreement'
+            )
+            next_tasks.append(queue_definition(
+                'T23', 'BIDM',
+                'Sign Agreement: %s' % tender.bid_title,
+                'Sign the legally approved agreement.',
+            ))
+
+        elif task.code == 'T23':
+            signed_file = required_file(
+                'signed_doc', 'Signed agreement'
+            )
+            signature = required_text(
+                'signature_data', 'Agreement signature'
+            )
+            next_tasks.append(queue_definition(
+                'T24', 'OFFICE',
+                'Upload Final Signed Agreement: %s' % tender.bid_title,
+                'Upload the fully signed final agreement.',
+            ))
+
+        elif task.code == 'T24':
+            final_file = required_file(
+                'final_doc', 'Final signed agreement'
+            )
+            next_tasks.append(queue_definition(
+                'I01', 'PROC',
+                'Issue Purchase Order: %s' % tender.bid_title,
+                'Issue the purchase order and confirm the supplier.',
+            ))
+
+        elif task.code == 'I01':
+            po_file = required_file('po_doc', 'Purchase order')
+            next_tasks.append(queue_definition(
+                'I02', 'FIN',
+                'Prepare Payment Request: %s' % tender.bid_title,
+                'Prepare the payment request based on the purchase order.',
+            ))
+
+        elif task.code == 'I02':
+            amount = Decimal(required_text(
+                'payment_amount', 'Payment amount'
+            ))
+            if amount <= 0:
+                raise ValueError("Payment amount must be greater than zero.")
+
+            setting, _ = CompanySetting.objects.get_or_create(
+                company=tender.company
+            )
+            if amount > setting.payment_approval_threshold:
+                next_tasks.append(queue_definition(
+                    'I03', 'CEO',
+                    'Approve Payment: %s' % tender.bid_title,
+                    'Payment amount %s ETB exceeds the approval threshold.'
+                    % amount,
+                ))
+            else:
+                next_tasks.append(queue_definition(
+                    'I04', 'FIN',
+                    'Open LC / Bank Transfer: %s' % tender.bid_title,
+                    'Payment is within the approval threshold. '
+                    'Open the LC or execute the bank transfer.',
+                ))
+
+        elif task.code == 'I03':
+            if not (note or '').strip():
+                raise ValueError(
+                    "A payment approval note is required."
+                )
+            next_tasks.append(queue_definition(
+                'I04', 'FIN',
+                'Open LC / Bank Transfer: %s' % tender.bid_title,
+                'Payment approved. Execute the bank transfer or open the LC.',
+            ))
+
+        elif task.code == 'I04':
+            swift_file = required_file('swift_doc', 'SWIFT document')
+            next_tasks.append(queue_definition(
+                'I05', 'LOG',
+                'Upload Shipping Documents: %s' % tender.bid_title,
+                'Upload the shipping documents received from the supplier.',
+            ))
+
+        elif task.code == 'I05':
+            shipping_file = required_file(
+                'shipping_docs', 'Shipping documents'
+            )
+            next_tasks.append(queue_definition(
+                'I06', 'LOG',
+                'Assign Clearing Agent: %s' % tender.bid_title,
+                'Review shipping documents and assign the clearing agent.',
+            ))
+
+        elif task.code == 'I06':
+            clearing_agent = required_text(
+                'clearing_agent', 'Clearing agent'
+            )
+            next_tasks.append(queue_definition(
+                'I06G', 'GM',
+                'Approve Clearing Agent: %s' % tender.bid_title,
+                'Review and approve the assigned clearing agent.',
+            ))
+
+        elif task.code == 'I06G':
+            if not (note or '').strip():
+                raise ValueError("GM approval note is required.")
+            next_tasks.append(queue_definition(
+                'I07', 'FIN',
+                'Prepare Duty and Tax Payment: %s' % tender.bid_title,
+                'Calculate and submit customs duty and tax for approval.',
+            ))
+
+        elif task.code == 'I07':
+            duty_amount = Decimal(required_text(
+                'duty_tax_amount', 'Duty and tax amount'
+            ))
+            if duty_amount <= 0:
+                raise ValueError(
+                    "Duty and tax amount must be greater than zero."
+                )
+            next_tasks.append(queue_definition(
+                'I08', 'CEO',
+                'Approve Duty and Tax: %s' % tender.bid_title,
+                'Review and approve the customs duty and tax payment.',
+            ))
+
+        elif task.code == 'I08':
+            if not (note or '').strip():
+                raise ValueError("CEO duty approval note is required.")
+            next_tasks.append(queue_definition(
+                'I09', 'LOG',
+                'Clear Customs: %s' % tender.bid_title,
+                'Upload customs clearance documents.',
+            ))
+
+        elif task.code == 'I09':
+            customs_file = required_file(
+                'customs_docs', 'Customs clearance documents'
+            )
+            next_tasks.append(queue_definition(
+                'I10', 'LOG',
+                'Receive Goods at Warehouse: %s' % tender.bid_title,
+                'Upload the warehouse receipt and confirm arrival.',
+            ))
+
+        elif task.code == 'I10':
+            warehouse_file = required_file(
+                'warehouse_receipt', 'Warehouse receipt'
+            )
+            next_tasks.append(queue_definition(
+                'I11', 'PROC',
+                'Inspect Received Goods: %s' % tender.bid_title,
+                'Record received quantities and upload the inspection report.',
+            ))
+
+        elif task.code == 'I11':
+            item_name = required_text('item_name', 'Item name')
+            try:
+                qty_expected = int(required_text(
+                    'qty_expected', 'Expected quantity'
+                ))
+                qty_received = int(required_text(
+                    'qty_received', 'Received quantity'
+                ))
+                qty_damaged = int(required_text(
+                    'qty_damaged', 'Damaged quantity'
+                ))
+            except (TypeError, ValueError):
+                raise ValueError(
+                    "Expected, received and damaged quantities must be whole numbers."
+                )
+
+            if qty_expected <= 0:
+                raise ValueError("Expected quantity must be greater than zero.")
+            if qty_received <= 0:
+                raise ValueError(
+                    "At least one item must be physically received for inspection."
+                )
+            if qty_damaged < 0 or qty_damaged > qty_received:
+                raise ValueError(
+                    "Damaged quantity must be between zero and received quantity."
+                )
+
+            qty_usable = qty_received - qty_damaged
+
+            if qty_damaged == 0:
+                inspection_condition = 'GOOD'
+            elif qty_usable == 0:
+                inspection_condition = 'DAMAGED'
+            else:
+                inspection_condition = 'MIXED'
+
+            inspection_notes = (data.get('inspection_notes') or '').strip()
+
+            inspection_file = required_file(
+                'inspection_report', 'Inspection report'
+            )
+
+            # Do not create I12 when no usable goods are available.
+            if qty_usable > 0:
+                next_tasks.append(queue_definition(
+                    'I12', 'LOG',
+                    'Deliver Goods: %s' % tender.bid_title,
+                    'Record goods delivered to the purchaser.',
+                ))
+
+        elif task.code == 'I12':
+            try:
+                product_id = int(required_text(
+                    'product_id', 'Inventory product'
+                ))
+                qty_delivered = int(required_text(
+                    'qty_delivered', 'Delivered quantity'
+                ))
+            except (TypeError, ValueError):
+                raise ValueError(
+                    "Select a valid product and enter a whole-number quantity."
+                )
+            if qty_delivered <= 0:
+                raise ValueError(
+                    "Delivered quantity must be greater than zero."
+                )
+            if not Product.objects.filter(
+                pk=product_id, company=tender.company
+            ).exists():
+                raise ValueError(
+                    "The selected inventory product does not belong to this company."
+                )
+            delivery_file = required_file(
+                'delivery_note', 'Delivery note'
+            )
+            next_tasks.append(queue_definition(
+                'I13', 'CASE',
+                'Register Goods Received Note: %s' % tender.bid_title,
+                'Upload the purchaser goods received note and invoice.',
+            ))
+
+        elif task.code == 'I13':
+            grn_file = required_file(
+                'grn_invoice', 'Goods received note / invoice'
+            )
+            next_tasks.append(queue_definition(
+                'I14', 'FIN',
+                'Collect Customer Payment: %s' % tender.bid_title,
+                'Upload the customer payment receipt.',
+            ))
+
+        elif task.code == 'I14':
+            payment_file = required_file(
+                'payment_receipt', 'Customer payment receipt'
+            )
+            next_tasks.append(queue_definition(
+                'I15', 'BIDM',
+                'Prepare Project Closure Report: %s' % tender.bid_title,
+                'Prepare and upload the project closure report.',
+            ))
+
+        elif task.code == 'I15':
+            closure_file = required_file(
+                'closure_report', 'Project closure report'
+            )
+            next_tasks.append(queue_definition(
+                'I16', 'CEO',
+                'Approve Project Closure: %s' % tender.bid_title,
+                'Review and approve final project closure.',
+            ))
+
+        elif task.code == 'I16':
+            if tender.status != 'WON':
+                raise ValueError(
+                    "Only a tender with WON status can be finally closed."
+                )
+
+        # Confirm successor roles exist before closing the current task.
+        for item in next_tasks:
+            existing = Task.objects.filter(
+                company=tender.company,
+                code=item['code'],
+                payload__tender_id=tender.id,
+            ).exists()
+
+            if not existing and find_role(tender.company, item['role']) is None:
+                raise ValueError(
+                    "No active employee is assigned to the %s role. "
+                    "Assign that company role before completing this task."
+                    % item['role']
+                )
+
+        with transaction.atomic():
+            # Lock and recheck the task to prevent concurrent duplicate submissions.
+            task = Task.objects.select_for_update().get(
+                pk=task.pk,
+                company=tender.company,
+            )
+            if task.status in ('COMPLETED', 'REJECTED', 'CANCELLED'):
+                raise ValueError("This task has already been closed.")
+
+            # Save task-specific tender information and documents.
+            if task.code == 'T14':
+                tender.bank_letter = bank_file
+                tender.save()
+
+                Correspondence.objects.create(
+                    company=tender.company,
+                    direction='OUTGOING',
+                    reference_number=tender.bid_reference_number or '',
+                    letter_date=timezone.localdate(),
+                    sender_recipient=tender.purchaser_name,
+                    subject='Bank Letter - %s' % tender.bid_title,
+                    file=tender.bank_letter,
+                    uploaded_by=actor,
+                )
+                register_document(
+                    tender, tender.bank_letter,
+                    'Outgoing Bank Letter', actor, 'MAIL'
+                )
+
+            elif task.code == 'T15':
+                tender.cpo_document = cpo_file
+                tender.save()
+                register_document(
+                    tender, tender.cpo_document,
+                    'CPO Document', actor, 'FINANCE'
+                )
+
+            elif task.code == 'T16':
+                tender.final_price = final_price
+                tender.final_bid_price = final_price
+                tender.ceo_signature = signature
+                tender.save()
+
+            elif task.code == 'T17':
+                tender.final_docs_uploaded = final_docs
+                tender.save()
+                register_document(
+                    tender, tender.final_docs_uploaded,
+                    'Sealed Final Bid Documents', actor, 'TENDER_PREP'
+                )
+
+            elif task.code == 'T18':
+                tender.submission_status = submission
+                tender.physical_submission_status = submission
+                tender.tech_result = technical
+                tender.technical_result = technical
+                tender.fin_result = financial
+                tender.competitor_prices = data.get(
+                    'competitor_prices', ''
+                )
+
+                if submission == 'Rejected' or technical == 'Fail':
+                    tender.status = 'LOST'
+                elif submission == 'Submitted':
+                    tender.status = 'SUBMITTED'
+
+                tender.save()
+
+            elif task.code == 'T19':
+                if tender.status == 'LOST':
+                    tender.loss_reason = required_text(
+                        'loss_reason', 'Loss reason'
+                    )
+                    tender.save()
+
+                    # Close any obsolete award task for this lost tender.
+                    Task.objects.filter(
+                        company=tender.company,
+                        code='T20',
+                        payload__tender_id=tender.id,
+                        status__in=['PENDING', 'IN_PROGRESS'],
+                    ).update(
+                        status='CANCELLED',
+                        updated_at=timezone.now(),
+                    )
+
+            elif task.code == 'T20':
+                if tender.status == 'LOST':
+                    raise ValueError(
+                        "This tender is marked LOST. It cannot be marked WON."
+                    )
+
+                tender.award_document = award_file
+                tender.status = 'WON'
+                tender.save()
+                register_document(
+                    tender, tender.award_document,
+                    'Official Award Document', actor, 'TENDER_SRC'
+                )
+
+            elif task.code == 'T21':
+                tender.draft_agreement = draft_file
+                tender.save()
+                register_document(
+                    tender, tender.draft_agreement,
+                    'Draft Agreement', actor, 'LEGAL'
+                )
+
+            elif task.code == 'T22':
+                tender.legal_approved_agreement = legal_file
+                tender.save()
+                register_document(
+                    tender, tender.legal_approved_agreement,
+                    'Legally Approved Agreement', actor, 'LEGAL'
+                )
+
+            elif task.code == 'T23':
+                tender.signed_agreement = signed_file
+                tender.bidm_signature = signature
+                tender.save()
+                register_document(
+                    tender, tender.signed_agreement,
+                    'Signed Agreement', actor, 'LEGAL'
+                )
+
+            elif task.code == 'T24':
+                tender.final_agreement = final_file
+                tender.save()
+                register_document(
+                    tender, tender.final_agreement,
+                    'Final Signed Agreement', actor, 'LEGAL'
+                )
+
+            elif task.code == 'I01':
+                tender.po_document = po_file
+                tender.save()
+                register_document(
+                    tender, tender.po_document,
+                    'Purchase Order', actor, 'PROCUREMENT'
+                )
+
+            elif task.code == 'I02':
+                tender.payment_amount = amount
+                tender.save()
+
+            elif task.code == 'I04':
+                tender.lc_swift_copy = swift_file
+                tender.save()
+                register_document(
+                    tender, tender.lc_swift_copy,
+                    'LC SWIFT Copy', actor, 'FINANCE'
+                )
+
+            elif task.code == 'I05':
+                tender.shipping_docs = shipping_file
+                tender.save()
+                register_document(
+                    tender, tender.shipping_docs,
+                    'Shipping Documents', actor, 'LOGISTICS'
+                )
+
+            elif task.code == 'I06':
+                tender.clearing_agent = clearing_agent
+                tender.save(update_fields=['clearing_agent'])
+
+            elif task.code == 'I06G':
+                # The approval note is retained in task history.
+                pass
+
+            elif task.code == 'I07':
+                tender.duty_tax_amount = duty_amount
+                tender.save(update_fields=['duty_tax_amount'])
+
+            elif task.code == 'I08':
+                # The CEO approval note is retained in task history.
+                pass
+
+            elif task.code == 'I09':
+                tender.customs_docs = customs_file
+                tender.save(update_fields=['customs_docs'])
+                register_document(
+                    tender, tender.customs_docs,
+                    'Customs Clearance Documents', actor, 'LOGISTICS'
+                )
+                shipment, _ = Shipment.objects.get_or_create(
+                    company=tender.company, tender=tender
+                )
+                shipment.current_status = 'CUSTOMS'
+                shipment.save()
+
+            elif task.code == 'I10':
+                tender.warehouse_receipt = warehouse_file
+                tender.save(update_fields=['warehouse_receipt'])
+                register_document(
+                    tender, tender.warehouse_receipt,
+                    'Warehouse Receipt', actor, 'LOGISTICS'
+                )
+                shipment, _ = Shipment.objects.get_or_create(
+                    company=tender.company, tender=tender
+                )
+                shipment.current_status = 'WAREHOUSE'
+                shipment.save()
+
+            elif task.code == 'I11':
+                tender.inspection_report = inspection_file
+                tender.save(update_fields=['inspection_report'])
+                register_document(
+                    tender, tender.inspection_report,
+                    'Goods Inspection Report', actor, 'LOGISTICS'
+                )
+
+                shipment, _ = Shipment.objects.get_or_create(
+                    company=tender.company, tender=tender
+                )
+
+                InventoryItem.objects.create(
+                    shipment=shipment,
+                    item_name=item_name,
+                    qty_expected=qty_expected,
+                    qty_received=qty_received,
+                    qty_damaged=qty_damaged,
+                    condition=inspection_condition,
+                    notes=(
+                        'Tender %s. Usable: %s. Damaged: %s. %s'
+                        % (
+                            tender.serial_number,
+                            qty_usable,
+                            qty_damaged,
+                            inspection_notes,
+                        )
+                    ),
+                )
+
+                # Only physically received, usable goods enter available stock.
+                if qty_usable > 0:
+                    product, _ = Product.objects.get_or_create(
+                        company=tender.company,
+                        name=item_name,
+                        defaults={'current_stock': 0},
+                    )
+                    product.current_stock += qty_usable
+                    product.save(update_fields=['current_stock'])
+
+                    StockTransaction.objects.create(
+                        product=product,
+                        trans_type='IN',
+                        quantity=qty_usable,
+                        notes=(
+                            'Tender %s goods received; %s damaged'
+                            % (tender.serial_number, qty_damaged)
+                        ),
+                        created_by=actor,
+                    )
+
+            elif task.code == 'I12':
+                product = Product.objects.select_for_update().get(
+                    pk=product_id, company=tender.company
+                )
+                if product.current_stock < qty_delivered:
+                    raise ValueError(
+                        "Insufficient stock for %s. Available: %s; requested: %s."
+                        % (
+                            product.name,
+                            product.current_stock,
+                            qty_delivered,
+                        )
+                    )
+                product.current_stock -= qty_delivered
+                product.save(update_fields=['current_stock'])
+                StockTransaction.objects.create(
+                    product=product,
+                    trans_type='OUT',
+                    quantity=qty_delivered,
+                    notes='Tender %s customer delivery' % tender.serial_number,
+                    created_by=actor,
+                )
+                tender.delivery_note = delivery_file
+                tender.save(update_fields=['delivery_note'])
+                register_document(
+                    tender, tender.delivery_note,
+                    'Customer Delivery Note', actor, 'LOGISTICS'
+                )
+
+            elif task.code == 'I13':
+                tender.grn_invoice = grn_file
+                tender.save(update_fields=['grn_invoice'])
+                register_document(
+                    tender, tender.grn_invoice,
+                    'Goods Received Note and Invoice', actor, 'ACCOUNTING'
+                )
+
+            elif task.code == 'I14':
+                tender.payment_receipt = payment_file
+                tender.save(update_fields=['payment_receipt'])
+                register_document(
+                    tender, tender.payment_receipt,
+                    'Customer Payment Receipt', actor, 'FINANCE'
+                )
+
+            elif task.code == 'I15':
+                tender.closure_report = closure_file
+                tender.save(update_fields=['closure_report'])
+                register_document(
+                    tender, tender.closure_report,
+                    'Project Closure Report', actor, 'ADMIN'
+                )
+
+            elif task.code == 'I16':
+                # Keep the valid tender status WON. Task completion records
+                # final workflow closure without inventing a tender status.
+                pass
+
+            # An inspection with zero usable goods is recorded but remains open.
+            if task.code == 'I11' and qty_usable == 0:
+                task.status = 'IN_PROGRESS'
+                task.completed_at = None
+                task.save(update_fields=['status', 'completed_at'])
+
+                blocked_note = (
+                    'INSPECTION_BLOCKED: No usable goods available. '
+                    'Received=%s, damaged=%s, expected=%s. '
+                    'Replacement or corrective action is required before delivery.'
+                    % (qty_received, qty_damaged, qty_expected)
+                )
+                if note:
+                    blocked_note += ' Employee note: ' + note
+
+                log_task_history(
+                    task, 'INSPECTION_BLOCKED', blocked_note, actor
+                )
+
+            else:
+                # Complete and record the task using the actual acting employee.
+                task.status = 'COMPLETED'
+                task.completed_at = timezone.now()
+                task.save()
+                log_task_history(task, action, note, actor)
+
+            # Create only successor tasks that do not already exist.
+            for item in next_tasks:
+                already_exists = Task.objects.filter(
+                    company=tender.company,
+                    code=item['code'],
+                    payload__tender_id=tender.id,
+                ).exists()
+
+                if not already_exists:
+                    create_task(
+                        tender.company,
+                        item['code'],
+                        item['role'],
+                        item['title'],
+                        item['description'],
+                        {'tender_id': tender.id},
+                        url,
+                    )
+
+    except (ValueError, ArithmeticError) as exc:
+        return str(exc)
+
+    return None
 
 
 def advance_financial_submission(tender, task, action, note, data, files):

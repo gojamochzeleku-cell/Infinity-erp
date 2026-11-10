@@ -3,24 +3,36 @@
 {% block content %}
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
   <h2>Memos</h2>
-  {% if user.employee.role == 'ADMIN' or user.employee.role == 'CEO' or user.employee.role == 'GM' %}
-    <a class="btn btn-green" href="{% url 'memo_create' %}" style="padding:6px 12px; font-size:12px;">+ New Memo</a>
+  {% if membership_roles %}
+    {% if 'ADMIN' in membership_roles or 'CEO' in membership_roles or 'GM' in membership_roles or 'VGM' in membership_roles %}
+      <a class="btn btn-green" href="{% url 'memo_create' %}" style="padding:6px 12px; font-size:12px;">+ New Memo</a>
+    {% endif %}
   {% endif %}
 </div>
+
 {% for m in memos %}
-  <div class="card" style="{% if not m.is_read %}border-color:#e8b64c;{% endif %}">
+  <div class="card" style="{% if m.recipient_employee_id == user.employee.id and not m.is_read %}border-color:#e8b64c;{% endif %}">
     <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
       <strong style="font-size:14px;">{{ m.title }}</strong>
-      {% if not m.is_read %}<span class="pill pending">NEW</span>{% endif %}
+      {% if m.recipient_employee_id == user.employee.id and not m.is_read %}
+        <span class="pill pending">NEW</span>
+      {% endif %}
     </div>
-    <div class="meta" style="margin-bottom:8px;">From: {{ m.sender.full_name }} | {{ m.created_at|date:"d M Y H:i" }}</div>
+    <div class="meta" style="margin-bottom:8px;">
+      From: {{ m.sender.full_name }} | {{ m.created_at|date:"d M Y H:i" }}
+    </div>
     <div style="font-size:13px; margin-bottom:12px; white-space:pre-wrap;">{{ m.content }}</div>
-    {% if not m.is_read %}
-      <a class="btn btn-grey" href="{% url 'memo_read' m.id %}">Mark as Read</a>
+
+    {% if m.recipient_employee_id == user.employee.id and not m.is_read %}
+      <form method="post" action="{% url 'memo_read' m.id %}">
+        {% csrf_token %}
+        <button class="btn btn-grey" type="submit">Mark as Read</button>
+      </form>
     {% endif %}
   </div>
 {% empty %}
   <p class="empty">No memos.</p>
 {% endfor %}
+
 <a class="btn btn-grey" href="{% url 'dashboard' %}">Back to Action Center</a>
 {% endblock %}

@@ -1,165 +1,194 @@
+import json
+from datetime import date, timedelta
+
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
-from datetime import timedelta
 from django.db.models import Sum, Count
-from .models import CashFlowEntry
-from .models import Tender, Task, AuditLog
+from django.db.models.functions import TruncMonth
+from django.http import JsonResponse
+from django.shortcuts import render, redirect
+
+from .models import (
+    CashFlowEntry, Tender, Task, AuditLog,
+    Employee, CompanyMembership,
+)
+from .gemini import ask_infinity_brain
+
+
+def _management_context(request):
+    user = request.user
+    emp = getattr(user, "employee", None)
+    company = getattr(request, "company", None)
+
+    if not user.is_authenticated or not user.is_active:
+        return None, None, set()
+
+    if not emp or not emp.is_active or not company:
+        return None, None, set()
+
+    membership = CompanyMembership.objects.filter(
+        employee=emp, company=company, is_active=True
+    ).first()
+
+    if not membership:
+        return None, None, set()
+
+    roles = set(membership.roles.values_list("role", flat=True))
+    return emp, company, roles
+
 
 @login_required
 def management_dashboard(request):
-    emp = getattr(request.user, 'employee', None)
-    company = getattr(request, 'company', None)
-    
-    # Only allow management roles to see this dashboard
-    if not emp or not company or emp.role not in ('ADMIN', 'CEO', 'GM', 'VGM'):
-        return redirect('dashboard')
+    emp, company, roles = _management_context(request)
+    if not company:
+        return redirect("select_company")
+    if not roles.intersection({"ADMIN", "CEO", "GM", "VGM"}):
+        return redirect("dashboard")
 
     tenders = Tender.objects.filter(company=company)
-    
-    # 1. Financials
     financials = tenders.aggregate(
-        total_cost=Sum('total_cost'),
-        total_duty=Sum('duty_tax_amount'),
-        total_payments=Sum('payment_amount')
+        total_cost=Sum("total_cost"),
+        total_duty=Sum("duty_tax_amount"),
+        total_payments=Sum("payment_amount"),
     )
 
-    # 2. Pipeline Stats
     stats = {
-        'total': tenders.count(),
-        'won': tenders.filter(status='WON').count(),
-        'lost': tenders.filter(status__in=['LOST', 'NO_GO', 'CEO_REJECTED']).count(),
-        'active': tenders.exclude(status__in=['WON', 'LOST', 'NO_GO', 'CEO_REJECTED', 'COMPLETED', 'DRAFT']).count(),
-        'completed': tenders.filter(status='COMPLETED').count(),
+        "total": tenders.count(),
+        "won": tenders.filter(status="WON").count(),
+        "lost": tenders.filter(
+            status__in=["LOST", "NO_GO", "CEO_REJECTED"]
+        ).count(),
+        "active": tenders.exclude(
+            status__in=[
+                "WON", "LOST", "NO_GO", "CEO_REJECTED",
+                "COMPLETED", "DRAFT",
+            ]
+        ).count(),
+        "completed": tenders.filter(status="COMPLETED").count(),
     }
 
-    # 3. Bottlenecks (Pending tasks by role)
-    bottlenecks = Task.objects.filter(company=company).exclude(status__in=['COMPLETED', 'CANCELLED', 'REJECTED']).values('assigned_to__role').annotate(count=Count('id')).order_by('-count')
+    bottlenecks = (
+        Task.objects.filter(company=company)
+        .exclude(status__in=["COMPLETED", "CANCELLED", "REJECTED"])
+        .values("assigned_to__role")
+        .annotate(count=Count("id"))
+        .order_by("-count")
+    )
 
-    # 3.5 Loss Analysis
-    lost_tenders = tenders.filter(status='LOST').exclude(loss_reason='').order_by('-updated_at')[:5]
+    lost_tenders = (
+        tenders.filter(status="LOST")
+        .exclude(loss_reason="")
+        .order_by("-updated_at")[:5]
+    )
+    recent_activity = AuditLog.objects.filter(
+        company=company
+    ).order_by("-created_at")[:15]
 
-    # 4. Recent Activity (Audit Log)
-    recent_activity = AuditLog.objects.filter(company=company).order_by('-created_at')[:15]
-
-    # 5. CHART DATA GENERATION
-    from datetime import date
-    from django.db.models.functions import TruncMonth
-    
-    # Tender Status Doughnut
-    tender_data = [stats['won'], stats['lost'], stats['active']]
-    
-    # Cash Flow Bar Chart (Last 6 Months)
     six_months_ago = date.today() - timedelta(days=180)
-    monthly_flows = CashFlowEntry.objects.filter(company=company, date__gte=six_months_ago).annotate(month=TruncMonth('date')).values('month', 'flow_type').annotate(total=Sum('amount')).order_by('month')
-    
-    flow_labels = []
-    flow_in = []
-    flow_out = []
-    
-    # Process the flow data into lists for the chart
+    monthly_flows = (
+        CashFlowEntry.objects.filter(
+            company=company, date__gte=six_months_ago
+        )
+        .annotate(month=TruncMonth("date"))
+        .values("month", "flow_type")
+        .annotate(total=Sum("amount"))
+        .order_by("month")
+    )
+
     temp_data = {}
     for flow in monthly_flows:
-        month_str = flow['month'].strftime('%b %Y')
-        if month_str not in temp_data:
-            temp_data[month_str] = {'IN': 0, 'OUT': 0}
-        temp_data[month_str][flow['flow_type']] += float(flow['total'])
-        
-    for month, data in temp_data.items():
+        month_str = flow["month"].strftime("%b %Y")
+        temp_data.setdefault(month_str, {"IN": 0, "OUT": 0})
+        temp_data[month_str][flow["flow_type"]] += float(flow["total"] or 0)
+
+    flow_labels, flow_in, flow_out = [], [], []
+    for month, values in temp_data.items():
         flow_labels.append(month)
-        flow_in.append(data['IN'])
-        flow_out.append(data['OUT'])
+        flow_in.append(values["IN"])
+        flow_out.append(values["OUT"])
 
-    # Expense Breakdown Pie Chart
-    expense_data = CashFlowEntry.objects.filter(company=company, flow_type='OUT').values('category').annotate(total=Sum('amount')).order_by('-total')
-    expense_labels = []
-    expense_values = []
-    for exp in expense_data:
-        # Get human readable category name
-        cat_name = dict(CashFlowEntry.CATEGORY_CHOICES).get(exp['category'], exp['category'])
-        expense_labels.append(cat_name)
-        expense_values.append(float(exp['total']))
+    expense_data = (
+        CashFlowEntry.objects.filter(company=company, flow_type="OUT")
+        .values("category")
+        .annotate(total=Sum("amount"))
+        .order_by("-total")
+    )
+    expense_labels, expense_values = [], []
+    for item in expense_data:
+        expense_labels.append(
+            dict(CashFlowEntry.CATEGORY_CHOICES).get(
+                item["category"], item["category"]
+            )
+        )
+        expense_values.append(float(item["total"] or 0))
 
-    context = {
-        'stats': stats,
-        'financials': financials,
-        'bottlenecks': bottlenecks,
-        'recent_activity': recent_activity,
-        'lost_tenders': lost_tenders,
-        'tender_data': tender_data,
-        'flow_labels': flow_labels,
-        'flow_in': flow_in,
-        'flow_out': flow_out,
-        'expense_labels': expense_labels,
-        'expense_values': expense_values,
-    }
-    return render(request, 'mgmt_dashboard.html', context)
+    return render(request, "mgmt_dashboard.html", {
+        "stats": stats,
+        "financials": financials,
+        "bottlenecks": bottlenecks,
+        "recent_activity": recent_activity,
+        "lost_tenders": lost_tenders,
+        "tender_data": [stats["won"], stats["lost"], stats["active"]],
+        "flow_labels": flow_labels,
+        "flow_in": flow_in,
+        "flow_out": flow_out,
+        "expense_labels": expense_labels,
+        "expense_values": expense_values,
+    })
 
 
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import json
-from .gemini import ask_infinity_brain
-
-@csrf_exempt
 @login_required
 def ai_assistant_api(request):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'POST required'}, status=405)
-        
-    company = getattr(request, 'company', None)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    emp, company, roles = _management_context(request)
     if not company:
-        return JsonResponse({'error': 'No company selected'}, status=400)
+        return JsonResponse({"error": "Select an active company."}, status=403)
+    if not roles.intersection({"ADMIN", "CEO", "GM", "VGM"}):
+        return JsonResponse({"error": "Unauthorized."}, status=403)
 
     try:
-        data = json.loads(request.body)
-        question = data.get('question', '').strip()
-        if not question:
-            return JsonResponse({'error': 'Empty question'}, status=400)
+        data = json.loads(request.body or "{}")
+        question = data.get("question", "")
+        if not isinstance(question, str):
+            return JsonResponse({"error": "Invalid question."}, status=400)
+        question = question.strip()
+        if not question or len(question) > 5000:
+            return JsonResponse({"error": "Question is empty or too long."}, status=400)
 
-        # 1. Gather Context Data
-        from .models import Tender, CashFlowEntry, Task, Shipment
-        from django.db.models import Sum
-        from datetime import date
+        from .models import Shipment
 
-        # Financials
-        inflows = CashFlowEntry.objects.filter(company=company, flow_type='IN').aggregate(Sum('amount'))['amount__sum'] or 0
-        outflows = CashFlowEntry.objects.filter(company=company, flow_type='OUT').aggregate(Sum('amount'))['amount__sum'] or 0
-        balance = inflows - outflows
+        inflows = CashFlowEntry.objects.filter(
+            company=company, flow_type="IN"
+        ).aggregate(Sum("amount"))["amount__sum"] or 0
+        outflows = CashFlowEntry.objects.filter(
+            company=company, flow_type="OUT"
+        ).aggregate(Sum("amount"))["amount__sum"] or 0
 
-        # Tenders
-        active_tenders = Tender.objects.filter(company=company).exclude(status__in=['WON', 'LOST', 'COMPLETED', 'DRAFT'])
-        active_tender_list = [f"- {t.serial_number}: {t.bid_title} (Status: {t.get_status_display()})" for t in active_tenders[:10]]
-        won_tenders = Tender.objects.filter(company=company, status='WON').count()
-        lost_tenders = Tender.objects.filter(company=company, status='LOST').count()
-
-        # Tasks
-        pending_tasks = Task.objects.filter(company=company, status='PENDING').count()
-        
-        # Logistics
-        active_shipments = Shipment.objects.filter(company=company).exclude(current_status='WAREHOUSE').count()
+        active_tenders = Tender.objects.filter(company=company).exclude(
+            status__in=["WON", "LOST", "COMPLETED", "DRAFT"]
+        )
+        tender_list = [
+            f"- {t.serial_number}: {t.bid_title} (Status: {t.get_status_display()})"
+            for t in active_tenders[:10]
+        ]
 
         context_str = f"""
 Company: {company.name}
 Total Inflows: {inflows} ETB
 Total Outflows: {outflows} ETB
-Current Cash Balance: {balance} ETB
-
-Tender Summary:
-- Total Won Tenders: {won_tenders}
-- Total Lost Tenders: {lost_tenders}
-- Currently Active Tenders: {active_tenders.count()}
-
+Current Cash Balance: {inflows - outflows} ETB
+Total Won Tenders: {Tender.objects.filter(company=company, status='WON').count()}
+Total Lost Tenders: {Tender.objects.filter(company=company, status='LOST').count()}
+Currently Active Tenders: {active_tenders.count()}
 Active Tender Details (Max 10):
-{chr(10).join(active_tender_list) if active_tender_list else "None"}
-
-Operations:
-- Pending Tasks: {pending_tasks}
-- Active Shipments in Transit: {active_shipments}
+{chr(10).join(tender_list) if tender_list else "None"}
+Pending Tasks: {Task.objects.filter(company=company, status='PENDING').count()}
+Active Shipments in Transit: {Shipment.objects.filter(company=company).exclude(current_status='WAREHOUSE').count()}
 """
-
-        # 2. Ask the AI
         answer = ask_infinity_brain(question, context_str)
-        return JsonResponse({'answer': answer})
-
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({"answer": answer})
+    except (ValueError, TypeError):
+        return JsonResponse({"error": "Invalid request data."}, status=400)
+    except Exception:
+        return JsonResponse({"error": "The AI service is temporarily unavailable."}, status=500)

@@ -115,7 +115,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -151,6 +152,12 @@ def _load_env_file(path):
         pass
 
 _load_env_file(str(BASE_DIR / '.env'))
+
+_IS_RENDER = bool(_os.environ.get("RENDER") or _os.environ.get("RENDER_EXTERNAL_HOSTNAME"))
+_ENV_SECRET_KEY = _os.environ.get("SECRET_KEY")
+if _IS_RENDER and not _ENV_SECRET_KEY:
+    raise RuntimeError("Production SECRET_KEY is missing from the environment.")
+SECRET_KEY = _ENV_SECRET_KEY or SECRET_KEY
 GEMINI_API_KEY = _os.environ.get('GEMINI_API_KEY', '')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -163,10 +170,14 @@ import dj_database_url
 # 1. Database Setup (Neon)
 # Render will provide the DATABASE_URL environment variable.
 # If it doesn't exist (running locally in Termux), it falls back to SQLite.
+_DATABASE_URL = _os.environ.get("DATABASE_URL")
+if _IS_RENDER and not _DATABASE_URL:
+    raise RuntimeError("Production DATABASE_URL is missing from the environment.")
+
 DATABASES = {
     'default': dj_database_url.config(
-        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
-        conn_max_age=0 # Crucial for Neon (prevents connection drops)
+        default=_DATABASE_URL or 'sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
+        conn_max_age=0
     )
 }
 
@@ -176,8 +187,22 @@ R2_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID")
 R2_SECRET_ACCESS_KEY = os.environ.get("R2_SECRET_ACCESS_KEY")
 R2_BUCKET_NAME = os.environ.get("R2_BUCKET_NAME")
 
-if R2_ACCOUNT_ID and R2_BUCKET_NAME:
-    # If R2 environment variables are set (on Render), use R2
+_R2_VALUES = (
+    R2_ACCOUNT_ID,
+    R2_ACCESS_KEY_ID,
+    R2_SECRET_ACCESS_KEY,
+    R2_BUCKET_NAME,
+)
+_R2_CONFIGURED = all(_R2_VALUES)
+_R2_PARTIALLY_CONFIGURED = any(_R2_VALUES)
+
+if _IS_RENDER and not _R2_CONFIGURED:
+    raise RuntimeError("Production Cloudflare R2 configuration is incomplete.")
+
+if _R2_PARTIALLY_CONFIGURED and not _R2_CONFIGURED:
+    raise RuntimeError("Cloudflare R2 configuration is incomplete.")
+
+if _R2_CONFIGURED:
     STORAGES = {
         "default": {
             "BACKEND": "storages.backends.s3.S3Storage",
@@ -189,25 +214,16 @@ if R2_ACCOUNT_ID and R2_BUCKET_NAME:
                 "secret_key": R2_SECRET_ACCESS_KEY,
                 "signature_version": "s3v4",
                 "default_acl": None,
+                "querystring_auth": True,
+                "querystring_expire": 300,
+                "file_overwrite": False,
             },
         },
         "staticfiles": {
-            "BACKEND": "storages.backends.s3.S3Storage",
-            "OPTIONS": {
-                "bucket_name": R2_BUCKET_NAME,
-                "endpoint_url": f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
-                "region_name": "auto",
-                "access_key": R2_ACCESS_KEY_ID,
-                "secret_key": R2_SECRET_ACCESS_KEY,
-                "signature_version": "s3v4",
-                "default_acl": None,
-                "location": "static",
-            },
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
-    MEDIA_URL = f"https://{R2_BUCKET_NAME}.{R2_ACCOUNT_ID}.r2.cloudflarestorage.com/"
 else:
-    # If running locally (no R2 variables), use local folders
     STORAGES = {
         "default": {
             "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -216,17 +232,23 @@ else:
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
-    MEDIA_URL = '/media/'
+
+MEDIA_URL = "/media/"
 
 # 3. Security & Host Settings
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = ['*'] # Render provides a dynamic URL
 
-# Render automatically provides this URL, configure CSRF for forms to work
-RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-if RENDER_EXTERNAL_HOSTNAME:
-    CSRF_TRUSTED_ORIGINS = [f'https://{RENDER_EXTERNAL_HOSTNAME}']
+ALLOWED_HOSTS = [
+    host.strip() for host in _os.environ.get("ALLOWED_HOSTS", "").split(",") if host.strip()
+]
+RENDER_EXTERNAL_HOSTNAME = _os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+if _IS_RENDER and not ALLOWED_HOSTS:
+    raise RuntimeError("Production ALLOWED_HOSTS is missing.")
+if not _IS_RENDER and not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ["*"]
+CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in ALLOWED_HOSTS if host != "*"]
 
 # Middleware for WhiteNoise (Static files fallback)
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')

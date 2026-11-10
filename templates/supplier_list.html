@@ -1,6 +1,10 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Supplier Database</h2>
+{% if error %}
+  <p class="error">{{ error }}</p>
+{% endif %}
+{% if can_add_supplier %}
 <div class="card" style="background:#1a1f2b; margin-bottom:20px;">
   <h3 style="font-size:13px; color:#e8b64c; margin-bottom:10px;">+ Add New Supplier</h3>
   <form method="post">
@@ -14,6 +18,7 @@
     <button class="btn btn-green wide" type="submit">Save Supplier</button>
   </form>
 </div>
+{% endif %}
 
 {% for s in suppliers %}
   <div class="card" style="padding:15px; margin-bottom:10px;">

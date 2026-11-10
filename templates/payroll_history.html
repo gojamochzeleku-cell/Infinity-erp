@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-  <h2>Payroll History</h2>
-  {% if user.employee.role in "ADMIN,HR" %}
-  <a href="{% url 'generate_payroll' %}" class="btn btn-green" style="padding:6px 12px; font-size:12px;">+ Generate New</a>
+  <h2>Payroll History — {{ request.company.short_name }}</h2>
+  {% if 'ADMIN' in membership_roles or 'HR' in membership_roles %}
+    <a href="{% url 'generate_payroll' %}" class="btn btn-green" style="padding:6px 12px; font-size:12px;">+ Generate New</a>
   {% endif %}
 </div>
 
@@ -16,6 +16,6 @@
     <div class="kv"><span class="k">Total Amount</span><span class="v" style="color:#e8b64c; font-weight:bold;">{{ p.total_amount }} ETB</span></div>
   </div>
 {% empty %}
-  <p class="empty">No payroll records.</p>
+  <p class="empty">No payroll records for this company.</p>
 {% endfor %}
 {% endblock %}

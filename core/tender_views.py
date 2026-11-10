@@ -16,11 +16,39 @@ def _emp(request):
 def _co(request):
     return getattr(request, 'company', None)
 
+
+def _membership_roles(request):
+    emp = _emp(request)
+    company = _co(request)
+    membership = getattr(request, 'membership', None)
+
+    if (
+        not request.user.is_authenticated
+        or not request.user.is_active
+        or not emp or not emp.is_active
+        or not company or not company.is_active
+        or not membership or not membership.is_active
+        or membership.employee_id != emp.id
+        or membership.company_id != company.id
+    ):
+        return None
+
+    return set(membership.roles.values_list('role', flat=True))
+
+
+def _company_access(request, allowed_roles=None):
+    roles = _membership_roles(request)
+    if roles is None:
+        return False
+    if allowed_roles is None:
+        return True
+    return bool(roles.intersection(allowed_roles))
+
 @login_required
 def tender_list(request):
     from django.db.models import Q
     emp, company = _emp(request), _co(request)
-    if emp is None or company is None:
+    if emp is None or company is None or not _company_access(request):
         return redirect('select_company')
         
     query = request.GET.get('q', '').strip()
@@ -50,8 +78,10 @@ def tender_list(request):
 @login_required
 def tender_register(request):
     emp, company = _emp(request), _co(request)
-    if emp is None or company is None:
+    if emp is None or company is None or not _company_access(request):
         return redirect('select_company')
+    if not _company_access(request, {'ADMIN', 'CEO', 'GM', 'VGM', 'OFFICE', 'BIDM', 'PROC'}):
+        return redirect('dashboard')
     initial, errors = {}, []
 
     if request.method == 'POST':
@@ -115,8 +145,10 @@ def tender_register(request):
 @login_required
 def tender_edit(request, pk):
     emp, company = _emp(request), _co(request)
-    if emp is None or company is None:
+    if emp is None or company is None or not _company_access(request):
         return redirect('select_company')
+    if not _company_access(request, {'ADMIN', 'CEO', 'GM', 'VGM', 'OFFICE', 'BIDM', 'PROC'}):
+        return redirect('dashboard')
     tender = get_object_or_404(Tender, pk=pk, company=company)
     errors = []
 
@@ -165,7 +197,7 @@ def tender_edit(request, pk):
 @login_required
 def tender_detail(request, pk):
     emp, company = _emp(request), _co(request)
-    if emp is None or company is None:
+    if emp is None or company is None or not _company_access(request):
         return redirect('select_company')
     tender = get_object_or_404(Tender, pk=pk, company=company)
     return render(request, 'tender_detail.html', {'tender': tender})
@@ -173,8 +205,12 @@ def tender_detail(request, pk):
 @login_required
 def tender_submit(request, pk):
     emp, company = _emp(request), _co(request)
-    if emp is None or company is None:
+    if emp is None or company is None or not _company_access(request):
         return redirect('select_company')
+    if request.method != 'POST':
+        return redirect('tender_detail', pk=pk)
+    if not _company_access(request, {'ADMIN', 'CEO', 'GM', 'VGM', 'OFFICE', 'BIDM'}):
+        return redirect('dashboard')
     tender = get_object_or_404(Tender, pk=pk, company=company)
     if request.method == 'POST' and tender.status == 'DRAFT':
         tender.status = 'REGISTERED'
@@ -186,22 +222,39 @@ def tender_submit(request, pk):
 
 @login_required
 def delete_tender(request, pk):
-    company = getattr(request, 'company', None)
+    emp, company = _emp(request), _co(request)
+
+    if not emp or not company or not _company_access(request):
+        return redirect('select_company')
+
+    if request.method != 'POST':
+        return redirect('tender_detail', pk=pk)
+
+    if not _company_access(request, {'ADMIN', 'CEO', 'GM', 'OFFICE'}):
+        return redirect('dashboard')
+
     tender = get_object_or_404(Tender, pk=pk, company=company)
+
     if tender.status == 'DRAFT':
         tender.delete()
         messages.success(request, 'Draft tender deleted.')
         return redirect('tender_list')
+
     messages.error(request, 'You can only delete DRAFT tenders.')
     return redirect('tender_detail', pk=tender.id)
 
 @login_required
 def reupload_bid_document(request, pk):
-    company = getattr(request, 'company', None)
-    tender = get_object_or_404(Tender, pk=pk, company=company)
-    emp = getattr(request.user, 'employee', None)
-    if not emp or emp.role not in ('OFFICE', 'ADMIN'):
+    emp, company = _emp(request), _co(request)
+
+    if not emp or not company or not _company_access(request):
+        return redirect('select_company')
+
+    if not _company_access(request, {'OFFICE', 'ADMIN'}):
         return redirect('dashboard')
+
+    tender = get_object_or_404(Tender, pk=pk, company=company)
+
     if request.method == 'POST':
         if 'purchased_bid_document' in request.FILES:
             tender.purchased_bid_document = request.FILES['purchased_bid_document']
@@ -210,29 +263,20 @@ def reupload_bid_document(request, pk):
             tender.save()
             messages.success(request, 'Bid Document re-uploaded successfully!')
             return redirect('tender_detail', pk=tender.id)
+
     return render(request, 'reupload_doc.html', {'tender': tender})
 
 @login_required
 def view_ai_log(request):
-    from django.conf import settings
-    import os
-    log_path = os.path.join(settings.BASE_DIR, 'ai_error_log.txt')
-    content = "No log file found."
-    if os.path.exists(log_path):
-        with open(log_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-    return render(request, 'ai_log.html', {'content': content})
+    # Global diagnostic logs are not available to company users.
+    return redirect('dashboard')
+
 
 @login_required
 def view_ai_success_log(request):
-    from django.conf import settings
-    import os
-    log_path = os.path.join(settings.BASE_DIR, 'ai_success_log.txt')
-    content = "No successful AI extractions found yet."
-    if os.path.exists(log_path):
-        with open(log_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-    return render(request, 'ai_log.html', {'content': content})
+    # Global diagnostic logs are not available to company users.
+    return redirect('dashboard')
+
 
 def _to_bid_manager(request, tender):
     task = create_task(

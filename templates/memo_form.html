@@ -5,15 +5,16 @@
 <div class="card">
   <form method="post">
     {% csrf_token %}
+
     <label class="meta">Title</label>
-    <input type="text" name="title" required>
-    
+    <input type="text" name="title" required maxlength="250">
+
     <label class="meta">Content</label>
     <textarea name="content" required></textarea>
-    
+
     <label class="meta">Send to Role (Optional)</label>
     <select name="recipient_role">
-      <option value="">-- Everyone --</option>
+      <option value="">-- Everyone in this company --</option>
       {% for code, name in roles %}
         <option value="{{ code }}">{{ name }}</option>
       {% endfor %}
@@ -23,7 +24,7 @@
     <select name="recipient_employee">
       <option value="">-- No specific employee --</option>
       {% for e in employees %}
-        <option value="{{ e.id }}">{{ e.full_name }} ({{ e.get_role_display }})</option>
+        <option value="{{ e.id }}">{{ e.full_name }}</option>
       {% endfor %}
     </select>
 

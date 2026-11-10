@@ -9,8 +9,10 @@
     {% if s.eta %}<div class="kv"><span class="k">ETA</span><span class="v">{{ s.eta|date:"d M Y" }}</span></div>{% endif %}
     
     <div style="margin-top:10px; display:flex; gap:10px;">
+      {% if can_update_shipment %}
       <a href="{% url 'shipment_update' s.pk %}" class="btn btn-blue" style="padding:6px 12px; font-size:11px;">Update Status</a>
-      {% if s.current_status == 'WAREHOUSE' or s.current_status == 'CUSTOMS' %}
+      {% endif %}
+      {% if can_inspect_shipment and s.current_status == 'WAREHOUSE' or can_inspect_shipment and s.current_status == 'CUSTOMS' %}
       <a href="{% url 'inventory_check' s.pk %}" class="btn btn-green" style="padding:6px 12px; font-size:11px;">Check Inventory</a>
       {% endif %}
     </div>

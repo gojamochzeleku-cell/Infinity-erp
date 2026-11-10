@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import os
+import time
 from urllib.parse import parse_qsl
 from django.contrib.auth import login
 from django.http import JsonResponse
@@ -27,7 +28,10 @@ def telegram_auth(request):
         if not bot_token:
             return JsonResponse({'error': 'Bot token not configured on server'}, status=500)
 
-        parsed_data = dict(parse_qsl(init_data))
+        parsed_pairs = parse_qsl(init_data, keep_blank_values=True)
+        if len(dict(parsed_pairs)) != len(parsed_pairs):
+            return JsonResponse({'error': 'Duplicate authentication fields'}, status=400)
+        parsed_data = dict(parsed_pairs)
         received_hash = parsed_data.pop('hash', None)
         
         if not received_hash:
@@ -41,22 +45,31 @@ def telegram_auth(request):
         # Calculate expected hash
         calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
-        if calculated_hash != received_hash:
+        if not hmac.compare_digest(calculated_hash, received_hash):
             return JsonResponse({'error': 'Invalid authentication data'}, status=403)
 
         # 3. Hash is valid. Get the user info.
+        auth_date = int(parsed_data.get('auth_date', '0'))
+        current_time = int(time.time())
+        if auth_date <= 0 or auth_date > current_time + 60 or current_time - auth_date > 86400:
+            return JsonResponse({'error': 'Authentication data expired or invalid'}, status=403)
+
         user_data = json.loads(parsed_data.get('user', '{}'))
-        tg_id = str(user_data.get('id'))
+        telegram_user_id = user_data.get('id')
+        if not telegram_user_id:
+            return JsonResponse({'error': 'Telegram user ID missing'}, status=400)
+        tg_id = str(telegram_user_id)
         
         # 4. Find the Employee in our database
         emp = Employee.objects.filter(telegram_id=tg_id).first()
         
-        if not emp:
-            return JsonResponse({'error': 'Your Telegram account is not linked to any ERP employee profile.'}, status=404)
+        if not emp or not emp.is_active or not emp.user.is_active:
+            return JsonResponse({'error': 'No active ERP employee profile is linked to this Telegram account.'}, status=404)
 
         # 5. Log them in!
         login(request, emp.user)
-        request.session['company_id'] = 1 # Default to first company, or let them choose
+        # Never choose a company automatically. Require validated membership selection.
+        request.session.pop('company_id', None)
         
         return JsonResponse({'status': 'success', 'redirect': '/select-company/'})
 

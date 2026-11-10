@@ -1,4 +1,5 @@
 import os
+import secrets
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
@@ -9,10 +10,17 @@ from .services import notify
 @csrf_exempt
 def daily_reminders(request):
     # 1. Security Check
-    token = request.GET.get('token')
-    expected_token = os.environ.get('CRON_SECRET_TOKEN', 'infinity_cron_secret')
-    
-    if token != expected_token:
+    if request.method != 'GET':
+        return HttpResponse("GET required", status=405)
+
+    token = request.GET.get('token', '')
+    expected_token = os.environ.get('CRON_SECRET_TOKEN', '')
+
+    # Fail closed: no predictable default secret is permitted.
+    if not expected_token:
+        return HttpResponse("Cron authentication is not configured", status=503)
+
+    if not token or not secrets.compare_digest(token, expected_token):
         return HttpResponse("Unauthorized", status=401)
 
     today = timezone.now().date()

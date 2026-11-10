@@ -16,18 +16,68 @@ from .gemini import analyze_bid_document, parse_war_room_output
 from .chain import create_task
 from .services import log_action
 
+def _war_room_context(request, pk):
+    """Validate the active company membership and assigned Bid Manager task."""
+    from django.core.exceptions import PermissionDenied
+
+    emp = getattr(request.user, 'employee', None)
+    company = getattr(request, 'company', None)
+    membership = getattr(request, 'membership', None)
+
+    if (
+        not request.user.is_authenticated
+        or not request.user.is_active
+        or emp is None
+        or not emp.is_active
+        or company is None
+        or not company.is_active
+        or membership is None
+        or not membership.is_active
+        or membership.employee_id != emp.id
+        or membership.company_id != company.id
+    ):
+        raise PermissionDenied("Active company membership required.")
+
+    roles = set(membership.roles.values_list('role', flat=True))
+    if 'BIDM' not in roles:
+        raise PermissionDenied("Bid Manager company role required.")
+
+    tender = get_object_or_404(Tender, pk=pk, company=company)
+
+    task = get_object_or_404(
+        Task,
+        company=company,
+        code='T09',
+        assigned_to=emp,
+        payload__tender_id=tender.id,
+    )
+
+    return emp, company, membership, tender, task
+
+
 @login_required
 def war_room(request, pk):
-    tender = get_object_or_404(Tender, pk=pk, company=getattr(request, 'company', None))
-    
+    from django.db import transaction
+    from django.contrib import messages
+
+    emp, company, membership, tender, task = _war_room_context(request, pk)
+
     if request.method == 'POST':
+        if task.status not in ('PENDING', 'IN_PROGRESS'):
+            messages.error(request, 'This War Room task is no longer active.')
+            return redirect('dashboard')
+
         action = request.POST.get('action')
-        
+
         if action == 'analyze' and tender.purchased_bid_document:
+            if tender.ai_status == 'PROCESSING':
+                messages.warning(request, 'AI analysis is already processing.')
+                return redirect('war_room', pk=tender.id)
+
             tender.ai_status = 'PROCESSING'
             tender.ai_error = ''
             tender.save()
-            
+
             def bg_ai():
                 try:
                     raw_result = analyze_bid_document(tender.purchased_bid_document)
@@ -45,9 +95,10 @@ def war_room(request, pk):
                     tender.save()
                 finally:
                     connection.close()
-            threading.Thread(target=bg_ai).start()
+
+            threading.Thread(target=bg_ai, daemon=True).start()
             return redirect('war_room', pk=tender.id)
-            
+
         elif action == 'manual_save':
             tender.war_room_summary = request.POST.get('summary', '')
             tender.war_room_checklist = request.POST.get('checklist', '')
@@ -55,28 +106,84 @@ def war_room(request, pk):
             tender.war_room_suppliers = request.POST.get('suppliers', '')
             tender.war_room_compliance = request.POST.get('compliance', '')
             tender.save()
+            messages.success(request, 'War Room changes saved.')
             return redirect('war_room', pk=tender.id)
-            
+
         elif action == 'forward_task':
-            section = request.POST.get('section')
-            task = Task.objects.filter(payload__tender_id=tender.id, code='T09').first()
-            if task and task.status != 'COMPLETED':
-                task.status = 'COMPLETED'
-                task.save()
-            
-            create_task(
-                tender.company, 'T10', 'BIDOP', 
-                f'Review {section.title()} for {tender.serial_number}',
-                f'Bid Manager forwarded the {section}. Please review and assemble.',
-                {'tender_id': tender.id, 'section': section}, reverse('tender_detail', args=[tender.id])
-            )
+            section = request.POST.get('section', '').strip()
+            allowed_sections = {'summary', 'checklist', 'brands', 'suppliers', 'all'}
+
+            if section not in allowed_sections:
+                messages.error(request, 'Invalid War Room section.')
+                return redirect('war_room', pk=tender.id)
+
+            with transaction.atomic():
+                locked_task = Task.objects.select_for_update().get(
+                    pk=task.pk,
+                    company=company,
+                    assigned_to=emp,
+                )
+
+                if locked_task.status not in ('PENDING', 'IN_PROGRESS'):
+                    messages.error(request, 'This War Room task is no longer active.')
+                    return redirect('dashboard')
+
+                duplicate = Task.objects.filter(
+                    company=company,
+                    code='T10',
+                    payload__tender_id=tender.id,
+                    payload__section=section,
+                ).exists()
+
+                if duplicate:
+                    messages.warning(
+                        request,
+                        f'The {section} section has already been forwarded.'
+                    )
+                    return redirect('war_room', pk=tender.id)
+
+                created = create_task(
+                    company,
+                    'T10',
+                    'BIDOP',
+                    f'Review {section.title()} for {tender.serial_number}',
+                    f'Bid Manager forwarded the {section}. Please review and assemble.',
+                    {'tender_id': tender.id, 'section': section},
+                    reverse('tender_detail', args=[tender.id]),
+                )
+
+                if created is None:
+                    messages.error(
+                        request,
+                        'No active designated Bid Operator is assigned to this company. '
+                        'The War Room task remains open.'
+                    )
+                    return redirect('war_room', pk=tender.id)
+
+                if section == 'all':
+                    locked_task.status = 'COMPLETED'
+                    locked_task.save(update_fields=['status', 'updated_at'])
+                else:
+                    locked_task.status = 'IN_PROGRESS'
+                    locked_task.save(update_fields=['status', 'updated_at'])
+
+                log_action(
+                    emp,
+                    'WAR_ROOM_FORWARD',
+                    f'Forwarded {section} for tender {tender.serial_number}',
+                    'Tender',
+                    tender.id,
+                    company,
+                )
+
+            messages.success(request, f'{section.title()} forwarded to the Bid Operator.')
             return redirect('dashboard')
 
     return render(request, 'war_room.html', {'tender': tender})
 
 @login_required
 def download_war_room_pdf(request, pk):
-    tender = get_object_or_404(Tender, pk=pk)
+    emp, company, membership, tender, task = _war_room_context(request, pk)
     buffer = io.BytesIO()
     
     # We use a custom canvas to add headers/footers to every page

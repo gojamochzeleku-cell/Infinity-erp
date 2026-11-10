@@ -5,3 +5,10 @@ __pycache__/
 media/
 venv/
 staticfiles/
+# Local backups and development audit scripts
+backups/
+/auth_audit.py
+/render_audit.py
+/patch004.py
+/patch005.py
+/patch006.py

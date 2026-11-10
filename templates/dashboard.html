@@ -20,7 +20,7 @@
 </style>
 
 <!-- OFFICE ASSISTANT COMMAND CENTER -->
-{% if user.employee.role == 'OFFICE' or user.employee.role == 'ADMIN' %}
+{% if 'OFFICE' in membership_roles or 'ADMIN' in membership_roles %}
 <div style="background:linear-gradient(145deg, #1a1f2b, #151922); border:1px solid #e8b64c; border-radius:16px; padding:15px; margin-bottom:20px; box-shadow: 0 4px 15px rgba(232, 182, 76, 0.15);">
   <h3 style="font-size:14px; color:#e8b64c; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">📁 Office Assistant Command Center</h3>
   <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
@@ -74,19 +74,19 @@
   <a class="appcard" href="{% url 'role_manual' %}"><span class="icon">📖</span>My Training Manual</a>
   <a class="appcard" href="{% url 'my_assigned_tasks' %}"><span class="icon">📥</span>Tasks Assigned to Me</a>
 
-  {% if user.employee.role in "ADMIN,CEO,GM,LEGAL" %}
+  {% if 'ADMIN' in membership_roles or 'CEO' in membership_roles or 'GM' in membership_roles or 'LEGAL' in membership_roles %}
   <a class="appcard" href="{% url 'legal_list' %}"><span class="icon">⚖️</span>Legal Disputes</a>
   {% endif %}
 
 
-  {% if user.employee.role in "IT,ADMIN" %}
+  {% if 'IT' in membership_roles or 'ADMIN' in membership_roles %}
   <a class="appcard" href="{% url 'it_dashboard' %}"><span class="icon">🛠️</span>IT Command Center</a>
   <a class="appcard" href="{% url 'it_user_management' %}"><span class="icon">👥</span>Manage Users</a>
   {% endif %}
   <a class="appcard" href="{% url 'it_submit_ticket' %}"><span class="icon">🎫</span>Submit IT Ticket</a>
 
 
-  {% if user.employee.role in "PROC,LOG,ADMIN,CEO,GM,BIDM" %}
+  {% if 'PROC' in membership_roles or 'LOG' in membership_roles or 'ADMIN' in membership_roles or 'CEO' in membership_roles or 'GM' in membership_roles or 'BIDM' in membership_roles %}
   <a class="appcard" href="{% url 'supplier_list' %}"><span class="icon">🤝</span>Supplier Database</a>
   <a class="appcard" href="{% url 'inventory_dashboard' %}"><span class="icon">📦</span>Inventory Management</a>
   <a class="appcard" href="{% url 'shipment_list' %}"><span class="icon">🚢</span>Shipment Tracker</a>
@@ -94,13 +94,13 @@
 
   <a class="appcard" href="{% url 'supply_requests' %}"><span class="icon">🖊️</span>Request Supplies</a>
 
-  {% if user.employee.role in "ADMIN,CEO,GM,HR" %}
+  {% if 'ADMIN' in membership_roles or 'CEO' in membership_roles or 'GM' in membership_roles or 'HR' in membership_roles %}
   <a class="appcard" href="{% url 'staff_directory' %}"><span class="icon">👥</span>Staff Directory</a>
   <a class="appcard" href="{% url 'payroll_history' %}"><span class="icon">💵</span>Payroll</a>
   {% endif %}
 
   
-  {% if user.employee.role in "ADMIN,CEO,GM,VGM,BIDM,FIN,HR,PROC,LOG,LEGAL" %}
+  {% if 'ADMIN' in membership_roles or 'CEO' in membership_roles or 'GM' in membership_roles or 'VGM' in membership_roles or 'BIDM' in membership_roles or 'FIN' in membership_roles or 'HR' in membership_roles or 'PROC' in membership_roles or 'LOG' in membership_roles or 'LEGAL' in membership_roles %}
   <a class="appcard" href="{% url 'assign_task' %}"><span class="icon">📌</span>Assign Task</a>
   <a class="appcard" href="{% url 'delegated_tasks' %}"><span class="icon">📋</span>Track Delegations</a>
   {% endif %}

@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Bid Operator Workspace{% endblock %}
+{% block content %}
+
+<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:15px;">
+  <h2 style="color:#4cc7e8;">Bid Operator Workspace</h2>
+  <a href="{% url 'dashboard' %}" class="btn btn-grey" style="padding:6px 12px;">Back</a>
+</div>
+
+<div class="card">
+  <div style="font-size:16px; font-weight:bold; color:#fff;">{{ tender.bid_title }}</div>
+  <div class="meta" style="font-size:12px; margin-top:6px;">
+    Tender: {{ tender.serial_number }} |
+    Reference: {{ tender.bid_reference_number }}
+  </div>
+  <div class="meta" style="margin-top:8px;">
+    Task: {{ task.title }} |
+    Status: {{ task.get_status_display }}
+  </div>
+</div>
+
+<div class="card" style="border-color:#4cc7e8;">
+  <div class="meta" style="color:#4cc7e8; margin-bottom:12px;">
+    FORWARDED WAR ROOM INFORMATION
+  </div>
+
+  {% for heading, content in section_contents %}
+    <div style="margin-bottom:18px;">
+      <h3 style="font-size:14px; color:#e8b64c;">{{ heading }}</h3>
+      <div style="white-space:pre-wrap; overflow-wrap:anywhere; font-size:13px; line-height:1.6;">{{ content|default:"No content was entered for this section." }}</div>
+    </div>
+  {% endfor %}
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <div class="card">
+    <div class="meta" style="color:#5fd68a; margin-bottom:12px;">
+      BID OPERATOR REVIEW
+    </div>
+
+    <label class="meta">Supporting File</label>
+    {% if task.uploaded_file %}
+      <p class="meta" style="margin:6px 0 12px;">
+        Existing upload:
+        <a href="{{ task.uploaded_file.url }}" target="_blank" style="color:#4cc7e8;">View file</a>
+      </p>
+    {% endif %}
+    <input type="file" name="task_file" style="color:#c8cfdd; margin-bottom:16px;">
+
+    <label class="meta">Review Notes</label>
+    <textarea name="bid_op_note" rows="6" style="width:100%; margin-top:6px; margin-bottom:15px;" placeholder="Record your findings, required corrections, sourcing notes, or completion details..."></textarea>
+
+    <button class="btn btn-blue wide" type="submit" name="action" value="save">
+      Save Work
+    </button>
+  </div>
+
+  <div class="card" style="border-color:#e8b64c;">
+    <div class="meta" style="color:#e8b64c; margin-bottom:10px;">COMPLETE TASK</div>
+    <p class="meta" style="font-size:12px; margin-bottom:12px;">
+      Complete this task only after reviewing the forwarded information and uploading any required supporting file.
+    </p>
+    <button class="btn btn-green wide" type="submit" name="action" value="complete"
+      onclick="return confirm('Complete this Bid Operator task?');">
+      Complete Review & Return to Dashboard
+    </button>
+  </div>
+</form>
+
+{% endblock %}

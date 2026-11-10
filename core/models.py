@@ -1,5 +1,6 @@
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -18,7 +19,6 @@ class Company(models.Model):
 
 
 ROLE_CHOICES = [
-    ('SUPERADMIN', 'SaaS Super Admin'),
     ('ADMIN', 'System Admin'),
     ('IT', 'IT Coordinator'),
     ('CEO', 'Chief Executive Officer'),
@@ -58,6 +58,130 @@ class Employee(models.Model):
     @property
     def full_name(self):
         return self.user.get_full_name() or self.user.username
+
+
+# Company-specific employment and access.
+# One Employee identity can have separate memberships in multiple companies.
+MEMBERSHIP_ROLE_CHOICES = ROLE_CHOICES
+
+
+class CompanyMembership(models.Model):
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name='company_memberships'
+    )
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.PROTECT,
+        related_name='memberships'
+    )
+    is_active = models.BooleanField(default=True)
+    base_salary = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0
+    )
+    contract_expiry = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['company__name', 'employee__user__username']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['employee', 'company'],
+                name='unique_employee_company_membership'
+            )
+        ]
+
+    def __str__(self):
+        return '%s - %s' % (self.employee.full_name, self.company.short_name)
+
+
+class MembershipRole(models.Model):
+    membership = models.ForeignKey(
+        CompanyMembership,
+        on_delete=models.CASCADE,
+        related_name='roles'
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=MEMBERSHIP_ROLE_CHOICES
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['role']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['membership', 'role'],
+                name='unique_role_per_company_membership'
+            )
+        ]
+
+    def __str__(self):
+        return '%s - %s' % (self.membership, self.get_role_display())
+
+
+class CompanyRoleAssignment(models.Model):
+    """
+    The one designated workflow recipient for a position in a company.
+    Other employees may retain the same role without receiving automatic
+    workflow assignments.
+    """
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.PROTECT,
+        related_name='role_assignments'
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=MEMBERSHIP_ROLE_CHOICES
+    )
+    membership = models.ForeignKey(
+        CompanyMembership,
+        on_delete=models.PROTECT,
+        related_name='designated_role_assignments'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['company__short_name', 'role']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['company', 'role'],
+                name='unique_designated_role_per_company'
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+
+        if self.membership_id and self.company_id:
+            if self.membership.company_id != self.company_id:
+                raise ValidationError({
+                    'membership': 'The employee membership must belong to this company.'
+                })
+
+            if not self.membership.roles.filter(role=self.role).exists():
+                raise ValidationError({
+                    'role': 'The designated employee must hold this role in this company.'
+                })
+
+            if not self.membership.is_active:
+                raise ValidationError({
+                    'membership': 'An inactive company membership cannot receive workflow tasks.'
+                })
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return '%s - %s - %s' % (
+            self.company.short_name,
+            self.role,
+            self.membership.employee.user.username
+        )
 
 
 class Task(models.Model):
@@ -606,11 +730,16 @@ class Shipment(models.Model):
         return f"Shipment for {self.tender.serial_number}"
 
 class InventoryItem(models.Model):
-    STATUS_CHOICES = [('GOOD', 'Good Condition'), ('DAMAGED', 'Damaged')]
+    STATUS_CHOICES = [
+        ('GOOD', 'Good Condition'),
+        ('MIXED', 'Partially Damaged'),
+        ('DAMAGED', 'All Received Goods Damaged'),
+    ]
     shipment = models.ForeignKey(Shipment, on_delete=models.CASCADE, related_name='items')
     item_name = models.CharField(max_length=200)
     qty_expected = models.IntegerField(default=1)
     qty_received = models.IntegerField(default=0)
+    qty_damaged = models.IntegerField(default=0)
     condition = models.CharField(max_length=20, choices=STATUS_CHOICES, default='GOOD')
     notes = models.TextField(blank=True)
     supplier_rating = models.PositiveIntegerField(default=5, help_text='1 to 5 stars')

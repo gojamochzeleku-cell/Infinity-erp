@@ -1,48 +1,20 @@
 {% extends 'base.html' %}
-{% block title %}Edit User{% endblock %}
+{% block title %}Edit Company Membership{% endblock %}
 {% block content %}
-<h2>Edit User: {{ target_emp.full_name }}</h2>
-
+<h2>Edit {{ target_emp.full_name }} — {{ company.short_name }}</h2>
 <div class="card">
+  <p class="meta">Username: <strong>{{ target_emp.user.username }}</strong></p>
+  <p class="meta">Login name and email are shared account details and are not changed here.</p>
   <form method="post">
     {% csrf_token %}
-    
-    <label class="meta">Username (Cannot be changed)</label>
-    <input type="text" value="{{ target_emp.user.username }}" disabled style="opacity:0.5; margin-bottom:15px;">
-
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
-      <div>
-        <label class="meta">First Name</label>
-        <input type="text" name="first_name" value="{{ target_emp.user.first_name }}" required style="margin:0;">
-      </div>
-      <div>
-        <label class="meta">Last Name</label>
-        <input type="text" name="last_name" value="{{ target_emp.user.last_name }}" required style="margin:0;">
-      </div>
-    </div>
-
-    <label class="meta">Email Address</label>
-    <input type="email" name="email" value="{{ target_emp.user.email }}" placeholder="example@company.com">
-
-    <label class="meta">Role / Position</label>
+    <label class="meta">Company Role / Position</label>
     <select name="role" required style="margin-bottom:15px;">
       {% for code, name in roles %}
-        <option value="{{ code }}" {% if target_emp.role == code %}selected{% endif %}>{{ name }}</option>
+        <option value="{{ code }}" {% if code in current_roles %}selected{% endif %}>{{ name }}</option>
       {% endfor %}
     </select>
-
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
-      <div>
-        <label class="meta">Phone Number</label>
-        <input type="text" name="phone" value="{{ target_emp.phone }}" placeholder="09..." style="margin:0;">
-      </div>
-      <div>
-        <label class="meta">Telegram ID</label>
-        <input type="text" name="telegram_id" value="{{ target_emp.telegram_id }}" placeholder="e.g. 123456789" style="margin:0;">
-      </div>
-    </div>
-
-    <button class="btn btn-green wide" type="submit">Save Changes</button>
+    <p class="meta">Shared phone and Telegram identity details are not editable by company IT.</p>
+    <button class="btn btn-green wide" type="submit">Save Company Membership</button>
     <a class="btn btn-grey wide" href="{% url 'it_user_management' %}" style="margin-top:5px;">Cancel</a>
   </form>
 </div>
