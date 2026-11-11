@@ -109,6 +109,75 @@
   <button class="btn btn-grey wide" name="action" value="manual_save" style="margin-top:20px;">💾 Save Manual Edits & Uploads</button>
 </form>
 
+
+{% if tender.lots.exists %}
+<div class="card" style="border-color:#e8b64c; margin-top:20px;">
+  <div style="font-weight:bold; color:#e8b64c; margin-bottom:10px;">
+    LOT-BY-LOT REVIEW AND APPROVAL
+  </div>
+  <p class="meta">
+    Review each lot against the original tender document. Only approved lots
+    are assigned to the Bid Operator.
+  </p>
+
+  {% for lot in tender.lots.all %}
+  <div style="border:1px solid #39445a; border-radius:8px; padding:14px; margin:12px 0;">
+    <strong>{{ lot.lot_name }}</strong>
+    <span class="meta"> — {{ lot.status }}</span>
+    {% if lot.description %}<p class="meta">{{ lot.description }}</p>{% endif %}
+
+    {% if lot.items.exists %}
+    <div style="overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse; margin:10px 0;">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding:7px;">Item</th>
+            <th style="text-align:left; padding:7px;">Description</th>
+            <th style="text-align:right; padding:7px;">Quantity</th>
+            <th style="text-align:left; padding:7px;">Unit</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in lot.items.all %}
+          <tr>
+            <td style="padding:7px;">{{ item.item_name }}</td>
+            <td style="padding:7px;">{{ item.description|default:"—" }}</td>
+            <td style="padding:7px; text-align:right;">{{ item.quantity }}</td>
+            <td style="padding:7px;">{{ item.unit }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="meta">No extracted items recorded. Verify the original PDF and add the items before approval.</p>
+    {% endif %}
+
+    {% if lot.status == 'PENDING' %}
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="lot_id" value="{{ lot.id }}">
+        <button class="btn btn-green" name="action" value="approve_lot"
+          onclick="return confirm('Approve this lot and assign it to BIDOP?');">
+          Approve for BIDOP
+        </button>
+      </form>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="lot_id" value="{{ lot.id }}">
+        <button class="btn btn-grey" name="action" value="reject_lot"
+          onclick="return confirm('Reject this lot and keep it with BIDM?');">
+          Reject / Keep with BIDM
+        </button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 <div class="card" style="border-color:#4cc7e8; margin-top:20px;">
   <div class="meta" style="color:#4cc7e8; margin-bottom:10px;">FINAL ACTION</div>
   <p class="meta" style="font-size:12px; margin-bottom:15px;">Forward individual sections to the Bid Operator or send everything.</p>

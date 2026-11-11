@@ -384,11 +384,7 @@ def task_action(request, pk):
             task.completed_at = timezone.now()
             task.save()
 
-            if tender.lots.exists():
-                from .chain import trigger_lot_assemblies
-                trigger_lot_assemblies(tender)
-            else:
-                trigger_ai_tasks(tender)
+            trigger_ai_tasks(tender)
 
             return redirect('dashboard')
 

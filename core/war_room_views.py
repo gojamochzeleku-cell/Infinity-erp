@@ -3,7 +3,7 @@ import threading
 import csv
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.db import connection
+from django.db import close_old_connections
 from django.http import HttpResponse
 from django.urls import reverse
 from reportlab.pdfgen import canvas
@@ -11,7 +11,7 @@ from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 from reportlab.lib import colors
-from .models import Tender, Task
+from .models import Tender, Task, TenderLot
 from .gemini import analyze_bid_document, parse_war_room_output
 from .chain import create_task
 from .services import log_action
@@ -78,25 +78,121 @@ def war_room(request, pk):
             tender.ai_error = ''
             tender.save()
 
+            tender_id = tender.id
+            company_id = company.id
+
             def bg_ai():
+                close_old_connections()
                 try:
-                    raw_result = analyze_bid_document(tender.purchased_bid_document)
+                    ai_tender = Tender.objects.get(
+                        pk=tender_id,
+                        company_id=company_id,
+                    )
+                    raw_result = analyze_bid_document(
+                        ai_tender.purchased_bid_document
+                    )
                     parsed = parse_war_room_output(raw_result)
-                    tender.war_room_summary = parsed.get('summary', '')
-                    tender.war_room_checklist = parsed.get('checklist', '')
-                    tender.war_room_brands = parsed.get('brands', '')
-                    tender.war_room_suppliers = parsed.get('suppliers', '')
-                    tender.war_room_compliance = parsed.get('compliance', '')
-                    tender.ai_status = 'DONE'
-                    tender.save()
-                except Exception as e:
-                    tender.ai_error = str(e)
-                    tender.ai_status = 'FAILED'
-                    tender.save()
+                    ai_tender.war_room_summary = parsed.get('summary', '')
+                    ai_tender.war_room_checklist = parsed.get('checklist', '')
+                    ai_tender.war_room_brands = parsed.get('brands', '')
+                    ai_tender.war_room_suppliers = parsed.get('suppliers', '')
+                    ai_tender.war_room_compliance = parsed.get('compliance', '')
+                    ai_tender.ai_status = 'DONE'
+                    ai_tender.ai_error = ''
+                    ai_tender.save()
+                except Exception as exc:
+                    Tender.objects.filter(
+                        pk=tender_id,
+                        company_id=company_id,
+                    ).update(
+                        ai_status='FAILED',
+                        ai_error=str(exc)[:4000],
+                    )
                 finally:
-                    connection.close()
+                    close_old_connections()
 
             threading.Thread(target=bg_ai, daemon=True).start()
+            return redirect('war_room', pk=tender.id)
+
+        elif action in ('approve_lot', 'reject_lot'):
+            lot_id = request.POST.get('lot_id', '').strip()
+            if not lot_id.isdigit():
+                messages.error(request, 'Invalid lot selection.')
+                return redirect('war_room', pk=tender.id)
+
+            with transaction.atomic():
+                locked_lot = get_object_or_404(
+                    TenderLot.objects.select_for_update(),
+                    pk=int(lot_id),
+                    tender=tender,
+                )
+
+                if locked_lot.status != 'PENDING':
+                    messages.warning(
+                        request,
+                        'This lot is no longer awaiting Bid Manager review.',
+                    )
+                    return redirect('war_room', pk=tender.id)
+
+                if action == 'reject_lot':
+                    locked_lot.status = 'REJECTED_BY_BIDM'
+                    locked_lot.save(update_fields=['status'])
+                    log_action(
+                        emp, 'LOT_REJECTED_BY_BIDM',
+                        f'Rejected {locked_lot.lot_name}',
+                        'TenderLot', locked_lot.id, company,
+                    )
+                    messages.success(
+                        request,
+                        f'{locked_lot.lot_name} rejected. It remains with BIDM.',
+                    )
+                else:
+                    existing = Task.objects.filter(
+                        company=company,
+                        code='T10_LOT',
+                        payload__tender_id=tender.id,
+                        payload__lot_id=locked_lot.id,
+                        status__in=('PENDING', 'IN_PROGRESS'),
+                    ).exists()
+
+                    if existing:
+                        messages.warning(
+                            request,
+                            'An active BIDOP task already exists for this lot.',
+                        )
+                    else:
+                        created = create_task(
+                            company,
+                            'T10_LOT',
+                            'BIDOP',
+                            f'Assemble Bid: {locked_lot.lot_name} ({tender.serial_number})',
+                            f'BIDM approved {locked_lot.lot_name}. Prepare its technical and financial documents.',
+                            {
+                                'tender_id': tender.id,
+                                'lot_id': locked_lot.id,
+                            },
+                            reverse('tender_detail', args=[tender.id]),
+                        )
+
+                        if created is None:
+                            messages.error(
+                                request,
+                                'No designated BIDOP is available. '
+                                'The lot remains pending and has not been approved.',
+                            )
+                        else:
+                            locked_lot.status = 'APPROVED_FOR_BIDOP'
+                            locked_lot.save(update_fields=['status'])
+                            log_action(
+                                emp, 'LOT_APPROVED_FOR_BIDOP',
+                                f'Approved {locked_lot.lot_name} for BIDOP',
+                                'TenderLot', locked_lot.id, company,
+                            )
+                            messages.success(
+                                request,
+                                f'{locked_lot.lot_name} approved and assigned to BIDOP.',
+                            )
+
             return redirect('war_room', pk=tender.id)
 
         elif action == 'manual_save':
@@ -105,6 +201,15 @@ def war_room(request, pk):
             tender.war_room_brands = request.POST.get('brands', '')
             tender.war_room_suppliers = request.POST.get('suppliers', '')
             tender.war_room_compliance = request.POST.get('compliance', '')
+            for upload_key, model_field in (
+                ('manual_summary', 'bm_manual_summary'),
+                ('manual_checklist', 'bm_manual_checklist'),
+                ('manual_brands', 'bm_manual_brands'),
+                ('manual_suppliers', 'bm_manual_suppliers'),
+            ):
+                uploaded = request.FILES.get(upload_key)
+                if uploaded:
+                    setattr(tender, model_field, uploaded)
             tender.save()
             messages.success(request, 'War Room changes saved.')
             return redirect('war_room', pk=tender.id)
