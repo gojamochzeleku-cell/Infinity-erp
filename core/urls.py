@@ -30,6 +30,7 @@ urlpatterns = [
     path('task-history/', history_views.task_history, name='task_history'),
     path('tenders/<int:pk>/war-room/', war_room_views.war_room, name='war_room'),
     path('tenders/<int:pk>/war-room/pdf/', war_room_views.download_war_room_pdf, name='war_room_pdf'),
+    path('tenders/<int:pk>/war-room/artifacts/<int:artifact_id>/', war_room_views.download_war_room_artifact, name='war_room_artifact_download'),
     path('it/repair-chain/', repair_views.repair_chain, name='repair_chain'),
     path('mail/fetch/', mail_views.fetch_emails_action, name='fetch_emails_action'),
     path('mail/compose/', mail_views.compose_email, name='compose_email'),

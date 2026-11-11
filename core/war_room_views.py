@@ -14,10 +14,11 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, LongTable, 
 from reportlab.lib.utils import simpleSplit
 from xml.sax.saxutils import escape
 from reportlab.lib import colors
-from .models import Tender, Task, TenderLot, Supplier
+from .models import Tender, Task, TenderLot, Supplier, WarRoomArtifact
 from .gemini import analyze_bid_document, parse_war_room_output
 from .chain import create_task
 from .services import log_action
+from .war_room_artifact_service import generate_war_room_artifacts
 
 def _war_room_context(request, pk):
     """Validate the active company membership and assigned Bid Manager task."""
@@ -72,7 +73,23 @@ def war_room(request, pk):
 
         action = request.POST.get('action')
 
-        if action == 'analyze' and tender.purchased_bid_document:
+        if action == 'generate_artifacts':
+        try:
+            generated = generate_war_room_artifacts(
+                tender, company, emp, task
+            )
+            messages.success(
+                request,
+                f'{len(generated)} War Room documents generated as drafts.',
+            )
+        except Exception as exc:
+            messages.error(
+                request,
+                f'Could not generate War Room documents: {str(exc)[:500]}',
+            )
+        return redirect('war_room', pk=tender.id)
+
+    elif action == 'analyze' and tender.purchased_bid_document:
             if tender.ai_status == 'PROCESSING':
                 messages.warning(request, 'AI analysis is already processing.')
                 return redirect('war_room', pk=tender.id)
@@ -125,6 +142,7 @@ def war_room(request, pk):
                     ai_tender.war_room_brands = parsed.get('brands', '')
                     ai_tender.war_room_suppliers = parsed.get('suppliers', '')
                     ai_tender.war_room_compliance = parsed.get('compliance', '')
+                    ai_tender.war_room_data = parsed.get('structured_data') or {}
                     ai_tender.ai_status = 'DONE'
                     ai_tender.ai_error = ''
                     ai_tender.save()
@@ -312,7 +330,37 @@ def war_room(request, pk):
             messages.success(request, f'{section.title()} forwarded to the Bid Operator.')
             return redirect('dashboard')
 
-    return render(request, 'war_room.html', {'tender': tender})
+    artifacts = WarRoomArtifact.objects.filter(
+        company=company, tender=tender
+    ).order_by('artifact_type', '-version_number', '-created_at')
+    return render(request, 'war_room.html', {
+        'tender': tender,
+        'artifacts': artifacts,
+    })
+
+@login_required
+def download_war_room_artifact(request, pk, artifact_id):
+    emp, company, membership, tender, task = _war_room_context(request, pk)
+    artifact = get_object_or_404(
+        WarRoomArtifact,
+        pk=artifact_id,
+        company=company,
+        tender=tender,
+    )
+    if not artifact.file:
+        from django.http import Http404
+        raise Http404("Artifact file is unavailable.")
+
+    with artifact.file.open("rb") as stored_file:
+        response = HttpResponse(
+            stored_file.read(),
+            content_type=artifact.mime_type or "application/octet-stream",
+        )
+    response["Content-Disposition"] = (
+        f'attachment; filename="{artifact.original_filename}"'
+    )
+    return response
+
 
 @login_required
 def download_war_room_pdf(request, pk):

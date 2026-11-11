@@ -310,6 +310,7 @@ class Tender(models.Model):
     war_room_suppliers = models.TextField(blank=True)
     war_room_checklist = models.TextField(blank=True)
     war_room_compliance = models.TextField(blank=True)
+    war_room_data = models.JSONField(default=dict, blank=True)
     final_technical_proposal = models.FileField(upload_to='tenders/tech_proposals/', blank=True, null=True)
     bid_op_notes = models.TextField(blank=True)
 
@@ -950,4 +951,121 @@ class BidDocumentVersion(models.Model):
     def __str__(self):
         return '%s - Document v%s' % (
             self.tender.serial_number, self.version_number
+        )
+
+
+class WarRoomArtifact(models.Model):
+    """Versioned analysis documents created and reviewed in the BIDM War Room."""
+
+    TYPE_CHOICES = [
+        ('TENDER_INTELLIGENCE', 'Tender Intelligence Report'),
+        ('TECHNICAL_COMPLIANCE', 'Technical Specification & Compliance Matrix'),
+        ('BRAND_COMPARISON', 'Brand & Model Comparison Report'),
+        ('SUPPLIER_INTELLIGENCE', 'Supplier Intelligence & Evaluation Report'),
+        ('COMMERCIAL_ANALYSIS', 'Commercial & Landed Cost Analysis'),
+        ('ELIGIBILITY_RISK', 'Eligibility, Risk & Clarification Report'),
+        ('BID_STRATEGY', 'BIDM Bid Strategy & Recommendation'),
+        ('SOURCE_REGISTER', 'Evidence & Source Register'),
+    ]
+
+    FORMAT_CHOICES = [
+        ('PDF', 'PDF'),
+        ('DOCX', 'Word Document'),
+        ('XLSX', 'Excel Workbook'),
+        ('CSV', 'CSV'),
+    ]
+
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('REVIEW', 'Awaiting Review'),
+        ('APPROVED', 'Approved by BIDM'),
+        ('TRANSFERRED', 'Transferred to BIDOP'),
+        ('WORKING', 'BIDOP Working Copy'),
+        ('RETURNED', 'Returned to BIDM'),
+        ('SUPERSEDED', 'Superseded'),
+    ]
+
+    PROVENANCE_CHOICES = [
+        ('TENDER_EXTRACTED', 'Extracted from Tender'),
+        ('EXTERNALLY_VERIFIED', 'Externally Verified'),
+        ('AI_ASSESSMENT', 'AI Assessment'),
+        ('UNKNOWN', 'Unknown / Unverified'),
+    ]
+
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='war_room_artifacts'
+    )
+    tender = models.ForeignKey(
+        Tender, on_delete=models.CASCADE, related_name='war_room_artifacts'
+    )
+    lot = models.ForeignKey(
+        TenderLot, null=True, blank=True, on_delete=models.PROTECT,
+        related_name='war_room_artifacts'
+    )
+    task = models.ForeignKey(
+        Task, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='war_room_artifacts'
+    )
+
+    artifact_type = models.CharField(max_length=40, choices=TYPE_CHOICES)
+    file_format = models.CharField(max_length=10, choices=FORMAT_CHOICES)
+    title = models.CharField(max_length=250)
+    version_number = models.PositiveIntegerField(default=1)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
+
+    file = models.FileField(upload_to='war_room/artifacts/%Y/%m/')
+    original_filename = models.CharField(max_length=255, blank=True)
+    mime_type = models.CharField(max_length=100, blank=True)
+    file_size = models.PositiveBigIntegerField(default=0)
+    sha256 = models.CharField(max_length=64, blank=True)
+
+    # Structured findings, evidence references, provenance and generation metadata.
+    data = models.JSONField(default=dict, blank=True)
+    provenance = models.CharField(
+        max_length=25, choices=PROVENANCE_CHOICES, default='UNKNOWN'
+    )
+
+    # A BIDOP revision points to its approved BIDM source; the source is not overwritten.
+    source_artifact = models.ForeignKey(
+        'self', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='working_revisions'
+    )
+
+    assigned_to = models.ForeignKey(
+        Employee, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='assigned_war_room_artifacts'
+    )
+    created_by = models.ForeignKey(
+        Employee, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='created_war_room_artifacts'
+    )
+    approved_by = models.ForeignKey(
+        Employee, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='approved_war_room_artifacts'
+    )
+
+    is_required = models.BooleanField(default=False)
+    approval_note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    transferred_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['artifact_type', '-version_number', '-created_at']
+        indexes = [
+            models.Index(
+                fields=['company', 'tender', 'status'],
+                name='wr_art_tender_status_idx',
+            ),
+            models.Index(
+                fields=['task', 'status'],
+                name='wr_art_task_status_idx',
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f'{self.tender.serial_number} - {self.get_artifact_type_display()} '
+            f'- {self.file_format} v{self.version_number}'
         )

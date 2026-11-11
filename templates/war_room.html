@@ -207,4 +207,54 @@
 
 
 
+
+<section id="war-room-artifact-suite" style="margin-top:28px; padding:20px; border:1px solid #d7dee8; border-radius:12px;">
+  <h2>War Room Document Suite</h2>
+  <p class="meta">
+    Generate versioned procurement documents from saved tender, lot,
+    item, supplier and structured analysis records. Generated files are
+    drafts and require review against the original tender.
+  </p>
+
+  <form method="post" style="margin-bottom:18px;">
+    {% csrf_token %}
+    <button class="btn btn-blue" name="action" value="generate_artifacts">
+      Generate 8 Reports (18 Files)
+    </button>
+  </form>
+
+  {% if artifacts %}
+    <div style="overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding:8px;">Document</th>
+            <th style="text-align:left; padding:8px;">Format</th>
+            <th style="text-align:left; padding:8px;">Version</th>
+            <th style="text-align:left; padding:8px;">Status</th>
+            <th style="text-align:left; padding:8px;">Download</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for artifact in artifacts %}
+          <tr>
+            <td style="padding:8px;">{{ artifact.title }}</td>
+            <td style="padding:8px;">{{ artifact.file_format }}</td>
+            <td style="padding:8px;">v{{ artifact.version_number }}</td>
+            <td style="padding:8px;">{{ artifact.get_status_display }}</td>
+            <td style="padding:8px;">
+              <a href="{% url 'war_room_artifact_download' tender.id artifact.id %}">
+                Download
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="meta">No generated War Room documents yet.</p>
+  {% endif %}
+</section>
+
 {% endblock %}

@@ -646,6 +646,7 @@ def parse_war_room_output(text):
             "compliance": csv_buffer.getvalue().strip(),
             "brands": brands,
             "suppliers": suppliers,
+            "structured_data": data,
         }
 
         if not any(result.values()):
@@ -663,6 +664,7 @@ def parse_war_room_output(text):
         "SOURCES": "sources",
     }
     result = {value: "" for value in keys.values()}
+    result["structured_data"] = {}
     current = None
     collected = {value: [] for value in keys.values()}
 
