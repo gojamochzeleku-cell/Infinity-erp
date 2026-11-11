@@ -24,6 +24,7 @@ urlpatterns = [
     path('documents/<int:pk>/qr/', qr_views.generate_qr_code, name='generate_qr_code'),
     path('library/<int:pk>/delete/', resource_views.resource_delete, name='resource_delete'),
     path('tenders/<int:pk>/reupload-doc/', tender_views.reupload_bid_document, name='reupload_bid_document'),
+    path('tenders/<int:pk>/request-reupload/', tender_views.request_bid_document_reupload, name='request_bid_document_reupload'),
     path('storage/', storage_views.storage_dashboard, name='storage_dashboard'),
     path('tenders/<int:pk>/archive/', storage_views.archive_tender_files, name='archive_tender'),
     path('task-history/', history_views.task_history, name='task_history'),

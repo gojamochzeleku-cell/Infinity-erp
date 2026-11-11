@@ -908,3 +908,46 @@ class LotItem(models.Model):
 
     def __str__(self):
         return f"{self.item_name} ({self.quantity} {self.unit})"
+
+
+class BidDocumentVersion(models.Model):
+    tender = models.ForeignKey(
+        Tender, on_delete=models.CASCADE,
+        related_name='bid_document_versions'
+    )
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE,
+        related_name='bid_document_versions'
+    )
+    version_number = models.PositiveIntegerField()
+    original_filename = models.CharField(max_length=255)
+    storage_name = models.CharField(max_length=500, blank=True)
+    file_size = models.PositiveBigIntegerField(default=0)
+    sha256 = models.CharField(max_length=64, blank=True)
+    mime_type = models.CharField(max_length=100, blank=True)
+    uploaded_by = models.ForeignKey(
+        Employee, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='uploaded_bid_document_versions'
+    )
+    uploaded_at = models.DateTimeField(default=timezone.now)
+    is_purged = models.BooleanField(default=False)
+    purge_pending = models.BooleanField(default=False)
+    purged_at = models.DateTimeField(null=True, blank=True)
+    extracted_text = models.TextField(blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-version_number']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tender', 'version_number'],
+                name='unique_tender_bid_document_version'
+            )
+        ]
+
+    def __str__(self):
+        return '%s - Document v%s' % (
+            self.tender.serial_number, self.version_number
+        )

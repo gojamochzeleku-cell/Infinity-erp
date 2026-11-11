@@ -11,6 +11,7 @@ from decimal import Decimal
 
 from .models import Company, Task, Notification, Tender, LeaveRequest, ExpenseRequest, CompanyMembership, MembershipRole
 from .services import log_action, log_task_history
+from .bid_documents import record_bid_document_version
 from .chain import (
     register_document,
     advance_tender_chain,
@@ -345,21 +346,39 @@ def task_action(request, pk):
                 )
                 return redirect('dashboard')
 
-            if 'purchased_bid_document' in request.FILES:
-                tender.purchased_bid_document = request.FILES[
-                    'purchased_bid_document'
-                ]
-                tender.bid_document_uploaded_at = timezone.now()
-                tender.bid_document_purged = False
-                tender.save()
+            uploaded_file = request.FILES.get('purchased_bid_document')
+            if not uploaded_file:
+                messages.error(request, "Upload the purchased bid PDF before completing this task.")
+                return redirect('dashboard')
 
-                register_document(
-                    tender,
-                    tender.purchased_bid_document,
-                    'Purchased Bid Document',
-                    emp,
-                    'TENDER',
-                )
+            if not uploaded_file.name.lower().endswith('.pdf'):
+                messages.error(request, "Only PDF documents are accepted.")
+                return redirect('dashboard')
+
+            header = uploaded_file.read(1024)
+            uploaded_file.seek(0)
+            if b'%PDF-' not in header:
+                messages.error(request, "The uploaded file is not a valid PDF.")
+                return redirect('dashboard')
+
+            original_filename = uploaded_file.name
+            tender.purchased_bid_document = uploaded_file
+            tender.bid_document_uploaded_at = timezone.now()
+            tender.bid_document_purged = False
+            tender.save()
+
+            record_bid_document_version(
+                tender, employee=emp, notes='Initial T08 upload',
+                original_filename=original_filename
+            )
+
+            register_document(
+                tender,
+                tender.purchased_bid_document,
+                'Purchased Bid Document',
+                emp,
+                'TENDER',
+            )
 
             task.status = 'COMPLETED'
             task.completed_at = timezone.now()

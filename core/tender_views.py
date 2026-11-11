@@ -1,5 +1,7 @@
+import logging
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -7,8 +9,11 @@ from dateutil import parser as date_parser
 
 from .gemini import extract_tender_from_pdf
 from .models import Tender, TenderLot, LotItem, Task
-from .services import log_action
-from .chain import create_task
+from .services import log_action, log_task_history, notify
+from .chain import create_task, register_document
+from .bid_documents import record_bid_document_version
+
+logger = logging.getLogger(__name__)
 
 def _emp(request):
     return getattr(request.user, 'employee', None)
@@ -211,9 +216,20 @@ def tender_detail(request, pk):
         code='T02',
         payload__tender_id=tender.id,
     ).exists()
+    roles = _membership_roles(request) or set()
+    pending_reupload = Task.objects.filter(
+        company=company,
+        code='BDOC',
+        status__in=['PENDING', 'IN_PROGRESS'],
+        payload__purpose='BID_DOCUMENT_REUPLOAD',
+        payload__tender_id=tender.id,
+    ).first()
     return render(request, 'tender_detail.html', {
         'tender': tender,
         'can_resend_to_bid_manager': tender.status == 'REGISTERED' and not has_bid_manager_task,
+        'membership_roles': roles,
+        'pending_reupload': pending_reupload,
+        'bid_document_versions': tender.bid_document_versions.all(),
     })
 
 @login_required
@@ -282,21 +298,216 @@ def reupload_bid_document(request, pk):
     if not emp or not company or not _company_access(request):
         return redirect('select_company')
 
-    if not _company_access(request, {'OFFICE', 'ADMIN'}):
+    is_admin = _company_access(request, {'ADMIN'})
+    if not is_admin and not _company_access(request, {'OFFICE'}):
         return redirect('dashboard')
 
-    tender = get_object_or_404(Tender, pk=pk, company=company)
-
     if request.method == 'POST':
-        if 'purchased_bid_document' in request.FILES:
-            tender.purchased_bid_document = request.FILES['purchased_bid_document']
-            tender.bid_document_uploaded_at = timezone.now()
-            tender.bid_document_purged = False
-            tender.save()
-            messages.success(request, 'Bid Document re-uploaded successfully!')
-            return redirect('tender_detail', pk=tender.id)
+        uploaded_file = request.FILES.get('purchased_bid_document')
+        if not uploaded_file:
+            messages.error(request, 'Please select the purchased bid PDF.')
+            return redirect('reupload_bid_document', pk=pk)
 
+        if not uploaded_file.name.lower().endswith('.pdf'):
+            messages.error(request, 'Only PDF documents are accepted.')
+            return redirect('reupload_bid_document', pk=pk)
+
+        header = uploaded_file.read(1024)
+        uploaded_file.seek(0)
+        if b'%PDF-' not in header:
+            messages.error(request, 'The uploaded file is not a valid PDF.')
+            return redirect('reupload_bid_document', pk=pk)
+
+        original_filename = uploaded_file.name
+
+        try:
+            with transaction.atomic():
+                tender = get_object_or_404(
+                    Tender.objects.select_for_update(),
+                    pk=pk,
+                    company=company,
+                )
+
+                recovery_task = Task.objects.select_for_update().filter(
+                    company=company,
+                    code='BDOC',
+                    status__in=['PENDING', 'IN_PROGRESS'],
+                    payload__purpose='BID_DOCUMENT_REUPLOAD',
+                    payload__tender_id=tender.id,
+                ).order_by('-created_at').first()
+
+                if not is_admin and not recovery_task:
+                    messages.error(
+                        request,
+                        'There is no pending document recovery task for this tender.',
+                    )
+                    return redirect('tender_detail', pk=tender.id)
+
+                if (
+                    recovery_task
+                    and recovery_task.assigned_to_id != emp.id
+                    and not is_admin
+                ):
+                    messages.error(
+                        request,
+                        'This recovery task is assigned to another employee.',
+                    )
+                    return redirect('tender_detail', pk=tender.id)
+
+                tender.purchased_bid_document = uploaded_file
+                tender.bid_document_uploaded_at = timezone.now()
+                tender.bid_document_purged = False
+                tender.save()
+
+                version = record_bid_document_version(
+                    tender,
+                    employee=emp,
+                    notes='Office Assistant reupload',
+                    original_filename=original_filename,
+                )
+
+                register_document(
+                    tender,
+                    tender.purchased_bid_document,
+                    'Purchased Bid Document (Re-upload)',
+                    emp,
+                    'TENDER',
+                )
+
+                log_action(
+                    emp,
+                    'BID_DOCUMENT_REUPLOADED',
+                    'Uploaded version %s for %s'
+                    % (version.version_number, tender.serial_number),
+                    'Tender',
+                    tender.id,
+                    company,
+                )
+
+                if recovery_task:
+                    recovery_task.status = 'COMPLETED'
+                    recovery_task.completed_at = timezone.now()
+                    recovery_task.save(update_fields=[
+                        'status', 'completed_at', 'updated_at'
+                    ])
+
+                    log_task_history(
+                        recovery_task,
+                        'COMPLETED',
+                        'Replacement bid PDF uploaded as version %s.'
+                        % version.version_number,
+                        emp,
+                    )
+
+                    requested_by_id = (
+                        recovery_task.payload or {}
+                    ).get('requested_by')
+
+                    if requested_by_id:
+                        from .models import CompanyMembership
+
+                        requester_membership = CompanyMembership.objects.filter(
+                            employee_id=requested_by_id,
+                            company=company,
+                            is_active=True,
+                            employee__is_active=True,
+                        ).first()
+
+                        if requester_membership:
+                            notify(
+                                requester_membership.employee,
+                                'Bid document re-uploaded',
+                                'The purchased bid PDF for %s is available again.'
+                                % tender.serial_number,
+                                task=recovery_task,
+                                link=reverse('tender_detail', args=[tender.id]),
+                            )
+
+        except Exception:
+            logger.exception(
+                'Bid document reupload failed for tender %s',
+                pk,
+            )
+            messages.error(
+                request,
+                'The replacement upload could not be completed. Please try again or contact the system administrator.',
+            )
+            return redirect('tender_detail', pk=pk)
+
+        messages.success(
+            request,
+            'Bid Document re-uploaded and version history updated!'
+        )
+        return redirect('tender_detail', pk=pk)
+
+    tender = get_object_or_404(Tender, pk=pk, company=company)
     return render(request, 'reupload_doc.html', {'tender': tender})
+
+
+@login_required
+def request_bid_document_reupload(request, pk):
+    emp, company = _emp(request), _co(request)
+    if not emp or not company or not _company_access(request, {'BIDM', 'ADMIN'}):
+        return redirect('dashboard')
+
+    if request.method != 'POST':
+        return redirect('tender_detail', pk=pk)
+
+    with transaction.atomic():
+        tender = get_object_or_404(
+            Tender.objects.select_for_update(),
+            pk=pk,
+            company=company,
+        )
+
+        if not tender.bid_document_purged and tender.purchased_bid_document:
+            messages.info(request, 'The purchased bid document is still available.')
+            return redirect('tender_detail', pk=pk)
+
+        pending = Task.objects.filter(
+            company=company,
+            code='BDOC',
+            status__in=['PENDING', 'IN_PROGRESS'],
+            payload__purpose='BID_DOCUMENT_REUPLOAD',
+            payload__tender_id=tender.id,
+        ).first()
+
+        if pending:
+            messages.info(request, 'A re-upload request is already pending.')
+            return redirect('tender_detail', pk=pk)
+
+        task = create_task(
+            company=company,
+            code='BDOC',
+            role='OFFICE',
+            title='Re-upload purchased bid document: %s' % tender.serial_number,
+            description='Bid Manager requested the original purchased bid PDF. '
+                        'Upload the PDF from the tender detail page.',
+            payload={
+                'purpose': 'BID_DOCUMENT_REUPLOAD',
+                'tender_id': tender.id,
+                'serial': tender.serial_number,
+                'reference': tender.bid_reference_number,
+                'requested_by': emp.id,
+            },
+            action_url=reverse('reupload_bid_document', args=[tender.id]),
+        )
+
+        if not task:
+            messages.error(request, 'No active Office Assistant is assigned.')
+            return redirect('tender_detail', pk=pk)
+
+        log_action(
+            emp,
+            'BID_DOCUMENT_REUPLOAD_REQUESTED',
+            'Requested replacement PDF for %s' % tender.serial_number,
+            'Tender',
+            tender.id,
+            company,
+        )
+
+    messages.success(request, 'Re-upload request sent to the Office Assistant.')
+    return redirect('tender_detail', pk=pk)
 
 @login_required
 def view_ai_log(request):

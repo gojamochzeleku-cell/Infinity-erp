@@ -27,15 +27,37 @@
   <div class="kv"><span class="k">Info Sheet</span><span class="v"><a href="{{ tender.bid_information_sheet.url }}" target="_blank" style="color:#e8b64c">download PDF</a></span></div>
   {% endif %}
   
-  {% if tender.bid_document_purged %}
+  {% if tender.bid_document_purged or not tender.purchased_bid_document %}
   <div style="background:#2a1515; border:1px solid #e2504a; border-radius:8px; padding:12px; margin-top:10px;">
-    <div style="color:#ff9b96; font-size:12px; font-weight:bold; margin-bottom:5px;">⚠️ BID DOCUMENT PURGED</div>
-    <p class="meta" style="font-size:11px; margin-bottom:10px;">The heavy bid document was removed from the cloud to save storage space (3 days passed).</p>
-    {% if 'OFFICE' in membership_roles or 'ADMIN' in membership_roles %}
-    <a href="{% url 'reupload_bid_document' tender.id %}" class="btn btn-green" style="padding:6px 12px; font-size:11px; margin:0;">⬆️ Re-upload Document</a>
-    {% else %}
-    <p class="meta" style="font-size:11px; color:#e8b64c;">Ask the Office Assistant to re-upload the document if you need to run a new AI analysis.</p>
+    <div style="color:#ff9b96; font-size:12px; font-weight:bold; margin-bottom:5px;">⚠️ ORIGINAL BID PDF UNAVAILABLE</div>
+    <p class="meta" style="font-size:11px; margin-bottom:10px;">The purchased bid PDF is not currently stored. Its version history and saved tender records remain available.</p>
+
+    {% if 'BIDM' in membership_roles or 'ADMIN' in membership_roles %}
+      {% if pending_reupload %}
+        <p style="color:#e8b64c; font-size:12px;">Re-upload requested. Office Assistant task is {{ pending_reupload.get_status_display }}.</p>
+      {% else %}
+        <form method="post" action="{% url 'request_bid_document_reupload' tender.id %}" style="margin:8px 0;">
+          {% csrf_token %}
+          <button class="btn btn-green" type="submit" style="padding:6px 12px; font-size:11px;">Request Office Re-upload</button>
+        </form>
+      {% endif %}
     {% endif %}
+
+    {% if 'OFFICE' in membership_roles or 'ADMIN' in membership_roles %}
+      <a href="{% url 'reupload_bid_document' tender.id %}" class="btn btn-green" style="padding:6px 12px; font-size:11px; margin:0;">⬆️ Re-upload Document</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if bid_document_versions %}
+  <div style="margin-top:14px;">
+    <div class="meta" style="color:#e8b64c; margin-bottom:8px;">PURCHASED BID DOCUMENT HISTORY</div>
+    {% for version in bid_document_versions %}
+      <div style="border-top:1px solid #465365; padding:8px 0; font-size:11px;">
+        <strong>Version {{ version.version_number }}</strong> — {{ version.original_filename }}
+        <div class="meta">{{ version.uploaded_at|date:"d M Y H:i" }} · {{ version.file_size|filesizeformat }} · {% if version.is_purged %}Purged from storage{% else %}Stored{% endif %}</div>
+      </div>
+    {% endfor %}
   </div>
   {% endif %}
 </div>

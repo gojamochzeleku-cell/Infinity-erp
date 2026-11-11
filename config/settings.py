@@ -278,3 +278,12 @@ def get_company_email(company):
     elif company and company.short_name == 'YAH':
         return YAH_EMAIL_HOST_USER, YAH_EMAIL_HOST_PASSWORD
     return EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
+
+# Purchased bid document retention and safe purge controls
+BID_DOCUMENT_PURGE_ENABLED = os.environ.get(
+    'BID_DOCUMENT_PURGE_ENABLED', 'false'
+).lower() in ('1', 'true', 'yes')
+
+BID_DOCUMENT_RETENTION_DAYS = max(
+    90, int(os.environ.get('BID_DOCUMENT_RETENTION_DAYS', '90'))
+)
