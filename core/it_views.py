@@ -104,6 +104,53 @@ def it_user_management(request):
         return redirect("dashboard")
 
     if request.method == "POST":
+        action = request.POST.get("action", "create_user")
+
+        if action == "set_bid_manager":
+            membership_id = request.POST.get("bid_manager_membership", "").strip()
+
+            if not membership_id:
+                CompanyRoleAssignment.objects.filter(
+                    company=company, role="BIDM"
+                ).delete()
+                messages.success(request, "The designated Bid Manager was cleared.")
+                return redirect("it_user_management")
+
+            membership = (
+                CompanyMembership.objects
+                .filter(
+                    pk=membership_id,
+                    company=company,
+                    is_active=True,
+                    employee__is_active=True,
+                    roles__role="BIDM",
+                )
+                .select_related("employee__user")
+                .first()
+            )
+
+            if membership is None:
+                messages.error(
+                    request,
+                    "Select an active Bid Manager membership belonging to this company."
+                )
+                return redirect("it_user_management")
+
+            try:
+                with transaction.atomic():
+                    CompanyRoleAssignment.objects.update_or_create(
+                        company=company,
+                        role="BIDM",
+                        defaults={"membership": membership},
+                    )
+                messages.success(
+                    request,
+                    f"{membership.employee.full_name} is now the designated Bid Manager for {company.short_name}."
+                )
+            except Exception:
+                messages.error(request, "Could not designate this Bid Manager.")
+            return redirect("it_user_management")
+
         username = request.POST.get("username", "").strip()
         email = request.POST.get("email", "").strip()
         first_name = request.POST.get("first_name", "").strip()
@@ -163,10 +210,26 @@ def it_user_management(request):
         .order_by("employee__user__username")
     )
 
+    bid_manager_candidates = (
+        memberships.filter(
+            is_active=True,
+            employee__is_active=True,
+            roles__role="BIDM",
+        ).distinct()
+    )
+    designated_bid_manager = (
+        CompanyRoleAssignment.objects
+        .filter(company=company, role="BIDM")
+        .select_related("membership__employee__user")
+        .first()
+    )
+
     return render(request, "it_users.html", {
         "memberships": memberships,
         "roles": MEMBERSHIP_ROLE_CHOICES,
         "company": company,
+        "bid_manager_candidates": bid_manager_candidates,
+        "designated_bid_manager": designated_bid_manager,
     })
 
 

@@ -18,6 +18,7 @@
   <div class="card" style="border-color:#4cc7e8;">
     <form method="post">
       {% csrf_token %}
+      <input type="hidden" name="action" value="create_user">
       <input type="text" name="first_name" placeholder="First Name" required>
       <input type="text" name="last_name" placeholder="Last Name" required>
       <input type="text" name="username" placeholder="Username (for login)" required>
@@ -35,6 +36,27 @@
     </form>
   </div>
 </details>
+
+<div class="card" style="margin-bottom:20px; border:1px solid #d6a84b;">
+  <h3 style="margin-top:0;">Designated Bid Manager</h3>
+  <p class="meta">Choose the active Bid Manager who should receive new tender feasibility tasks for {{ company.short_name }}.</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="set_bid_manager">
+    <select name="bid_manager_membership" style="margin-bottom:12px;">
+      <option value="">Clear designated Bid Manager</option>
+      {% for membership in bid_manager_candidates %}
+        <option value="{{ membership.id }}" {% if designated_bid_manager and designated_bid_manager.membership_id == membership.id %}selected{% endif %}>
+          {{ membership.employee.full_name }} (@{{ membership.employee.user.username }})
+        </option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-gold" type="submit">Save Bid Manager</button>
+  </form>
+  {% if not bid_manager_candidates %}
+    <p class="meta">No active membership with the Bid Manager role exists in this company. Create or edit a user and assign the Bid Manager role first.</p>
+  {% endif %}
+</div>
 
 <h3 style="font-size:14px; color:#8f99b0; margin-bottom:10px;">Company Memberships ({{ memberships.count }})</h3>
 

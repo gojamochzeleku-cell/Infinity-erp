@@ -115,5 +115,17 @@
   </form>
 </div>
 {% endif %}
+
+{% if can_resend_to_bid_manager %}
+<div class="card" style="border-color:#e8b64c;">
+  <div class="meta" style="margin-bottom:8px; color:#e8b64c;">BID MANAGER ROUTING</div>
+  <p class="meta" style="font-size:12px; margin-bottom:10px;">This registered tender has not yet been assigned to a Bid Manager.</p>
+  <form method="post" action="{% url 'tender_submit' tender.id %}">
+    {% csrf_token %}
+    <button class="btn btn-green wide" type="submit">Send to Bid Manager</button>
+  </form>
+</div>
+{% endif %}
+
 <a class="btn btn-grey" href="{% url 'tender_list' %}">Back to tenders</a>
 {% endblock %}

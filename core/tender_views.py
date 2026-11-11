@@ -6,7 +6,7 @@ from django.utils import timezone
 from dateutil import parser as date_parser
 
 from .gemini import extract_tender_from_pdf
-from .models import Tender, TenderLot, LotItem
+from .models import Tender, TenderLot, LotItem, Task
 from .services import log_action
 from .chain import create_task
 
@@ -131,8 +131,11 @@ def tender_register(request):
                 tender.save()
                 log_action(emp, 'TENDER_' + action.upper(), tender.bid_title, 'Tender', tender.id, company)
                 if action == 'submit':
-                    _to_bid_manager(request, tender)
-                    messages.success(request, 'Tender registered and sent to Bid Manager.')
+                    task = _to_bid_manager(request, tender)
+                    if task:
+                        messages.success(request, 'Tender registered and sent to Bid Manager.')
+                    else:
+                        messages.warning(request, 'Tender registered, but no designated Bid Manager is configured. Assign one in IT → Manage Users.')
                 else:
                     messages.success(request, 'Tender saved as draft.')
                 return redirect('tender_detail', pk=tender.id)
@@ -182,9 +185,12 @@ def tender_edit(request, pk):
         if action == 'submit' and tender.status == 'DRAFT':
             tender.status = 'REGISTERED'
             tender.save()
-            _to_bid_manager(request, tender)
+            task = _to_bid_manager(request, tender)
             log_action(emp, 'TENDER_REGISTERED', tender.bid_title, 'Tender', tender.id, company)
-            messages.success(request, 'Sent to Bid Manager.')
+            if task:
+                messages.success(request, 'Sent to Bid Manager.')
+            else:
+                messages.warning(request, 'Tender registered, but no designated Bid Manager is configured. Assign one in IT → Manage Users.')
             return redirect('tender_detail', pk=tender.id)
         tender.save()
         messages.success(request, 'Tender updated.')
@@ -200,7 +206,15 @@ def tender_detail(request, pk):
     if emp is None or company is None or not _company_access(request):
         return redirect('select_company')
     tender = get_object_or_404(Tender, pk=pk, company=company)
-    return render(request, 'tender_detail.html', {'tender': tender})
+    has_bid_manager_task = Task.objects.filter(
+        company=company,
+        code='T02',
+        payload__tender_id=tender.id,
+    ).exists()
+    return render(request, 'tender_detail.html', {
+        'tender': tender,
+        'can_resend_to_bid_manager': tender.status == 'REGISTERED' and not has_bid_manager_task,
+    })
 
 @login_required
 def tender_submit(request, pk):
@@ -212,12 +226,30 @@ def tender_submit(request, pk):
     if not _company_access(request, {'ADMIN', 'CEO', 'GM', 'VGM', 'OFFICE', 'BIDM'}):
         return redirect('dashboard')
     tender = get_object_or_404(Tender, pk=pk, company=company)
-    if request.method == 'POST' and tender.status == 'DRAFT':
+    if tender.status == 'DRAFT':
         tender.status = 'REGISTERED'
         tender.save()
-        _to_bid_manager(request, tender)
+        task = _to_bid_manager(request, tender)
         log_action(emp, 'TENDER_REGISTERED', tender.bid_title, 'Tender', tender.id, company)
-        messages.success(request, 'Sent to Bid Manager.')
+        if task:
+            messages.success(request, 'Sent to Bid Manager.')
+        else:
+            messages.warning(request, 'Tender registered, but no designated Bid Manager is configured. Assign one in IT → Manage Users.')
+    elif tender.status == 'REGISTERED':
+        existing_task = Task.objects.filter(
+            company=company,
+            code='T02',
+            payload__tender_id=tender.id,
+        ).exists()
+        if not existing_task:
+            task = _to_bid_manager(request, tender)
+            if task:
+                log_action(emp, 'TENDER_SENT_TO_BID_MANAGER', tender.bid_title, 'Tender', tender.id, company)
+                messages.success(request, 'Registered tender successfully sent to Bid Manager.')
+            else:
+                messages.warning(request, 'No designated Bid Manager is configured. Assign one in IT → Manage Users.')
+        else:
+            messages.info(request, 'This tender already has a Bid Manager task.')
     return redirect('tender_detail', pk=pk)
 
 @login_required
@@ -279,15 +311,26 @@ def view_ai_success_log(request):
 
 
 def _to_bid_manager(request, tender):
-    task = create_task(
+    existing_task = (
+        Task.objects
+        .filter(
+            company=tender.company,
+            code='T02',
+            payload__tender_id=tender.id,
+        )
+        .order_by('-id')
+        .first()
+    )
+    if existing_task:
+        return existing_task
+
+    return create_task(
         company=tender.company, code='T02', role='BIDM',
         title='Feasibility review: %s' % tender.bid_title,
         description='Review feasibility and press GO or NO-GO.',
         payload={'tender_id': tender.id, 'serial': tender.serial_number, 'reference': tender.bid_reference_number},
         action_url=reverse('tender_detail', args=[tender.id]),
     )
-    if task is None:
-        messages.warning(request, 'No Bid Manager in this company.')
 
 def _safe_date(val):
     if not val:
