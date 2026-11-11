@@ -11,7 +11,7 @@ from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 from reportlab.lib import colors
-from .models import Tender, Task, TenderLot
+from .models import Tender, Task, TenderLot, Supplier
 from .gemini import analyze_bid_document, parse_war_room_output
 from .chain import create_task
 from .services import log_action
@@ -88,11 +88,34 @@ def war_room(request, pk):
                         pk=tender_id,
                         company_id=company_id,
                     )
+                    supplier_rows = Supplier.objects.filter(
+                        company_id=company_id
+                    ).values(
+                        'name', 'contact_person', 'phone', 'email',
+                        'rating', 'supplier_rating', 'notes'
+                    )
+                    supplier_context = "\n".join(
+                        " | ".join(
+                            f"{field}: {row.get(field) or 'Not recorded'}"
+                            for field in (
+                                'name', 'contact_person', 'phone', 'email',
+                                'rating', 'supplier_rating', 'notes'
+                            )
+                        )
+                        for row in supplier_rows
+                    )
                     raw_result = analyze_bid_document(
-                        ai_tender.purchased_bid_document
+                        ai_tender.purchased_bid_document,
+                        supplier_context=supplier_context
                     )
                     parsed = parse_war_room_output(raw_result)
-                    ai_tender.war_room_summary = parsed.get('summary', '')
+                    ai_tender.war_room_summary = (
+                        parsed.get('summary', '')
+                        + "\n\nCOMMERCIAL REVIEW\n"
+                        + parsed.get('commercial', '')
+                        + "\n\nSOURCE REFERENCES\n"
+                        + parsed.get('sources', '')
+                    )
                     ai_tender.war_room_checklist = parsed.get('checklist', '')
                     ai_tender.war_room_brands = parsed.get('brands', '')
                     ai_tender.war_room_suppliers = parsed.get('suppliers', '')

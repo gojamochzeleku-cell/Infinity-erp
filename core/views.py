@@ -336,7 +336,7 @@ def task_action(request, pk):
 
     elif task.code == 'T08':
         if tender and act == 'complete':
-            next_role = 'BIDOP' if tender.lots.exists() else 'BIDM'
+            next_role = 'BIDM'
             if find_role(tender.company, next_role) is None:
                 messages.error(
                     request,

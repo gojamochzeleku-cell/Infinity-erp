@@ -75,27 +75,45 @@ Use this exact JSON structure:
 Return valid JSON only. Ensure every lot and every identifiable item in the document is included.
 """
 
-ANALYSIS_PROMPT = """You are an elite Procurement AI for an Ethiopian import company.
-Read the attached bid document carefully. You must output text using these EXACT 4 headers, separated by '---'.
+ANALYSIS_PROMPT = """
+You are Infinity ERP's professional procurement and tender analyst.
+Analyze the uploaded tender document carefully. Never invent missing requirements.
+Return these sections using the exact headings shown:
 
 --- SUMMARY ---
-Provide a detailed summary of the technical requirements and the scope of work.
+Tender title, procuring entity, reference number, submission deadline,
+bid validity, bid security, delivery requirements and critical conditions.
 
 --- CHECKLIST ---
-List the required bid submission forms (e.g., Bid Security, Technical Proposal, Compliance Matrix, Manufacturer Authorization).
+A practical submission checklist. Identify mandatory documents,
+forms, signatures, stamps, eligibility and submission instructions.
+
+--- COMPLIANCE CSV ---
+Return CSV only, with columns:
+Requirement, Tender Specification, Mandatory, Evidence Required,
+Supplier Response, Compliance Status, Remarks.
+Include every identifiable technical and administrative requirement.
+Use UNKNOWN where the document does not provide enough information.
+
+--- COMMERCIAL ---
+Currency, quantities, delivery terms, payment terms, taxes, duties,
+price schedules, guarantees, penalties, delivery period and commercial risks.
+Flag unclear or conflicting terms.
 
 --- BRANDS ---
-Identify the required items. For each item, suggest specific brands/models:
-- High Quality (Premium): [Brand - Model] (Why it complies)
-- Low Cost (Budget): [Brand - Model] (Why it complies)
+Required brands, approved manufacturers, acceptable equivalents,
+country of origin and manufacturer authorization requirements.
 
 --- SUPPLIERS ---
-Suggest 5 manufacturers or suppliers that can provide these items. 
-Include a mix of Foreign (Outside Ethiopia) and Local (Ethiopia) suppliers.
-Format each as: 
-- Type: [Foreign/Local]
-- Name: [Supplier Name]
-- Contact: [Website/Email/Phone if known]
+Supplier qualifications, manufacturer/distributor requirements,
+authorization documents, warranty, after-sales service and local support.
+
+--- SOURCES ---
+List document page numbers or section references supporting key findings.
+Clearly identify missing, unreadable or ambiguous information.
+
+Be precise, concise and commercially practical.
+Do not assume that a requirement is compliant without evidence.
 """
 
 def _api_key():
@@ -213,25 +231,54 @@ def extract_tender_from_pdf(file_obj):
             return {'error': f"JSON parse error: {e}. Raw: {result_text[:100]}"}
     return {'error': result_text}
 
-def analyze_bid_document(file_obj):
-    return _send_to_gemini(file_obj, ANALYSIS_PROMPT)
+def analyze_bid_document(file_obj, supplier_context=''):
+    prompt = ANALYSIS_PROMPT
+    if supplier_context:
+        prompt += (
+            "\n\nREGISTERED COMPANY SUPPLIERS (REFERENCE DATA ONLY):\n"
+            + supplier_context
+            + "\nAssess potential relevance, but do not claim eligibility, "
+              "authorization, availability or compliance without evidence."
+        )
+    return _send_to_gemini(file_obj, prompt)
 
 def parse_war_room_output(text):
-    result = {'summary': '', 'checklist': '', 'brands': '', 'suppliers': ''}
-    text = text.replace('```json', '').replace('```', '').strip()
-    headers = ['SUMMARY', 'CHECKLIST', 'BRANDS', 'SUPPLIERS']
-    for i, header in enumerate(headers):
-        key = header.lower()
-        if f'--- {header} ---' in text:
-            parts = text.split(f'--- {header} ---')
-            if len(parts) > 1:
-                content = parts[1]
-                for next_header in headers[i+1:]:
-                    if f'--- {next_header} ---' in content:
-                        content = content.split(f'--- {next_header} ---')[0]
-                result[key] = content.strip()
+    import re
+
+    keys = {
+        "SUMMARY": "summary",
+        "CHECKLIST": "checklist",
+        "COMPLIANCE CSV": "compliance",
+        "COMMERCIAL": "commercial",
+        "BRANDS": "brands",
+        "SUPPLIERS": "suppliers",
+        "SOURCES": "sources",
+    }
+    result = {value: "" for value in keys.values()}
+    if not text:
+        return result
+
+    cleaned = str(text).strip()
+    cleaned = re.sub(r"^```(?:json|text)?\s*", "", cleaned, flags=re.I)
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+
+    current = None
+    collected = {key: [] for key in keys.values()}
+
+    for line in cleaned.splitlines():
+        heading = line.strip().strip("-").strip().upper()
+        if heading in keys:
+            current = keys[heading]
+            continue
+        if current:
+            collected[current].append(line)
+
+    for key, lines in collected.items():
+        result[key] = "\n".join(lines).strip()
+
     if not any(result.values()):
-        result['summary'] = text
+        result["summary"] = cleaned
+
     return result
 
 def ask_infinity_brain(question, context_data):
