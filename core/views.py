@@ -198,6 +198,15 @@ def task_detail(request, pk):
             company=company,
         ).first()
 
+    # T09 is handled exclusively by the reconstructed BIDM War Room.
+    # Do not render the legacy Master AI Analysis & Routing screen.
+    if (
+        task.code == 'T09'
+        and tender is not None
+        and task.status in ('PENDING', 'IN_PROGRESS')
+    ):
+        return redirect('war_room', pk=tender.id)
+
     from .models import Product
     all_products = Product.objects.filter(company=company)
 

@@ -223,8 +223,8 @@ def trigger_ai_tasks(tender):
     url = reverse('tender_detail', args=[t_id])
     
     create_task(company, 'T09', 'BIDM',
-                f'AI Analysis & Task Routing: {tender.bid_title}',
-                'Review the AI summary, add manual notes, and check which departments need to submit forms.',
+                f'BID Manager War Room Review: {tender.bid_title}',
+                'Review AI findings, edit the compliance matrix, verify suppliers and brands, and approve or reject each tender lot individually.',
                 {'tender_id': t_id}, url)
 
 def route_t09_tasks(tender, task, action, note, data, files):
