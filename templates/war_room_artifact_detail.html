@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}War Room Artifact Workflow{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>{{ artifact.title }}</h2>
+  <p class="meta">
+    {{ tender.serial_number }} · {{ artifact.file_format }} ·
+    Version {{ artifact.version_number }} · {{ artifact.get_status_display }}
+  </p>
+  {% if artifact.source_artifact %}
+    <p class="meta">Working revision of original version {{ source.version_number }}.</p>
+  {% else %}
+    <p class="meta">Original artifact. Its file is preserved when BIDOP creates revisions.</p>
+  {% endif %}
+  <p><strong>Evidence provenance:</strong> {{ artifact.get_provenance_display }}</p>
+  {% if artifact.approval_note %}
+    <p><strong>Review note:</strong> {{ artifact.approval_note }}</p>
+  {% endif %}
+  <a class="btn btn-grey" href="{% url 'war_room_artifact_file' tender.id artifact.id artifact.id %}">
+    Download this file
+  </a>
+</div>
+
+{% if role == 'BIDM' %}
+  {% if not artifact.source_artifact and artifact.status == 'DRAFT' or not artifact.source_artifact and artifact.status == 'RETURNED' %}
+  <div class="card">
+    <h3>Submit original for review</h3>
+    <form method="post">
+      {% csrf_token %}
+      <textarea name="note" placeholder="Optional note"></textarea>
+      <button class="btn btn-blue" name="action" value="submit_review">Submit for BIDM review</button>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if artifact.status == 'REVIEW' %}
+  <div class="card">
+    <h3>BIDM review decision</h3>
+    <form method="post">
+      {% csrf_token %}
+      <textarea name="note" placeholder="Approval or return note"></textarea>
+      <button class="btn btn-green" name="action" value="approve">Approve</button>
+      <button class="btn btn-grey" name="action" value="return">Return with note</button>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if not artifact.source_artifact and artifact.status == 'APPROVED' %}
+  <div class="card">
+    <h3>Transfer approved original to BIDOP</h3>
+    <p class="meta">Transfer creates an assigned BIDOP task. The approved original remains preserved.</p>
+    <form method="post">
+      {% csrf_token %}
+      <button class="btn btn-blue" name="action" value="transfer">Transfer to BIDOP</button>
+    </form>
+  </div>
+  {% endif %}
+{% endif %}
+
+{% if role == 'BIDOP' and not artifact.source_artifact and artifact.status == 'TRANSFERRED' %}
+<div class="card">
+  <h3>Create a separate working revision</h3>
+  <p class="meta">Upload the revised file in the same format. The approved original will not be overwritten.</p>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="file" name="revision_file" required>
+    <button class="btn btn-blue" name="action" value="upload_revision">Upload new revision</button>
+  </form>
+</div>
+{% endif %}
+
+{% if role == 'BIDOP' and artifact.source_artifact and artifact.status == 'WORKING' %}
+<div class="card">
+  <h3>Submit revision to BIDM</h3>
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn btn-green" name="action" value="submit_revision">Submit this revision for BIDM review</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="card">
+  <h3>Revision history</h3>
+  {% if artifact.source_artifact %}
+    <p>
+      Original:
+      <a href="{% url 'war_room_artifact_file' tender.id artifact.id source.id %}">
+        {{ source.title }} v{{ source.version_number }}
+      </a>
+      — {{ source.get_status_display }}
+    </p>
+  {% endif %}
+  {% for revision in revisions %}
+    <div style="padding:10px 0; border-top:1px solid #39445a;">
+      <strong>Version {{ revision.version_number }}</strong>
+      — {{ revision.get_status_display }}
+      <a href="{% url 'war_room_artifact_file' tender.id artifact.id revision.id %}">Download</a>
+      {% if revision.approval_note %}<p class="meta">{{ revision.approval_note }}</p>{% endif %}
+    </div>
+  {% empty %}
+    <p class="meta">No working revisions have been created.</p>
+  {% endfor %}
+</div>
+
+<p><a href="{% url 'war_room' tender.id %}">Return to War Room</a></p>
+{% endblock %}

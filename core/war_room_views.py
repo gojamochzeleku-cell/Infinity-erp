@@ -74,22 +74,22 @@ def war_room(request, pk):
         action = request.POST.get('action')
 
         if action == 'generate_artifacts':
-        try:
-            generated = generate_war_room_artifacts(
-                tender, company, emp, task
-            )
-            messages.success(
-                request,
-                f'{len(generated)} War Room documents generated as drafts.',
-            )
-        except Exception as exc:
-            messages.error(
-                request,
-                f'Could not generate War Room documents: {str(exc)[:500]}',
-            )
-        return redirect('war_room', pk=tender.id)
+            try:
+                generated = generate_war_room_artifacts(
+                    tender, company, emp, task
+                )
+                messages.success(
+                    request,
+                    f'{len(generated)} War Room documents generated as drafts.',
+                )
+            except Exception as exc:
+                messages.error(
+                    request,
+                    f'Could not generate War Room documents: {str(exc)[:500]}',
+                )
+            return redirect('war_room', pk=tender.id)
 
-    elif action == 'analyze' and tender.purchased_bid_document:
+        elif action == 'analyze' and tender.purchased_bid_document:
             if tender.ai_status == 'PROCESSING':
                 messages.warning(request, 'AI analysis is already processing.')
                 return redirect('war_room', pk=tender.id)

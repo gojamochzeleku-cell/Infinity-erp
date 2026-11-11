@@ -1,7 +1,7 @@
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
-from . import views, tender_views, forecast_views, profit_views, saas_views, cost_views, export_views, qr_views, storage_views, storage_views, history_views, pricing_views, assembly_views, war_room_views, repair_views, cover_sheet_views, pwa_views, supplier_views, filing_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
+from . import views, tender_views, forecast_views, profit_views, saas_views, cost_views, export_views, qr_views, storage_views, storage_views, history_views, pricing_views, assembly_views, war_room_views, war_room_artifact_views, repair_views, cover_sheet_views, pwa_views, supplier_views, filing_views, recovery_views, report_views, chat_views, advanced_views, global_views, telegram_views, cron_views, deadline_views, manual_views, memo_views, doc_views, mgmt_views, hr_fin_views, mail_views, control_views, tv_views, resource_views, fin_views, office_views, proc_views, it_views, inventory_views, tv_settings_view
 
 urlpatterns = [
     path('ai-success-log/', tender_views.view_ai_success_log, name='view_ai_success_log'),
@@ -31,6 +31,8 @@ urlpatterns = [
     path('tenders/<int:pk>/war-room/', war_room_views.war_room, name='war_room'),
     path('tenders/<int:pk>/war-room/pdf/', war_room_views.download_war_room_pdf, name='war_room_pdf'),
     path('tenders/<int:pk>/war-room/artifacts/<int:artifact_id>/', war_room_views.download_war_room_artifact, name='war_room_artifact_download'),
+    path('tenders/<int:pk>/war-room/artifact/<int:artifact_id>/', war_room_artifact_views.war_room_artifact_detail, name='war_room_artifact_detail'),
+    path('tenders/<int:pk>/war-room/artifact/<int:artifact_id>/file/<int:file_id>/', war_room_artifact_views.download_war_room_artifact_file, name='war_room_artifact_file'),
     path('it/repair-chain/', repair_views.repair_chain, name='repair_chain'),
     path('mail/fetch/', mail_views.fetch_emails_action, name='fetch_emails_action'),
     path('mail/compose/', mail_views.compose_email, name='compose_email'),

@@ -238,7 +238,7 @@
         <tbody>
           {% for artifact in artifacts %}
           <tr>
-            <td style="padding:8px;">{{ artifact.title }}</td>
+            <td style="padding:8px;"><a href="{% url 'war_room_artifact_detail' tender.id artifact.id %}">{{ artifact.title }}</a></td>
             <td style="padding:8px;">{{ artifact.file_format }}</td>
             <td style="padding:8px;">v{{ artifact.version_number }}</td>
             <td style="padding:8px;">{{ artifact.get_status_display }}</td>
