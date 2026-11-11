@@ -128,7 +128,7 @@ Return ONE valid JSON object only, with exactly these top-level keys:
      "exact_tender_specification":"","mandatory":"YES/NO/UNKNOWN",
      "evidence_required":"","supplier_response":"NOT PROVIDED",
      "compliance_status":"NOT VERIFIED","remarks":"",
-     "source_page":""}
+     "source_page":"","source_section":"","source_excerpt":""}
   ],
   "lot_analysis": [
     {"lot":"","scope_and_items":"","quantities_and_units":"",
@@ -137,8 +137,72 @@ Return ONE valid JSON object only, with exactly these top-level keys:
      "risks_and_open_questions":"","source_page":""}
   ],
   "commercial_analysis": [
-    {"topic":"","tender_condition":"","commercial_implication":"",
-     "recommended_action":"","source_page":""}
+    {"topic":"","item_or_lot":"","tender_condition":"",
+     "commercial_implication":"","cost_component":"",
+     "amount":"","amount_basis":"TOTAL/UNIT/UNKNOWN",
+     "cost_inclusion":"INCLUDE/EXCLUDE/UNKNOWN",
+     "delivery_basis":"",
+     "currency":"","quantity":"","unit":"",
+     "unit_cost":"","exchange_rate":"",
+     "exchange_rate_source_or_basis":"",
+     "calculation_formula":"","calculation_result":"",
+     "cost_status":"VERIFIED/USER_INPUT/QUOTATION_REQUIRED/INPUT_REQUIRED/NOT_APPLICABLE",
+     "assumption_or_exclusion":"","recommended_action":"",
+     "source_page":""}
+  ],
+  "commercial_gap_register": [
+    {"item_or_lot":"","cost_component_or_obligation":"",
+     "gap_status":"MISSING/QUOTATION_REQUIRED/UNVERIFIED/RESOLVED/NOT_APPLICABLE",
+     "missing_input_or_evidence":"",
+     "why_it_matters":"",
+     "financial_exposure_amount":"",
+     "financial_exposure_currency":"",
+     "financial_exposure_basis":"",
+     "exposure_status":"QUANTIFIED/UNQUANTIFIED/NOT_APPLICABLE",
+     "priority":"CRITICAL/HIGH/MEDIUM/LOW",
+     "required_evidence":"",
+     "responsible_party":"",
+     "recommended_action":"",
+     "verification_method":"",
+     "delivery_basis":"",
+     "source_page":"",
+     "related_cost_record":""}
+  ],
+  "commercial_readiness": [
+    {"item_or_lot":"",
+     "readiness_status":"READY/CONDITIONALLY_READY/NOT_READY",
+     "decision_date":"",
+     "decision_basis":"",
+     "verified_cost_coverage":"",
+     "unresolved_critical_gaps":"",
+     "unresolved_high_priority_gaps":"",
+     "other_open_gaps":"",
+     "blocking_requirements":"",
+     "required_actions_before_approval":"",
+     "required_evidence":"",
+     "responsible_approval_role":"",
+     "source_pages":"",
+     "decision_limitations":""}
+  ],
+  "commercial_profitability": [
+    {"item_or_lot":"",
+     "selling_price_amount":"",
+     "selling_price_basis":"TOTAL/UNIT/UNKNOWN",
+     "quantity":"",
+     "unit":"",
+     "currency":"",
+     "delivery_basis":"",
+     "cost_coverage_status":"COMPLETE/INCOMPLETE/UNKNOWN",
+     "verified_cost_evidence":"",
+     "selling_price_evidence":"",
+     "included_cost_scope":"",
+     "gross_profit":"",
+     "markup_percentage":"",
+     "gross_margin_percentage":"",
+     "calculation_status":"CALCULATED/NOT_CALCULATED",
+     "calculation_formula":"",
+     "assumptions_or_limitations":"",
+     "source_pages":""}
   ],
   "brand_sourcing": [
     {"item_or_lot":"","specified_brand_or_standard":"",
@@ -146,10 +210,41 @@ Return ONE valid JSON object only, with exactly these top-level keys:
      "authorization_required":"","sourcing_options_to_investigate":"",
      "verification_needed":"","source_page":""}
   ],
+  "model_comparison": [
+    {"item_or_lot":"","requirement_id":"","tender_requirement":"",
+     "tender_source_page":"","tender_source_section":"",
+     "tender_source_excerpt":"",
+     "candidate_brand":"","candidate_model":"","manufacturer":"",
+     "candidate_specification":"","candidate_specification_value":"",
+     "candidate_specification_unit":"",
+     "compliance_status":"NOT_VERIFIED",
+     "comparison_details":"","deviation_or_gap":"",
+     "official_product_url":"","manufacturer_datasheet_url":"",
+     "evidence_title":"","evidence_source_type":"",
+     "manufacturer_datasheet_page_or_section":"",
+     "evidence_access_date":"",
+     "candidate_rank":"","ranking_category":"",
+     "evidence_quality":"LOW/MEDIUM/HIGH",
+     "technical_suitability":"",
+     "warranty_and_service_evidence":"",
+     "model_lifecycle_status":"CURRENT/DISCONTINUED/UNKNOWN",
+     "ranking_explanation":"",
+     "recommendation":"","source_page":""}
+  ],
   "supplier_strategy": [
     {"supplier_or_supplier_type":"","relevant_scope":"",
      "known_registered_information":"","required_qualification_or_evidence":"",
      "gaps_to_verify":"","recommended_action":""}
+  ],
+  "supplier_intelligence": [
+    {"supplier_name":"","supplier_type":"MANUFACTURER/DISTRIBUTOR/EXPORTER/OTHER",
+     "country":"","relevant_item_or_lot":"","products_or_capabilities":"",
+     "official_website":"","official_contact_or_sales_url":"",
+     "manufacturer_relationship":"","authorization_status":"NOT_VERIFIED",
+     "certifications_or_qualifications":"","export_or_delivery_evidence":"",
+     "tender_requirement_match":"","verification_status":"NOT_VERIFIED",
+     "evidence_title":"","evidence_url":"","evidence_type":"",
+     "information_gaps":"","recommended_next_action":""}
   ],
   "bid_strategy": [
     {"priority":"HIGH/MEDIUM/LOW","action":"",
@@ -188,6 +283,18 @@ the tender; mark uncertain requirements UNKNOWN.
 
 C. TECHNICAL REQUIREMENTS
 Create a separate row for every identifiable requirement and item.
+
+For every requirement:
+- Preserve its exact tender wording and technical value.
+- Record the actual PDF page number and identifiable section.
+- Include a short exact source excerpt supporting the requirement.
+- Keep lot, item and requirement ID linked to the source.
+- If the page, section or wording cannot be identified reliably,
+  state NOT IDENTIFIED rather than inventing a reference.
+- Distinguish the tender's printed page number from the PDF page
+  number when both are visible.
+- Preserve units, tolerances, standards and mandatory conditions.
+
 Preserve exact model, capacity, dimensions, performance, standards,
 compatibility, accessories, software, licenses, warranty, installation,
 training, documentation and service requirements. Include administrative
@@ -199,18 +306,382 @@ List every lot independently, its item descriptions, quantities and units,
 its own deadline, security, delivery and technical/commercial conditions.
 Identify lots with missing item detail or conflicting information.
 
-E. COMMERCIAL ANALYSIS
-Analyze currency, price schedule, taxes, duties, delivery/incoterms,
-payment, advance payment, retention, guarantees, penalties, liquidated
-damages, warranty costs, validity, price adjustment, delivery risk and
-other cost exposure. Distinguish tender facts from recommendations.
-Do not calculate a landed cost without the required input data.
+E. COMMERCIAL AND LANDED-COST ANALYSIS
 
-F. BRAND SOURCING
-Identify named brands, models, standards and permitted equivalents.
-Identify manufacturer authorization and country-of-origin conditions.
-Suggest sourcing routes or alternative manufacturers only as research
-leads requiring verification, never as approved tender alternatives.
+Analyze each lot and materially different item separately. Extract and
+preserve tender-stated quantities, units, currency, price schedule,
+delivery location, Incoterms, payment terms, taxes, duties, guarantees,
+bid security, performance security, advance payment, retention,
+penalties, liquidated damages, warranty, delivery period and price
+adjustment conditions. Cite the tender PDF page or section.
+
+COST COMPONENT BREAKDOWN
+Where relevant, create separate commercial_analysis records for:
+1. Product purchase price / EXW / FOB.
+2. International freight.
+3. Cargo insurance.
+4. CIF or other applicable import-value basis.
+5. Customs duty and other import levies.
+6. VAT and other applicable taxes.
+7. Port, terminal, storage and handling charges.
+8. Customs clearance and documentation.
+9. Inland transport to the required delivery destination.
+10. Bank charges, financing and foreign-exchange costs.
+11. Installation, commissioning, training and warranty costs.
+12. Other identifiable costs and contingencies, clearly distinguished
+    from tender requirements and actual supplier quotations.
+
+CALCULATION RULES
+- Calculate only when the necessary values, units, quantity and currency
+  are available and their basis is clear.
+- Preserve the original currency and amount. Never silently convert.
+- For foreign-currency conversion, state the exact exchange rate,
+  currency pair, date and source or user-provided basis.
+- Distinguish FOB, freight, insurance and CIF. Do not add freight or
+  insurance twice when already included in a quoted price.
+- Apply duties and taxes only using a verified applicable rate and
+  clearly identified taxable base. Do not assume tax treatment.
+- Show every formula and its input values. Identify exclusions.
+- Calculate total cost and unit cost only when quantity and unit are
+  compatible and all required inputs are available.
+- Distinguish cost markup from gross profit margin:
+  markup = (selling price - cost) / cost;
+  gross margin = (selling price - cost) / selling price.
+  Never label one as the other.
+- Do not invent supplier quotations, market prices, exchange rates,
+  tariff rates, tax rates, freight, insurance or customs values.
+- If an input is missing, use QUOTATION REQUIRED or INPUT REQUIRED
+  and identify exactly what is missing. Do not fabricate a total.
+- Clearly distinguish VERIFIED TENDER FACT, VERIFIED EXTERNAL SOURCE,
+  USER-PROVIDED INPUT, ESTIMATE and ANALYST RECOMMENDATION.
+- Do not present an estimate as an actual supplier quotation or
+  a calculated figure as a tender-stated amount.
+- Identify whether a figure is per item, per unit, per shipment,
+  per lot or for the complete contract.
+- For every cost amount, classify amount_basis as:
+  TOTAL when it is a documented total for the stated quantity;
+  UNIT when it is a documented price per stated unit;
+  UNKNOWN when the basis cannot be established.
+- Calculate unit_cost only when the amount basis is established:
+  UNIT: unit_cost equals the documented amount.
+  TOTAL: unit_cost equals total amount divided by a verified,
+  positive quantity using the same unit and cost scope.
+- Classify cost_inclusion as INCLUDE only for a distinct,
+  supported cost belonging in the bid-cost calculation.
+  Use EXCLUDE for duplicated costs, costs already included
+  elsewhere, or costs outside the bid scope. Use UNKNOWN
+  when inclusion cannot be established. Never default to INCLUDE.
+- Record delivery_basis exactly as documented. Do not infer it.
+- Keep summaries separate by item/lot, currency and delivery basis.
+- TOTAL amounts may contribute once. UNIT amounts may contribute
+  only when multiplied by a verified positive matching quantity.
+  UNKNOWN basis or missing inputs must not contribute to totals.
+- Never double-count freight, insurance, CIF, taxes or components
+  already included in another quoted amount.
+  UNKNOWN: leave unit_cost blank and explain the missing basis.
+- Never divide by zero, infer a quantity, or calculate using
+  incompatible currencies, units, lots or delivery bases.
+- Preserve the original amount and currency. Do not silently
+  convert currencies or treat text descriptions as numeric values.
+- Do not combine different lots, currencies, units or delivery bases.
+
+COMMERCIAL DECISION
+Explain the financial implications, cash-flow exposure, payment and
+guarantee obligations, foreign-exchange risk, delivery exposure and
+pricing risks. Identify the exact missing quotations or inputs needed
+before a defensible bid price can be prepared.
+
+COMMERCIAL MISSING-INPUT RECONCILIATION
+
+Create a separate commercial_gap_register record for every material
+missing, quoted-but-unverified, unresolved or non-applicable cost
+component or commercial obligation.
+
+Review each lot independently. Consider:
+- Supplier product quotation and price validity.
+- Freight, cargo insurance and delivery to destination.
+- Incoterms and the precise delivery basis.
+- Customs duty, import levies, VAT and other applicable taxes.
+- Customs clearance, documentation, port and storage charges.
+- Inland transport, installation and commissioning.
+- Bank charges, financing, foreign-exchange costs and payment terms.
+- Bid security, performance security, advance guarantees and retention.
+- Warranty, spare parts, training, service and after-sales obligations.
+- Delivery deadlines, penalties, liquidated damages and price adjustment.
+
+STATUS RULES
+- MISSING: a required input or document has not been supplied.
+- QUOTATION_REQUIRED: an actual supplier or service-provider quotation
+  is needed before pricing can be established.
+- UNVERIFIED: information exists but reliable supporting evidence
+  or confirmation is insufficient.
+- RESOLVED: the required information and supporting evidence are recorded.
+- NOT_APPLICABLE: the requirement is demonstrably outside the relevant
+  lot or commercial scope. Explain the basis.
+
+FINANCIAL EXPOSURE RULES
+- Quantify exposure only when an actual supported amount and currency
+  are available and the calculation basis is clear.
+- Otherwise leave financial_exposure_amount blank, set
+  exposure_status to UNQUANTIFIED, and explain what is needed.
+- Never enter zero to represent an unknown cost.
+- Never invent prices, quotations, rates, taxes, freight or exposure.
+- Do not duplicate a cost already included in another amount.
+- Keep lots, currencies, units and delivery bases separate.
+- Link the gap to its related cost record where an identifiable
+  cost component exists.
+
+PRIORITY RULES
+- CRITICAL: a gap that prevents defensible bid pricing or creates
+  a material eligibility, guarantee, delivery or submission risk.
+- HIGH: a material financial or contractual uncertainty requiring
+  resolution before bid approval.
+- MEDIUM: important but not immediately blocking information.
+- LOW: minor clarification or documentation improvement.
+
+For every gap, state exactly what evidence is needed, who should
+provide it when identifiable, how it should be verified, and the
+recommended next action. Cite the relevant tender PDF page or section
+where applicable. Distinguish tender requirements, user inputs,
+supplier quotations, externally verified facts and analyst assessments.
+Do not mark a gap RESOLVED merely because an action is recommended.
+
+COMMERCIAL BID READINESS DECISION — LOT BY LOT
+
+Create one commercial_readiness record for every tender lot. If the
+tender has no lot divisions, create one record for the General scope.
+Never combine different lots, currencies, delivery bases or cost scopes.
+
+Use exactly these decision statuses:
+
+READY:
+- No unresolved CRITICAL or HIGH commercial gaps remain.
+- Required product and service quotations or other pricing evidence
+  are available and sufficiently verified.
+- Required cost components have a documented inclusion/exclusion basis.
+- Quantities, units, currencies, delivery basis and applicable exchange
+  rate basis are sufficiently established for defensible bid pricing.
+- Material tender payment, guarantee, delivery, warranty and penalty
+  obligations have been reviewed and can be met based on documented
+  evidence or confirmed company capability.
+- No unresolved mandatory commercial condition prevents bid approval.
+
+CONDITIONALLY_READY:
+- No unresolved CRITICAL blocker remains.
+- One or more manageable HIGH, MEDIUM or LOW gaps remain, or a
+  material quotation or confirmation is pending.
+- State every outstanding action, required evidence, responsible
+  role and condition that must be satisfied before final approval.
+- This status is not authorization to submit an unverified bid price.
+
+NOT_READY:
+- Any unresolved CRITICAL gap exists.
+- A mandatory cost input or commercial obligation prevents defensible
+  pricing or a reliable bid decision.
+- A required quotation, guarantee, delivery commitment, tax basis,
+  payment condition or other material evidence remains unavailable
+  where it is necessary to establish bid feasibility.
+- A material unresolved contradiction makes the lot's commercial
+  obligations or cost basis unreliable.
+
+DECISION INTEGRITY
+1. Assess each lot independently using commercial_analysis,
+   commercial_gap_register, lot_analysis and tender facts.
+2. A gap is resolved only when adequate evidence is actually recorded.
+3. An unknown amount is never zero. Do not treat missing cost records
+   as evidence that a cost does not apply.
+4. Do not declare READY merely because no gap records were generated.
+   First establish whether the relevant commercial cost and obligation
+   categories were actually reviewed.
+5. NOT_APPLICABLE requires a documented reason.
+6. Do not invent a financial readiness score, profit margin, quotation,
+   exchange rate, cost coverage percentage or approval.
+7. Distinguish verified amounts from user inputs, estimates and
+   quotations still required.
+8. Do not mark a lot READY if a mandatory technical or eligibility
+   issue makes commercial bid approval unsafe; identify that dependency.
+9. State the exact gaps and evidence supporting the decision.
+10. If the evidence is insufficient to determine readiness, use
+    NOT_READY and explain the unresolved assessment limitation.
+
+For each lot record:
+- readiness_status: exact status from the three allowed values.
+- decision_basis: concise explanation grounded in available records.
+- verified_cost_coverage: describe which material cost categories
+  have documented and verified inputs; do not invent percentages.
+- unresolved_critical_gaps and unresolved_high_priority_gaps:
+  identify actual unresolved gaps, or state NONE IDENTIFIED only
+  when the records support that conclusion.
+- other_open_gaps: list remaining medium/low gaps.
+- blocking_requirements: identify what prevents approval.
+- required_actions_before_approval: concrete actions, not generic advice.
+- required_evidence: exact documents or confirmations still needed.
+- responsible_approval_role: suggested company role, clearly a
+  recommendation rather than an actual approval.
+- source_pages: relevant tender PDF pages or sections.
+- decision_limitations: explain missing or insufficient evidence.
+
+This is a decision-support recommendation, not an actual management
+approval or authorization to submit a bid.
+
+COMMERCIAL PROFITABILITY AND MARGIN ANALYSIS
+
+Create one commercial_profitability record for every tender lot.
+If there are no lot divisions, create one record for General scope.
+Never combine different lots, currencies, units or delivery bases.
+
+SELLING PRICE EVIDENCE
+- Use only an explicitly documented selling price from a tender
+  price schedule or clearly identified user-provided input.
+- Record its amount, currency, basis, quantity, unit and evidence.
+- selling_price_basis must be TOTAL, UNIT or UNKNOWN.
+- TOTAL means the price covers the documented total quantity.
+- UNIT means the price is for one documented unit.
+- UNKNOWN means the price basis cannot be established.
+- Never invent a proposed selling price.
+- Never treat a supplier cost quotation as a selling price.
+
+COST COVERAGE
+- COMPLETE only when every material cost component for the lot
+  and delivery basis has been reviewed and its inclusion or
+  exclusion is supported by evidence.
+- INCOMPLETE when material costs are missing, unverified,
+  awaiting quotations or unresolved.
+- UNKNOWN when available evidence cannot establish coverage.
+- An empty cost list is not proof of complete cost coverage.
+- Use only explicit INCLUDE cost records with matching lot,
+  currency and delivery basis.
+- Excluded costs require a supported reason.
+- Never treat unknown costs as zero or count costs twice.
+
+CALCULATION RULES
+- For TOTAL selling price, use the documented total revenue.
+- For UNIT selling price, multiply documented unit price by
+  verified positive matching quantity.
+- Total included cost must use the same lot, currency and
+  delivery basis as the selling price.
+- Gross profit = total selling revenue - total included cost.
+- Markup percentage = (gross profit / total included cost) * 100.
+- Gross margin percentage = (gross profit / total selling revenue) * 100.
+- Never confuse markup with gross margin.
+- Do not calculate markup when cost is zero or unavailable.
+- Do not calculate gross margin when revenue is zero or unavailable.
+- If cost coverage is INCOMPLETE or UNKNOWN, or any required
+  input/evidence is missing, set calculation_status to
+  NOT_CALCULATED and leave all three result fields blank.
+- Never use zero to represent missing information.
+- Show formulas, cost scope, evidence and limitations.
+- Distinguish tender-stated prices from user-provided prices.
+- These are gross profitability figures, not net profit.
+  Do not imply that overhead, financing, income tax or other
+  excluded expenses have been accounted for.
+- These analytical results are not management approval or
+  authorization to submit a bid.
+
+F. BRAND, MODEL AND LIVE TECHNICAL RESEARCH
+
+This is a major procurement research task, not a generic list of famous brands.
+
+1. Read the extracted technical requirements for every item and lot.
+2. Use Google Search grounding to research actual manufacturers, brands,
+   product families and specific model numbers that could satisfy those
+   requirements.
+3. Prioritize official manufacturer product pages, official datasheets,
+   technical manuals, catalogues and official product documentation.
+   Use authorized distributor documentation only where manufacturer
+   documentation is unavailable. Clearly identify the source type.
+4. Identify up to three genuinely relevant candidate models per item
+   where sufficient candidates exist. Do not invent candidates merely
+   to fill a comparison table.
+5. Compare each candidate against EACH identifiable mandatory tender
+   parameter: capacity, dimensions, ratings, performance, materials,
+   standards, compatibility, accessories, software, warranty, service
+   and all other applicable requirements.
+6. Preserve the exact tender requirement and the candidate's published
+   value, including units. Do not replace exact values with vague
+   descriptions such as "high performance" or "equivalent quality".
+7. Assign only these compliance statuses:
+   COMPLIANT: all identifiable mandatory requirements are supported
+   by reliable evidence and no deviation is identified.
+   PARTIAL: at least one known requirement is not met or differs.
+   NON_COMPLIANT: a mandatory requirement is demonstrably not met.
+   NOT_VERIFIED: evidence is insufficient to establish compliance.
+8. Never infer compliance from brand reputation, product family,
+   approximate capacity or a similar model number.
+9. Record the exact candidate model, manufacturer, official product
+   URL, datasheet URL, evidence title, technical values and deviations.
+10. If a datasheet cannot be found, say NOT FOUND. If a specification
+    is not published, say NOT PUBLISHED. Do not manufacture values.
+11. Distinguish current models from discontinued or obsolete models.
+12. Rank candidate models separately for each tender item or lot.
+    Use one consistent candidate_rank sequence, starting at 1, and
+    do not compare unrelated product categories or different lots.
+13. Apply this ranking order before considering any secondary advantage:
+    a. COMPLIANT: all identifiable mandatory requirements are met
+       and supported by reliable, traceable evidence.
+    b. PARTIAL: at least one known requirement has a deviation or gap.
+    c. NON_COMPLIANT: a mandatory requirement is demonstrably failed.
+    d. NOT_VERIFIED: evidence is insufficient to establish compliance.
+    A candidate with an unverified mandatory requirement must never
+    be presented as fully compliant.
+14. Within the same compliance category, prioritize:
+    a. Completeness, reliability and traceability of manufacturer evidence.
+    b. Technical suitability against the tender requirements.
+    c. Documented warranty, after-sales service and support.
+    d. Verified current/discontinued lifecycle status.
+15. Do not let a high secondary score, brand reputation, low price or
+    attractive feature override a mandatory technical failure.
+16. Explain each candidate's rank using specific evidence and gaps.
+    If candidates cannot be fairly ranked, state NOT RANKABLE and
+    explain why. Do not invent numerical scores or missing facts.
+17. Distinguish current models from discontinued or obsolete models.
+18. If the tender names a specific brand/model, respect the tender's
+    stated equivalent policy. Do not silently substitute alternatives.
+19. Identify manufacturer authorization, country-of-origin and
+    certification requirements separately from technical compliance.
+20. Search for each materially different product; do not reuse one
+    product's datasheet or specifications for another model.
+
+For each candidate model, create separate model_comparison records
+covering EACH relevant tender requirement. Never combine several
+different mandatory parameters into one vague comparison.
+
+Every comparison record must include:
+- The exact tender requirement and requirement ID.
+- Tender PDF page, identifiable section and a short supporting
+  tender source excerpt.
+- Candidate brand, exact model and manufacturer.
+- The candidate's exact published specification, preserving its
+  numerical value and unit where applicable.
+- The comparison result and precise deviation or gap, if any.
+- Official product page URL and manufacturer datasheet URL where found.
+- Evidence title and evidence source type, such as
+  MANUFACTURER_DATASHEET, OFFICIAL_PRODUCT_PAGE,
+  OFFICIAL_MANUAL or AUTHORIZED_DISTRIBUTOR_DOCUMENT.
+- Datasheet page or section containing the supporting specification.
+- Evidence access date when available.
+
+Keep tender source references separate from manufacturer evidence
+references. A tender page number is not a manufacturer datasheet page.
+
+Never invent excerpts, page numbers, sections, specification values,
+units, URLs or access dates. If an evidence location cannot be
+identified, state NOT IDENTIFIED. If a source or specification is
+unavailable, state NOT FOUND or NOT PUBLISHED as applicable.
+
+A search-result snippet alone is not sufficient proof of a
+manufacturer specification. If the original evidence cannot be
+examined, retain NOT_VERIFIED and explain the limitation.
+
+G2. LIVE RESEARCH EVIDENCE
+Include a source_register entry for each useful external source,
+with its title, URL, source type, information supported and access
+date where available. Separate manufacturer evidence from distributor
+claims and general web sources. A search result alone does not prove
+that a product meets a requirement.
+
+If Google Search returns no reliable supporting source for a candidate,
+retain NOT_VERIFIED and explain the missing evidence.
 
 G. SUPPLIER STRATEGY
 Use the registered supplier context provided separately. Match only
@@ -218,6 +689,42 @@ documented supplier capabilities to tender scope. Identify missing
 catalogues, authorization, references, certificates, quotations,
 delivery commitments, warranty and after-sales evidence.
 If no matching registered supplier is documented, say so.
+
+G2. LIVE SUPPLIER, MANUFACTURER AND DISTRIBUTOR RESEARCH
+
+Use Google Search grounding to identify real companies relevant to the
+actual products, brands, models and lots identified in this tender.
+
+1. Research manufacturers, authorized distributors, exporters and
+   suppliers whose documented products or capabilities match the tender.
+2. Prioritize official manufacturer websites, official distributor
+   directories, company websites, product catalogues and official
+   certification or authorization evidence.
+3. Identify the supplier's country, relevant product range, official
+   website and available official sales/contact page.
+4. Distinguish manufacturers from distributors, exporters, agents and
+   general trading companies.
+5. Record manufacturer relationships and authorization status only
+   when supported by evidence. Otherwise use NOT_VERIFIED.
+6. Assess relevance against the tender's actual item, technical
+   requirements, quantities, delivery obligations and qualification
+   conditions. Do not assume a supplier can meet an obligation merely
+   because it sells a related product.
+7. Record evidence titles, URLs and evidence types. Clearly distinguish
+   official company evidence from third-party directories or claims.
+8. Identify missing authorization letters, certifications, references,
+   export records, quotations, delivery commitments, warranty and
+   after-sales evidence.
+9. Recommend practical verification or contact actions for promising
+   candidates. Do not invent email addresses, telephone numbers,
+   certifications, authorization, stock, prices or delivery capacity.
+10. If reliable evidence cannot establish a supplier's identity,
+    capabilities or relationship to a manufacturer, state the gap
+    explicitly and retain NOT_VERIFIED.
+11. Do not present a company as an approved, authorized or qualified
+    tender supplier unless the relevant evidence supports that claim.
+12. Return distinct, tender-relevant candidates rather than generic
+    lists of famous international companies.
 
 H. BID STRATEGY
 Produce prioritized practical actions for the Bid Manager, Bid Operator,
@@ -287,7 +794,9 @@ def _get_file_bytes(file_obj):
     except Exception as e:
         raise Exception(f"Could not read file: {str(e)}")
 
-def _send_to_gemini(file_obj, prompt):
+def _send_to_gemini(
+    file_obj, prompt, google_search=False, return_metadata=False
+):
     key = _api_key()
     if not key:
         return "GEMINI_API_KEY not set. Configure it in Render Environment Variables."
@@ -332,12 +841,17 @@ def _send_to_gemini(file_obj, prompt):
             }]
         }
 
-    # Apply the same JSON response configuration to BOTH upload paths.
+    # Google Search grounding is enabled only for the deep War Room
+    # analysis. The legacy generateContent endpoint must not combine
+    # google_search with JSON response MIME mode.
     body["generationConfig"] = {
-        "response_mime_type": "application/json",
         "temperature": 0.15,
-        "maxOutputTokens": 16000
+        "maxOutputTokens": 24000
     }
+    if google_search:
+        body["tools"] = [{"google_search": {}}]
+    else:
+        body["generationConfig"]["response_mime_type"] = "application/json"
 
     session = requests.Session()
     retry = Retry(
@@ -403,6 +917,40 @@ def _send_to_gemini(file_obj, prompt):
                     result,
                     flags=re.IGNORECASE
                 ).strip()
+
+                if return_metadata and result.startswith("{"):
+                    try:
+                        structured = json.loads(result)
+                        grounding = candidate.get("groundingMetadata") or {}
+                        sources = []
+
+                        for chunk in grounding.get("groundingChunks", []):
+                            web_source = chunk.get("web") or {}
+                            uri = web_source.get("uri")
+                            if uri:
+                                sources.append({
+                                    "title": web_source.get("title", ""),
+                                    "url": uri,
+                                    "source_type": "GOOGLE_SEARCH_GROUNDING"
+                                })
+
+                        structured["_web_research"] = {
+                            "status": (
+                                "GROUNDED" if sources
+                                else "NO_GROUNDED_SOURCES"
+                            ),
+                            "search_enabled": True,
+                            "search_queries": grounding.get(
+                                "webSearchQueries", []
+                            ),
+                            "sources": sources
+                        }
+                        result = json.dumps(
+                            structured, ensure_ascii=False
+                        )
+                    except (ValueError, TypeError):
+                        pass
+
                 return result
 
             last_error = (
@@ -440,7 +988,12 @@ def analyze_bid_document(file_obj, supplier_context=""):
               "authorization, stock or delivery commitments."
         )
 
-    result = _send_to_gemini(file_obj, prompt)
+    result = _send_to_gemini(
+        file_obj,
+        prompt,
+        google_search=True,
+        return_metadata=True
+    )
     error_prefixes = (
         "GEMINI_API_KEY",
         "Could not read",

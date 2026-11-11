@@ -133,7 +133,9 @@ def war_room(request, pk):
                     # Do not report success when the AI returned only an error
                     # or an unusable/empty response.
                     if not any(parsed.get(key) for key in (
-                        'summary', 'checklist', 'compliance', 'brands', 'suppliers'
+                        'summary', 'checklist', 'compliance', 'brands',
+                        'suppliers', 'model_comparison', 'source_register',
+                        'supplier_intelligence'
                     )):
                         raise ValueError("AI returned no usable procurement analysis.")
 
