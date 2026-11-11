@@ -123,7 +123,7 @@ def war_room_artifact_detail(request, pk, artifact_id):
 
             if role == 'BIDM':
                 if action == 'submit_review':
-                    if not bidm_task or locked.source_artifact_id:
+                    if not bidm_task or bidm_task.status not in ACTIVE or locked.source_artifact_id:
                         raise PermissionDenied("Only the assigned BIDM can submit an original draft.")
                     if locked.status not in ('DRAFT', 'RETURNED'):
                         messages.error(request, "Only a draft or returned original can be submitted.")
@@ -145,7 +145,9 @@ def war_room_artifact_detail(request, pk, artifact_id):
                         review_task is None or review_task.status not in ACTIVE
                     ):
                         raise PermissionDenied("The assigned BIDM review task is required.")
-                    elif not locked.source_artifact_id and bidm_task is None:
+                    elif not locked.source_artifact_id and (
+                        bidm_task is None or bidm_task.status not in ACTIVE
+                    ):
                         raise PermissionDenied("The assigned BIDM War Room task is required.")
                     else:
                         note = request.POST.get('note', '').strip()
@@ -203,8 +205,8 @@ def war_room_artifact_detail(request, pk, artifact_id):
                 elif action == 'transfer':
                     if locked.source_artifact_id or locked.status != 'APPROVED':
                         messages.error(request, "Only an approved original artifact can be transferred.")
-                    elif not bidm_task:
-                        raise PermissionDenied("The assigned BIDM War Room task is required.")
+                    elif not bidm_task or bidm_task.status not in ACTIVE:
+                        raise PermissionDenied("The active assigned BIDM War Room task is required.")
                     else:
                         existing = Task.objects.filter(
                             company=company,
