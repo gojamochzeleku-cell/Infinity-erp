@@ -1391,7 +1391,7 @@ def _render_xlsx(title, payload, sections, artifact_type=None):
                     f"'Landed Cost Detail'!$A:$A,A{summary_row},"
                     f"'Landed Cost Detail'!$D:$D,B{summary_row},"
                     f"'Landed Cost Detail'!$S:$S,C{summary_row},"
-                    f"'Landed Cost Detail'!$R:$R,\"INCLUDE\"))'
+                    f"'Landed Cost Detail'!$R:$R,\"INCLUDE\"))"
                 )
 
                 summary_sheet.cell(
