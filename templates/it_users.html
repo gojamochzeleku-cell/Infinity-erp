@@ -38,24 +38,29 @@
 </details>
 
 <div class="card" style="margin-bottom:20px; border:1px solid #d6a84b;">
-  <h3 style="margin-top:0;">Designated Bid Manager</h3>
-  <p class="meta">Choose the active Bid Manager who should receive new tender feasibility tasks for {{ company.short_name }}.</p>
-  <form method="post">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="set_bid_manager">
-    <select name="bid_manager_membership" style="margin-bottom:12px;">
-      <option value="">Clear designated Bid Manager</option>
-      {% for membership in bid_manager_candidates %}
-        <option value="{{ membership.id }}" {% if designated_bid_manager and designated_bid_manager.membership_id == membership.id %}selected{% endif %}>
-          {{ membership.employee.full_name }} (@{{ membership.employee.user.username }})
-        </option>
-      {% endfor %}
-    </select>
-    <button class="btn btn-gold" type="submit">Save Bid Manager</button>
-  </form>
-  {% if not bid_manager_candidates %}
-    <p class="meta">No active membership with the Bid Manager role exists in this company. Create or edit a user and assign the Bid Manager role first.</p>
-  {% endif %}
+  <h3 style="margin-top:0;">Automatic Workflow Role Assignments</h3>
+  <p class="meta">Designate one active employee for each workflow role in {{ company.short_name }}. These employees receive the next tasks automatically.</p>
+
+  {% for workflow_role in workflow_roles %}
+    <form method="post" style="border-top:1px solid #232838; padding:12px 0;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="set_workflow_role">
+      <input type="hidden" name="workflow_role" value="{{ workflow_role.code }}">
+      <label class="meta">{{ workflow_role.label }} ({{ workflow_role.code }})</label>
+      <select name="workflow_membership" style="margin-bottom:8px;">
+        <option value="">Not assigned</option>
+        {% for membership in workflow_role.candidates %}
+          <option value="{{ membership.id }}" {% if workflow_role.selected_membership_id == membership.id %}selected{% endif %}>
+            {{ membership.employee.full_name }} (@{{ membership.employee.user.username }})
+          </option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-gold" type="submit">Save {{ workflow_role.code }}</button>
+      {% if not workflow_role.candidates %}
+        <p class="meta">No active member currently has this company role. Assign the role through Edit Company Role first.</p>
+      {% endif %}
+    </form>
+  {% endfor %}
 </div>
 
 <h3 style="font-size:14px; color:#8f99b0; margin-bottom:10px;">Company Memberships ({{ memberships.count }})</h3>

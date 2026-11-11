@@ -106,14 +106,30 @@ def it_user_management(request):
     if request.method == "POST":
         action = request.POST.get("action", "create_user")
 
-        if action == "set_bid_manager":
-            membership_id = request.POST.get("bid_manager_membership", "").strip()
+        if action in {"set_workflow_role", "set_bid_manager"}:
+            workflow_role_codes = {
+                "BIDM", "CEO", "GM", "CASE", "FIN",
+                "OFFICE", "HR", "BIDOP", "LEGAL", "PROC", "LOG",
+            }
+            role = (
+                "BIDM" if action == "set_bid_manager"
+                else request.POST.get("workflow_role", "").strip()
+            )
+            membership_id = (
+                request.POST.get("bid_manager_membership", "").strip()
+                if action == "set_bid_manager"
+                else request.POST.get("workflow_membership", "").strip()
+            )
+
+            if role not in workflow_role_codes:
+                messages.error(request, "Invalid workflow role.")
+                return redirect("it_user_management")
 
             if not membership_id:
                 CompanyRoleAssignment.objects.filter(
-                    company=company, role="BIDM"
+                    company=company, role=role
                 ).delete()
-                messages.success(request, "The designated Bid Manager was cleared.")
+                messages.success(request, f"Designated {role} recipient cleared.")
                 return redirect("it_user_management")
 
             membership = (
@@ -123,7 +139,7 @@ def it_user_management(request):
                     company=company,
                     is_active=True,
                     employee__is_active=True,
-                    roles__role="BIDM",
+                    roles__role=role,
                 )
                 .select_related("employee__user")
                 .first()
@@ -132,7 +148,7 @@ def it_user_management(request):
             if membership is None:
                 messages.error(
                     request,
-                    "Select an active Bid Manager membership belonging to this company."
+                    "Select an active employee holding this role in this company."
                 )
                 return redirect("it_user_management")
 
@@ -140,15 +156,17 @@ def it_user_management(request):
                 with transaction.atomic():
                     CompanyRoleAssignment.objects.update_or_create(
                         company=company,
-                        role="BIDM",
+                        role=role,
                         defaults={"membership": membership},
                     )
                 messages.success(
                     request,
-                    f"{membership.employee.full_name} is now the designated Bid Manager for {company.short_name}."
+                    f"{membership.employee.full_name} is now the designated "
+                    f"{role} recipient for {company.short_name}."
                 )
             except Exception:
-                messages.error(request, "Could not designate this Bid Manager.")
+                messages.error(request, f"Could not designate the {role} recipient.")
+
             return redirect("it_user_management")
 
         username = request.POST.get("username", "").strip()
@@ -210,26 +228,42 @@ def it_user_management(request):
         .order_by("employee__user__username")
     )
 
-    bid_manager_candidates = (
-        memberships.filter(
-            is_active=True,
-            employee__is_active=True,
-            roles__role="BIDM",
-        ).distinct()
-    )
-    designated_bid_manager = (
-        CompanyRoleAssignment.objects
-        .filter(company=company, role="BIDM")
-        .select_related("membership__employee__user")
-        .first()
-    )
+    workflow_role_codes = [
+        "BIDM", "CEO", "GM", "CASE", "FIN",
+        "OFFICE", "HR", "BIDOP", "LEGAL", "PROC", "LOG",
+    ]
+    role_labels = dict(MEMBERSHIP_ROLE_CHOICES)
+    workflow_roles = []
+
+    for role_code in workflow_role_codes:
+        candidates = list(
+            memberships.filter(
+                is_active=True,
+                employee__is_active=True,
+                roles__role=role_code,
+            ).distinct()
+        )
+        assignment = (
+            CompanyRoleAssignment.objects
+            .filter(company=company, role=role_code)
+            .select_related("membership__employee__user")
+            .first()
+        )
+        workflow_roles.append({
+            "code": role_code,
+            "label": role_labels.get(role_code, role_code),
+            "candidates": candidates,
+            "selected_membership_id": (
+                assignment.membership_id if assignment else None
+            ),
+        })
+
 
     return render(request, "it_users.html", {
         "memberships": memberships,
         "roles": MEMBERSHIP_ROLE_CHOICES,
         "company": company,
-        "bid_manager_candidates": bid_manager_candidates,
-        "designated_bid_manager": designated_bid_manager,
+        "workflow_roles": workflow_roles,
     })
 
 

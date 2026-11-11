@@ -17,6 +17,7 @@ from .chain import (
     process_cost_request,
     trigger_ai_tasks,
     advance_tender_execution_chain,
+    find_role,
 )
 
 class InfinityLoginView(LoginView):
@@ -270,7 +271,9 @@ def task_action(request, pk):
 
     if task.code in ('T02', 'T03'):
         if tender and act in ('GO', 'NO_GO', 'APPROVED', 'REJECTED'):
-            advance_tender_chain(request, tender, task, act, note)
+            result = advance_tender_chain(request, tender, task, act, note)
+            if result:
+                messages.error(request, result)
             return redirect('dashboard')
 
     elif task.code == 'T04':
@@ -291,15 +294,21 @@ def task_action(request, pk):
             )
             tender.save()
 
-            process_cost_request(tender, task, 'SUBMIT_COST', note)
+            result = process_cost_request(tender, task, 'SUBMIT_COST', note)
+            if result:
+                messages.error(request, result)
             return redirect('dashboard')
 
     elif task.code in ('T05', 'T06'):
         if tender:
             if task.code == 'T05' and act == 'FIN_APPROVE':
-                process_cost_request(tender, task, 'FIN_APPROVE', note)
+                result = process_cost_request(tender, task, 'FIN_APPROVE', note)
+                if result:
+                    messages.error(request, result)
             elif task.code == 'T06' and act == 'CEO_COST_APPROVE':
-                process_cost_request(tender, task, 'CEO_COST_APPROVE', note)
+                result = process_cost_request(tender, task, 'CEO_COST_APPROVE', note)
+                if result:
+                    messages.error(request, result)
 
             return redirect('dashboard')
 
@@ -317,13 +326,25 @@ def task_action(request, pk):
                     'FINANCE',
                 )
 
-            process_cost_request(
+            result = process_cost_request(
                 tender, task, 'RECEIPT_UPLOADED', note
             )
+            if result:
+                messages.error(request, result)
             return redirect('dashboard')
 
     elif task.code == 'T08':
         if tender and act == 'complete':
+            next_role = 'BIDOP' if tender.lots.exists() else 'BIDM'
+            if find_role(tender.company, next_role) is None:
+                messages.error(
+                    request,
+                    "Cannot continue: no active employee is assigned to the "
+                    "%s workflow role. Assign the role in Manage Users first."
+                    % next_role,
+                )
+                return redirect('dashboard')
+
             if 'purchased_bid_document' in request.FILES:
                 tender.purchased_bid_document = request.FILES[
                     'purchased_bid_document'

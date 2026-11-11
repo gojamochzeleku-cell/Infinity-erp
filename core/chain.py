@@ -104,6 +104,19 @@ def advance_tender_chain(request, tender, task, decision, note):
     if not designated:
         raise PermissionDenied("You are not the designated approver for this company role.")
 
+    next_role = None
+    if task.code == 'T02' and decision == 'GO':
+        next_role = 'CEO'
+    elif task.code == 'T03' and decision == 'APPROVED':
+        next_role = 'CASE'
+
+    if next_role and find_role(company, next_role) is None:
+        return (
+            "Cannot continue: no active employee is assigned to the "
+            "%s workflow role. Assign the role in Manage Users first."
+            % next_role
+        )
+
     TenderReview.objects.create(
         tender=tender,
         employee=emp,
@@ -148,6 +161,22 @@ def advance_tender_chain(request, tender, task, decision, note):
 
 
 def process_cost_request(tender, task, action, note):
+    next_roles = {
+        'SUBMIT_COST': 'FIN',
+        'FIN_APPROVE': (
+            'CEO' if tender.total_cost >= Decimal('2000.00') else 'CASE'
+        ),
+        'CEO_COST_APPROVE': 'CASE',
+        'RECEIPT_UPLOADED': 'OFFICE',
+    }
+    next_role = next_roles.get(action)
+    if next_role and find_role(tender.company, next_role) is None:
+        return (
+            "Cannot continue: no active employee is assigned to the "
+            "%s workflow role. Assign the role in Manage Users first."
+            % next_role
+        )
+
     task.status = 'COMPLETED'
     task.save()
     log_task_history(task, action, note, task.assigned_to)
