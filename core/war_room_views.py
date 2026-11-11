@@ -1,6 +1,7 @@
 import io
 import threading
 import csv
+import re
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db import close_old_connections
@@ -9,7 +10,9 @@ from django.urls import reverse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, LongTable, TableStyle, PageBreak
+from reportlab.lib.utils import simpleSplit
+from xml.sax.saxutils import escape
 from reportlab.lib import colors
 from .models import Tender, Task, TenderLot, Supplier
 from .gemini import analyze_bid_document, parse_war_room_output
@@ -109,13 +112,15 @@ def war_room(request, pk):
                         supplier_context=supplier_context
                     )
                     parsed = parse_war_room_output(raw_result)
-                    ai_tender.war_room_summary = (
-                        parsed.get('summary', '')
-                        + "\n\nCOMMERCIAL REVIEW\n"
-                        + parsed.get('commercial', '')
-                        + "\n\nSOURCE REFERENCES\n"
-                        + parsed.get('sources', '')
-                    )
+
+                    # Do not report success when the AI returned only an error
+                    # or an unusable/empty response.
+                    if not any(parsed.get(key) for key in (
+                        'summary', 'checklist', 'compliance', 'brands', 'suppliers'
+                    )):
+                        raise ValueError("AI returned no usable procurement analysis.")
+
+                    ai_tender.war_room_summary = parsed.get('summary', '')
                     ai_tender.war_room_checklist = parsed.get('checklist', '')
                     ai_tender.war_room_brands = parsed.get('brands', '')
                     ai_tender.war_room_suppliers = parsed.get('suppliers', '')
@@ -311,106 +316,225 @@ def war_room(request, pk):
 
 @login_required
 def download_war_room_pdf(request, pk):
+    """
+    Generate a company- and BIDM-authorized strategy report.
+    Escape all model/AI text and use a wrapping, repeating compliance table.
+    """
     emp, company, membership, tender, task = _war_room_context(request, pk)
+
     buffer = io.BytesIO()
-    
-    # We use a custom canvas to add headers/footers to every page
-    class NumberedCanvas(canvas.Canvas):
-        def __init__(self, *args, **kwargs):
-            canvas.Canvas.__init__(self, *args, **kwargs)
-            self._saved_page_states = []
-        def showPage(self):
-            self._saved_page_states.append(dict(self.__dict__))
-            self._startPage()
-        def save(self):
-            num_pages = len(self._saved_page_states)
-            for state in self._saved_page_states:
-                self.__dict__.update(state)
-                self.draw_page_number(num_pages)
-                canvas.Canvas.showPage(self)
-            canvas.Canvas.save(self)
-        def draw_page_number(self, page_count):
-            self.setFont("Helvetica", 9)
-            self.setFillColor(colors.gray)
-            self.drawString(40, 30, "Infinity Investment Institute - Confidential Bid Strategy")
-            self.drawRightString(555, 30, f"Page {self._pageNumber} of {page_count}")
-
-    # Determine orientation based on if we have a matrix
     pagesize = landscape(A4) if tender.war_room_compliance else A4
-    doc = SimpleDocTemplate(buffer, pagesize=pagesize, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
-    
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=pagesize,
+        rightMargin=34,
+        leftMargin=34,
+        topMargin=42,
+        bottomMargin=42,
+        title=f"Bid Strategy - {tender.serial_number}",
+        author="Infinity ERP"
+    )
+
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=24, textColor=colors.HexColor('#0f204b'), alignment=1, spaceAfter=20)
-    h1_style = ParagraphStyle('H1', parent=styles['Heading2'], fontSize=16, textColor=colors.white, backColor=colors.HexColor('#0f204b'), borderPadding=8, spaceBefore=20, spaceAfter=10)
-    body_style = ParagraphStyle('Body', parent=styles['Normal'], fontSize=11, leading=14, spaceAfter=8)
-    
-    story = []
+    title_style = ParagraphStyle(
+        "InfinityReportTitle", parent=styles["Title"],
+        fontSize=22, leading=27, textColor=colors.HexColor("#0f204b"),
+        alignment=1, spaceAfter=14
+    )
+    subtitle_style = ParagraphStyle(
+        "InfinityReportSubtitle", parent=styles["Heading2"],
+        fontSize=12, leading=16, textColor=colors.HexColor("#a77b19"),
+        alignment=1, spaceAfter=12
+    )
+    heading_style = ParagraphStyle(
+        "InfinitySectionHeading", parent=styles["Heading2"],
+        fontSize=13, leading=17, textColor=colors.white,
+        backColor=colors.HexColor("#0f204b"),
+        borderPadding=7, spaceBefore=14, spaceAfter=9
+    )
+    body_style = ParagraphStyle(
+        "InfinityReportBody", parent=styles["BodyText"],
+        fontSize=8.5, leading=12, spaceAfter=5,
+        wordWrap="CJK"
+    )
+    small_style = ParagraphStyle(
+        "InfinityReportSmall", parent=body_style,
+        fontSize=7, leading=9
+    )
+    cell_style = ParagraphStyle(
+        "InfinityTableCell", parent=body_style,
+        fontSize=6.5, leading=8, spaceAfter=0
+    )
+    header_cell_style = ParagraphStyle(
+        "InfinityTableHeader", parent=cell_style,
+        textColor=colors.white, fontName="Helvetica-Bold"
+    )
 
-    # Cover Page
-    story.append(Paragraph(f"Bid Strategy Report", title_style))
-    story.append(Paragraph(f"{tender.serial_number} - {tender.bid_title}", ParagraphStyle('Sub', parent=styles['Heading2'], alignment=1, textColor=colors.HexColor('#d4af37'))))
-    story.append(Spacer(1, 200))
-    story.append(Paragraph(f"Prepared For: {tender.purchaser_name}", ParagraphStyle('Center', alignment=1)))
-    story.append(Paragraph(f"Generated On: {tender.updated_at.strftime('%d %b %Y')}", ParagraphStyle('Center', alignment=1)))
-    story.append(PageBreak())
-
-    # Sections
-    sections = [
-        ("1. Executive Summary & Requirements", tender.war_room_summary),
-        ("2. Submission Checklist", tender.war_room_checklist),
-        ("3. Brand Sourcing Matrix", tender.war_room_brands),
-        ("4. Supplier Intelligence", tender.war_room_suppliers),
+    story = [
+        Paragraph("BID STRATEGY & PROCUREMENT INTELLIGENCE REPORT", title_style),
+        Paragraph(
+            escape(str(tender.serial_number or "")) + " — "
+            + escape(str(tender.bid_title or "")),
+            subtitle_style
+        ),
+        Paragraph(
+            "<b>Purchaser:</b> " + escape(str(tender.purchaser_name or "Not recorded")),
+            body_style
+        ),
+        Paragraph(
+            "<b>Company:</b> " + escape(str(company)),
+            body_style
+        ),
+        Paragraph(
+            "<b>Report generated:</b> "
+            + escape(tender.updated_at.strftime("%d %b %Y %H:%M")),
+            body_style
+        ),
+        Spacer(1, 12),
+        Paragraph(
+            "<b>Important:</b> AI-generated decision support. Verify every "
+            "requirement against the original tender document and obtain "
+            "documentary evidence before submission.",
+            body_style
+        )
     ]
 
-    for title, content in sections:
-        story.append(Paragraph(title, h1_style))
-        story.append(Spacer(1, 10))
-        for line in content.split('\n'):
-            if line.strip():
-                # Simple markdown parsing
-                line = line.replace('**', '')
-                story.append(Paragraph(line, body_style))
-        story.append(PageBreak())
+    def add_text_section(title, content):
+        story.append(Paragraph(escape(title), heading_style))
+        if not content or not str(content).strip():
+            story.append(Paragraph("No information recorded for this section.", body_style))
+            return
+        for line in str(content).splitlines():
+            clean = line.strip()
+            if clean:
+                story.append(
+                    Paragraph(escape(clean).replace("\n", "<br/>"), body_style)
+                )
 
-    # Compliance Matrix Table
-    story.append(Paragraph("5. Compliance Matrix", h1_style))
-    story.append(Spacer(1, 10))
-    
+    add_text_section("1. Executive Summary, Tender Facts and Strategy",
+                     tender.war_room_summary)
+    add_text_section("2. Submission Checklist", tender.war_room_checklist)
+    add_text_section("3. Brand Sourcing Intelligence", tender.war_room_brands)
+    add_text_section("4. Supplier Intelligence", tender.war_room_suppliers)
+
+    story.append(Paragraph("5. Technical Compliance Matrix", heading_style))
+
     if tender.war_room_compliance:
         try:
-            # Parse the CSV
-            csv_reader = csv.reader(io.StringIO(tender.war_room_compliance))
-            table_data = []
-            for row in csv_reader:
-                if row and len(row) > 1: # Ignore empty rows
-                    table_data.append([Paragraph(cell, body_style) for cell in row])
-            
-            if table_data:
-                # Style the table
-                t = Table(table_data, colWidths=[150, 180, 150, 100, 150])
-                t.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f204b')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f4f4f9')),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.gray),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            rows = list(csv.reader(io.StringIO(tender.war_room_compliance)))
+            rows = [row for row in rows if row and any(cell.strip() for cell in row)]
+
+            if rows:
+                column_count = max(len(row) for row in rows)
+                rows = [
+                    row + [""] * (column_count - len(row))
+                    for row in rows
+                ]
+
+                # Widths adapt to the actual number of columns and page size.
+                weights = [0.8, 0.8, 0.9, 1.5, 2.0, 0.7, 1.3,
+                           1.2, 1.0, 1.4, 0.7]
+                if column_count != len(weights):
+                    weights = [1.0] * column_count
+                weights = weights[:column_count]
+                total_weight = sum(weights)
+                col_widths = [
+                    doc.width * weight / total_weight
+                    for weight in weights
+                ]
+
+                table_data = []
+                for row_index, row in enumerate(rows):
+                    style = header_cell_style if row_index == 0 else cell_style
+                    table_data.append([
+                        Paragraph(
+                            escape(str(value)).replace("\n", "<br/>"),
+                            style
+                        )
+                        for value in row
+                    ])
+
+                table = LongTable(
+                    table_data,
+                    colWidths=col_widths,
+                    repeatRows=1,
+                    splitByRow=1,
+                    hAlign="LEFT"
+                )
+                table.setStyle(TableStyle([
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f204b")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#f4f5f8")),
+                    ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#aab1bd")),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
                 ]))
-                # Make first row header bold
-                for i in range(len(table_data[0])):
-                    table_data[0][i] = Paragraph(f"<b>{table_data[0][i].text}</b>", body_style)
-                
-                story.append(t)
-        except Exception as e:
-            story.append(Paragraph(f"Error parsing matrix: {e}", body_style))
+                story.append(table)
+            else:
+                story.append(Paragraph("No compliance rows were recorded.", body_style))
+        except Exception:
+            story.append(Paragraph(
+                "The saved compliance matrix could not be parsed as CSV. "
+                "Review the editable matrix in the War Room.",
+                body_style
+            ))
     else:
         story.append(Paragraph("No compliance matrix data available.", body_style))
 
+    manual_files = [
+        ("Manual summary", tender.bm_manual_summary),
+        ("Manual checklist", tender.bm_manual_checklist),
+        ("Manual brands", tender.bm_manual_brands),
+        ("Manual suppliers", tender.bm_manual_suppliers),
+    ]
+    uploaded_names = []
+    for label, file_field in manual_files:
+        if file_field:
+            uploaded_names.append(f"{label}: {file_field.name}")
+
+    if uploaded_names:
+        story.append(Paragraph("6. Supporting Manual Documents", heading_style))
+        for name in uploaded_names:
+            story.append(Paragraph(escape(name), small_style))
+
+    class NumberedCanvas(canvas.Canvas):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._saved_page_states = []
+
+        def showPage(self):
+            self._saved_page_states.append(dict(self.__dict__))
+            self._startPage()
+
+        def save(self):
+            page_count = len(self._saved_page_states)
+            for state in self._saved_page_states:
+                self.__dict__.update(state)
+                self.setFont("Helvetica", 7)
+                self.setFillColor(colors.grey)
+                self.drawString(
+                    34, 22,
+                    "INFINITY INVESTMENT GROUP | CONFIDENTIAL BID STRATEGY"
+                )
+                self.drawRightString(
+                    doc.pagesize[0] - 34, 22,
+                    f"Page {self._pageNumber} of {page_count}"
+                )
+                canvas.Canvas.showPage(self)
+            canvas.Canvas.save(self)
+
     doc.build(story, canvasmaker=NumberedCanvas)
     buffer.seek(0)
-    
-    response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="Bid_Strategy_{tender.serial_number}.pdf"'
+
+    safe_serial = re.sub(
+        r"[^A-Za-z0-9_-]+", "_", str(tender.serial_number or tender.pk)
+    )
+    response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+    response["Content-Disposition"] = (
+        f'attachment; filename="Bid_Strategy_{safe_serial}.pdf"'
+    )
+    response["Content-Length"] = str(len(buffer.getvalue()))
     return response

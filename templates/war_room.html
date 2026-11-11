@@ -1,27 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Bid Manager War Room
-<script>
-  function downloadPDF(url) {
-      document.getElementById('upload-overlay').style.display = 'flex';
-      document.getElementById('progress-percent').innerText = '⬇️';
-      document.getElementById('progress-percent').classList.add('progress-success');
-      document.getElementById('progress-status').innerText = 'Preparing your document... Please wait.';
-      document.getElementById('progress-bar-fill').style.width = '100%';
-      
-      // Trigger the download in a hidden iframe so the page doesn't navigate away
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = url;
-      document.body.appendChild(iframe);
-      
-      // Hide the overlay after 3 seconds (the browser will have taken over the download)
-      setTimeout(() => {
-          document.getElementById('upload-overlay').style.display = 'none';
-      }, 3000);
-  }
-</script>
-
-{% endblock %}
+{% block title %}Bid Manager War Room{% endblock %}
 {% block content %}
 
 {% if tender.ai_status == 'PROCESSING' %}
@@ -32,6 +10,17 @@
   <p class="meta" style="margin-top:10px; font-size:10px;">If this takes too long, you can type everything manually below.</p>
 </div>
 <script>setTimeout(function() { window.location.reload(); }, 5000);</script>
+{% endif %}
+
+{% if tender.ai_status == 'DONE' %}
+<div class="card" style="border-color:#5fd68a; margin-bottom:20px;">
+  <div style="color:#5fd68a; font-weight:bold;">AI Analysis Completed</div>
+  <div class="meta" style="font-size:12px;">
+    Review the extracted requirements, compliance matrix, lot analysis,
+    commercial findings and sourcing recommendations below. Verify all
+    findings against the original tender before submission.
+  </div>
+</div>
 {% endif %}
 
 {% if tender.ai_status == 'FAILED' %}
@@ -56,8 +45,14 @@
     {% csrf_token %}
     <button class="btn btn-blue" name="action" value="analyze" style="margin:0;">1. Run Deep AI Analysis</button>
   </form>
-  {% if tender.war_room_summary %}
-  <button onclick="downloadPDF('{% url 'war_room_pdf' tender.id %}')" class="btn btn-green" style="margin:0;">⬇️ Download Strategy PDF</button>
+  {% if tender.war_room_summary or tender.war_room_checklist or tender.war_room_compliance %}
+  <a href="{% url 'war_room_pdf' tender.id %}"
+     class="btn btn-green"
+     style="margin:0; text-decoration:none;"
+     target="_blank"
+     rel="noopener">
+    ⬇️ Download Strategy PDF
+  </a>
   {% endif %}
 </div>
 
@@ -210,25 +205,6 @@
   </form>
 </div>
 
-<script>
-  function downloadPDF(url) {
-      document.getElementById('upload-overlay').style.display = 'flex';
-      document.getElementById('progress-percent').innerText = '⬇️';
-      document.getElementById('progress-percent').classList.add('progress-success');
-      document.getElementById('progress-status').innerText = 'Preparing your document... Please wait.';
-      document.getElementById('progress-bar-fill').style.width = '100%';
-      
-      // Trigger the download in a hidden iframe so the page doesn't navigate away
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = url;
-      document.body.appendChild(iframe);
-      
-      // Hide the overlay after 3 seconds (the browser will have taken over the download)
-      setTimeout(() => {
-          document.getElementById('upload-overlay').style.display = 'none';
-      }, 3000);
-  }
-</script>
+
 
 {% endblock %}
